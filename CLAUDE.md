@@ -30,6 +30,7 @@ Los permisos de lectura sobre secretos están en `.claude/settings.json`. Esas r
 <!-- Cuando se sume Codex: mover el contenido a AGENTS.md y dejar en este archivo solo '@AGENTS.md'. -->
 
 ## Herramientas de IA (plugins del proyecto)
+Karpathy guidelines y Agent Skills son de uso personal (plugins de terceros): se configuran en `.claude/settings.local.json`, que no se sube al repositorio. `.claude/settings.json` solo activa frontend-design y security-guidance.
 - Karpathy guidelines: siempre activas (pensar antes, cambios mínimos y quirúrgicos).
 - Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request.
 - frontend-design: al crear pantallas, respetar los prototipos de /docs y Figma; no inventar un diseño nuevo.
