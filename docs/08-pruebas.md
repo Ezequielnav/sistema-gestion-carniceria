@@ -68,7 +68,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-14 | Falla a mitad de la venta (error forzado al registrar el movimiento de caja) | RNF-10 | No quedan venta, detalle, movimiento ni cambio de stock | Confirmado |
 | CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado |
 | CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado |
-| CP-17 | Venta sin caja abierta | RN-03, RF-15 | Se rechaza con mensaje claro | A confirmar (regla implícita en el relevamiento) |
+| CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro | A confirmar (regla implícita en el relevamiento) |
 | CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | A confirmar (PR-12, PR-13) |
 | CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | A confirmar (PR-12) |
 | CP-20 | Venta de carne | RF-20 | Según el nivel de detalle que defina el negocio | A confirmar (PR-01, PR-02) |
@@ -93,7 +93,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 |---|---|---|---|---|
 | CP-40 | Pago de cliente menor o igual a la deuda | RF-36, RF-37, RN-04 | El saldo baja y se registra el ingreso en caja | Confirmado |
 | CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06, RF-38 | El excedente se registra como `ANTICIPO` | A confirmar (PR-15) |
-| CP-42 | El saldo del cliente se calcula desde los movimientos | RI-15 | Saldo = ventas fiadas - pagos; no hay saldo guardado | Confirmado |
+| CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = ventas fiadas - pagos; no hay saldo guardado | Confirmado |
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
 | CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta | A confirmar (PR-13) |
 
@@ -138,7 +138,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 |---|---|---|---|
 | RN-01 | CP-01, CP-02 | RI-01 | CP-02 |
 | RN-02 | CP-03 | RI-02 | CP-05 |
-| RN-03 | CP-05, CP-17 | RI-03 | CP-10 |
+| RN-03 | CP-05 | RI-03 | CP-10 |
 | RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
 | RN-05 | CP-55, CP-56 | RI-05 | CP-18, CP-19 |
 | RN-06 | CP-53 | RI-06 | CP-41 |
