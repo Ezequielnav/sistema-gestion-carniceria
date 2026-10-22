@@ -25,7 +25,7 @@
 | DEC-06 | Se agregan los casos de uso CU-10 a CU-14 (sesión, productos, clientes, proveedores, usuarios) | El relevamiento base no los incluía y sin ellos no se pueden cargar datos (H-04) | Vigente (propuesto; a confirmar con PR-25, PR-26) | 03, 04 |
 | DEC-07 | Los prototipos CU-01 a CU-09 son una referencia v0: **se rediseñan** al construir la interfaz | Ya tienen observaciones (H-11) y la interfaz final se define con Tailwind | Vigente | 04, `prototipos/` |
 | DEC-08 | La documentación vive en `/docs` del repositorio, en Markdown con diagramas Mermaid, y de ahí sale el informe maquetado | El repositorio es la fuente de verdad; el profesor pidió mejorar documentación y maquetado | Vigente | Todos |
-| DEC-09 | Los cambios al repositorio entran por rama y Pull Request; `main` está protegida. Se commitea en local y se publica un único PR cuando el conjunto está completo | Evitar subir cambios a cada rato | Vigente | — |
+| DEC-09 | Los cambios al repositorio entran por rama y Pull Request; `main` está protegida. En la etapa de documentación se commitea en local y se publica un único PR cuando el conjunto está completo; el código va con una rama y un PR por tarea | Evitar subir cambios a cada rato | Vigente | — |
 | DEC-10 | La documentación y el diseño se trabajan en el Proyecto de Claude; el código se desarrolla con Claude Code sobre el repositorio. Codex se suma más adelante | Claude Code es la herramienta que hoy usa el alumno | Vigente | 06 |
 | DEC-11 | Cuando se sume Codex: pasar el contenido de `CLAUDE.md` a `AGENTS.md`, dejar en `CLAUDE.md` solo `@AGENTS.md` y configurar sus permisos | Una sola fuente de instrucciones para ambos agentes | Diferida | 06 |
 | DEC-12 | Los plugins de terceros de Claude Code (karpathy y agent-skills) se configuran en `.claude/settings.local.json`, no en la configuración compartida del repositorio | Evitar que cargue código de terceros sin versión fija; el repositorio es público por ahora | Vigente | `CLAUDE.md`, `.claude/settings.json` |
@@ -73,7 +73,8 @@ Se registraron al revisar el documento del alumno y están detalladas en [01-rel
 
 | Estado actual | Hallazgos |
 |---|---|
-| Esperan respuesta del negocio | H-01, H-02, H-05, H-06, H-07, H-08, H-12, H-13 |
+| Esperan respuesta del negocio | H-01, H-02, H-05, H-06, H-07, H-08, H-13 |
+| Parcialmente resueltos | H-12 (falta PR-07) |
 | Resueltos en la documentación | H-03 (actor Dueños), H-04 (CU-10 a CU-14), H-09 (modelo), H-10 (diagramas en Mermaid), H-11 (prototipos marcados como v0) |
 | Para el informe final | H-14 |
 

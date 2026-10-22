@@ -140,7 +140,6 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 
 ```
 sistema-gestion-carniceria/
-├── CLAUDE.md
 ├── README.md
 ├── docs/                      documentación (fuente de verdad)
 ├── config/                    configuración del proyecto
