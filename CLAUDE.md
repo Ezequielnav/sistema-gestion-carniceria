@@ -14,6 +14,12 @@ Python + Django, PostgreSQL, Tailwind CSS + HTML + JavaScript, arquitectura por 
 - No inventar reglas del negocio: si falta un dato, anotarlo como pregunta pendiente (PR-xx / PA-xx).
 - Dinero con `DecimalField`; nunca `float`.
 
+## Commits, Pull Requests y textos
+- Nunca agregar líneas de atribución a la IA: ni `Co-Authored-By`, ni "Generated with Claude Code", ni enlaces a sesiones de Claude, en commits, Pull Requests, comentarios ni documentos.
+- Nunca dejar mensajes generados por la IA que no sean parte del trabajo: firmas, emojis decorativos, frases como "como modelo de IA" o "espero que esto ayude", notas dirigidas al agente o restos de instrucciones.
+- Commits y Pull Requests en español, sobrios: qué cambió y por qué, citando los IDs que correspondan (RF-xx, CU-xx, DEC-xx). Formato del título: `tipo: descripción` (por ejemplo `docs: ...`, `feat: ...`, `fix: ...`).
+- Antes de commitear o abrir un PR, revisar el mensaje y quitar cualquier texto de este tipo.
+
 ## Credenciales y datos (D-14)
 - Nunca leer, imprimir, copiar ni commitear `.env`, `.env.*` (salvo `.env.example`), claves ni archivos en `~/.ssh`.
 - Las pruebas usan una base local de prueba con datos ficticios y credenciales exclusivas de desarrollo.
