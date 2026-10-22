@@ -9,6 +9,7 @@ Python + Django, PostgreSQL, Tailwind CSS + HTML + JavaScript, arquitectura por 
 
 ## Reglas de trabajo
 - Trabajar siempre en una rama; nunca commitear directo a `main` (está protegida, se entra por PR).
+- Todo Pull Request se abre contra `main`; verificar la rama base antes de crearlo.
 - Cada regla RN-xx / RI-xx lleva al menos una prueba automática.
 - Todo cambio de código actualiza los archivos afectados de `/docs`.
 - No inventar reglas del negocio: si falta un dato, anotarlo como pregunta pendiente (PR-xx / PA-xx).
