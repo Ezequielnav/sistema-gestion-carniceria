@@ -9,6 +9,7 @@ Python + Django, PostgreSQL, Tailwind CSS + HTML + JavaScript, arquitectura por 
 
 ## Reglas de trabajo
 - Trabajar siempre en una rama; nunca commitear directo a `main` (está protegida, se entra por PR).
+- Todo Pull Request se abre contra `main`; verificar la rama base antes de crearlo.
 - Cada regla RN-xx / RI-xx lleva al menos una prueba automática.
 - Todo cambio de código actualiza los archivos afectados de `/docs`.
 - No inventar reglas del negocio: si falta un dato, anotarlo como pregunta pendiente (PR-xx / PA-xx).
@@ -39,5 +40,5 @@ Los permisos de lectura sobre secretos están en `.claude/settings.json`. Esas r
 Karpathy guidelines y Agent Skills son de uso personal (plugins de terceros): se configuran en `.claude/settings.local.json`, que no se sube al repositorio. `.claude/settings.json` solo activa frontend-design y security-guidance.
 - Karpathy guidelines: siempre activas (pensar antes, cambios mínimos y quirúrgicos).
 - Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request.
-- frontend-design: al crear pantallas, respetar los prototipos de /docs y Figma; no inventar un diseño nuevo.
-- Playwright (MCP): probar flujos solo contra el entorno local (localhost) con datos de ejemplo.
+- frontend-design: los prototipos v0 de /docs son solo guía funcional (qué datos y acciones tiene cada pantalla); no copiar su diseño visual (DEC-07).
+- Playwright (MCP), diferido (DEC-14): probar flujos solo contra el entorno local (localhost) con datos de ejemplo.
