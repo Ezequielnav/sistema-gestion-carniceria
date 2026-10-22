@@ -114,12 +114,12 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada**. La columna "Docum
 
 | ID | Pregunta | Por qué importa | Documentos afectados | Estado |
 |---|---|---|---|---|
-| PA-01 | ¿Cuáles son las fechas de las entregas parciales y finales? | Planificación | 07 | Pendiente |
+| PA-01 | ¿Cuáles son las fechas de las entregas parciales y finales? | Planificación | 07 | **Respondida (alumno):** no hay fechas fijas; el alumno decide cuándo presentar un avance al profesor. Ver DEC-16 en 09 |
 | PA-02 | ¿Qué estructura y qué formato exige la cátedra para el informe? | Maquetado y secciones | informe | Pendiente |
 | PA-03 | ¿Profesor y centro universitario para la portada? | Portada | informe | Pendiente |
 | PA-04 | ¿La cátedra exige alguna herramienta de seguimiento (por ejemplo Jira)? | Decisión de gestión de tareas | 07, 09 | Pendiente |
 | PA-05 | ¿La cátedra exige el sistema desplegado en un entorno real o alcanza con una demostración local? | Define si el alojamiento es parte de la entrega | 06, 07 | Pendiente |
-| PA-06 | ¿Cuántas horas por semana se pueden dedicar al proyecto y hasta qué fecha? | Permite recalcular las duraciones de los hitos | 07 | Pendiente |
+| PA-06 | ¿Cuántas horas por semana se pueden dedicar al proyecto y hasta qué fecha? | Permite recalcular las duraciones de los hitos | 07 | **Respondida (alumno):** sin horas fijas; se trabaja por sesiones y se avanza lo que se pueda en cada una. Ver DEC-16 en 09 |
 
 **Devolución del profesor (informada por el alumno):** la idea está bien encaminada; hay que mejorar la documentación y el maquetado.
 

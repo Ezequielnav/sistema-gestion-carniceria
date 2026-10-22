@@ -2,17 +2,18 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 0.1 (borrador) |
-| Estado | **Tentativa.** Las duraciones son estimaciones en semanas; se recalculan cuando se conozcan la fecha de entrega (PA-01) y las horas semanales disponibles (PA-06) |
+| Versión | 0.2 (borrador) |
+| Estado | **Sin fechas fijas.** No hay fecha de entrega impuesta (PA-01) ni horas semanales fijas (PA-06): el alumno decide cuándo presenta un avance al profesor y el trabajo avanza por sesiones, tanto como se pueda en cada una |
 | Base | Hito del sistema definido en [06-arquitectura.md](06-arquitectura.md), requisitos en [03-requisitos.md](03-requisitos.md) y casos de uso en [04-casos-de-uso.md](04-casos-de-uso.md) |
 | Enfoque | Iterativo: se avanza por hitos chicos y se ajusta lo que falte o sobre. Lo que se pueda prever, se resuelve antes |
 
 ## 1. Supuestos
 
 - Proyecto individual: una sola persona decide, desarrolla (con ayuda de agentes de código) y mantiene.
-- La duración de cada hito supone una dedicación constante. No hay dato de horas semanales todavía (PA-06).
-- El plazo que figura en las metas del relevamiento ("prototipo funcional en 2 meses", M-01) se interpreta como **H1 más H2** (base funcionando, caja y venta). Es una propuesta a confirmar.
-- Las fechas del cronograma parten de un inicio supuesto y sirven para ver el orden y la duración; no son compromisos.
+- **No hay fecha de entrega fija** (PA-01). El alumno decide cuándo presentar un avance al profesor; el profesor lo controla y se arma una entrega parcial en ese momento.
+- **No hay horas semanales fijas** (PA-06). Se trabaja por **sesiones**, cuando el alumno quiere, y en cada sesión se avanza tanto como se pueda.
+- Por eso el plan no usa semanas ni fechas: ordena el trabajo en hitos con un **tamaño relativo** (chico, mediano, grande) y define **puntos de entrega** posibles (sección 5).
+- El "prototipo funcional en 2 meses" de las metas del relevamiento base (M-01) deja de ser un plazo: se interpreta como **H1 más H2** (base funcionando, caja y venta), que se presenta cuando el alumno decida.
 
 ## 2. Etapas y entregables
 
@@ -26,16 +27,18 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 
 ## 3. Hitos del sistema
 
-| Hito | Contenido | Casos de uso | Requisitos principales | Se apoya en estas brechas | Duración estimada |
+| Hito | Contenido | Casos de uso | Requisitos principales | Se apoya en estas brechas | Tamaño relativo |
 |---|---|---|---|---|---|
-| H1 | Base funcionando en local: Django con PostgreSQL, las 17 entidades migradas, datos de ejemplo, Tailwind con plantilla responsive, inicio de sesión con roles, CU-11 de punta a punta y primeras pruebas (detalle en [06-arquitectura.md](06-arquitectura.md), sección 6) | CU-10, CU-11 | RF-01, RF-02, RF-21, RNF-01, RNF-02, RNF-03, RNF-13 | PR-04 | 2 semanas |
-| H2 | Caja y ventas | CU-02, CU-03, CU-01, SC-02 | RF-04 a RF-17 | PR-01, PR-05, PR-07, PR-08, PR-09, PR-24 | 3 semanas |
-| H3 | Stock y proveedores | CU-06, CU-13, CU-05, CU-07 | RF-22 a RF-26, RF-29 a RF-33 | PR-03, PR-17, PR-18, PR-20 | 3 semanas |
-| H4 | Clientes y cuentas corrientes | CU-12, CU-04, CU-08, SC-01, SC-03 | RF-18, RF-35 a RF-41 | PR-12, PR-13, PR-14, PR-15, PR-16 | 3 semanas |
-| H5 | Reportes y usuarios | CU-09, CU-14 | RF-03, RF-42 a RF-46 | PR-25, PR-26, PR-27 | 2 semanas |
-| H6 | Integración, pruebas integrales, correcciones, manual de usuario y capacitación breve (RNF-04) | Todos | Todos | PR-23, PR-29 | 2 semanas |
+| H1 | Base funcionando en local: Django con PostgreSQL, las 17 entidades migradas, datos de ejemplo, Tailwind con plantilla responsive, inicio de sesión con roles, CU-11 de punta a punta y primeras pruebas (detalle en [06-arquitectura.md](06-arquitectura.md), sección 6) | CU-10, CU-11 | RF-01, RF-02, RF-21, RNF-01, RNF-02, RNF-03, RNF-13 | PR-04 | Mediano |
+| H2 | Caja y ventas | CU-02, CU-03, CU-01, SC-02 | RF-04 a RF-17 | PR-01, PR-05, PR-07, PR-08, PR-09, PR-24 | Grande |
+| H3 | Stock y proveedores | CU-06, CU-13, CU-05, CU-07 | RF-22 a RF-26, RF-29 a RF-33 | PR-03, PR-17, PR-18, PR-20 | Grande |
+| H4 | Clientes y cuentas corrientes | CU-12, CU-04, CU-08, SC-01, SC-03 | RF-18, RF-35 a RF-41 | PR-12, PR-13, PR-14, PR-15, PR-16 | Grande |
+| H5 | Reportes y usuarios | CU-09, CU-14 | RF-03, RF-42 a RF-46 | PR-25, PR-26, PR-27 | Mediano |
+| H6 | Integración, pruebas integrales, correcciones, manual de usuario y capacitación breve (RNF-04) | Todos | Todos | PR-23, PR-29 | Mediano |
 
-**Prototipo funcional (M-01):** H1 más H2, unas 5 semanas de desarrollo.
+**Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
+
+El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo. Al terminar H1 se anota cuánto costó en sesiones y se ajusta la expectativa de los siguientes.
 
 ### Criterio de aceptación de cada hito
 
@@ -46,46 +49,39 @@ Un hito se da por terminado cuando se cumple lo siguiente:
 3. La documentación afectada de `/docs` está actualizada.
 4. El cambio llegó a `main` por Pull Request aprobado por el alumno.
 
-## 4. Cronograma tentativo
+## 4. Orden del trabajo
 
-El eje es referencial: parte de un inicio supuesto. Lo importante es la duración y el orden.
+Sin fechas: lo que importa es el orden y qué depende de qué.
 
 ```mermaid
-gantt
-    title Cronograma tentativo (fechas supuestas, a ajustar con PA-01 y PA-06)
-    dateFormat YYYY-MM-DD
-    axisFormat %d/%m
-
-    section Documentación
-    Cerrar documentos 07 a 09 y revisar      :a1, 2026-10-26, 7d
-    Subir documentación al repo (PR único)   :a2, after a1, 2d
-    Validación con el responsable del negocio :a3, 2026-10-26, 14d
-
-    section Sistema
-    H1 Base funcionando en local             :h1, after a2, 14d
-    H2 Caja y ventas                         :h2, after h1, 21d
-    H3 Stock y proveedores                   :h3, after h2, 21d
-    H4 Clientes y cuentas corrientes         :h4, after h3, 21d
-    H5 Reportes y usuarios                   :h5, after h4, 14d
-    H6 Integración, pruebas y cierre         :h6, after h5, 14d
-
-    section Entrega
-    Informe final y presentación             :c1, after h4, 28d
+flowchart LR
+    A[Etapa A: documentación 00 a 09 y PR único] --> H1[H1 Base en local]
+    V[Validación con el negocio, en paralelo] -.-> H2
+    H1 --> H2[H2 Caja y ventas]
+    H2 --> H3[H3 Stock y proveedores]
+    H3 --> H4[H4 Clientes y cuentas corrientes]
+    H4 --> H5[H5 Reportes y usuarios]
+    H5 --> H6[H6 Integración y cierre]
+    H4 -.-> C[Etapa C: informe y presentación]
+    H1 -.-> E1((Avance 2))
+    H2 -.-> E2((Prototipo))
 ```
 
-La duración total ronda las **16 a 17 semanas**.
+Las líneas punteadas indican paralelismo o puntos de entrega posibles.
 
-## 5. Escenarios según la fecha de entrega
+## 5. Puntos de entrega (avances al profesor)
 
-Si la fecha de entrega es anterior al fin del cronograma, se recorta alcance según la prioridad de los requisitos (Alta, Media y Baja de [03-requisitos.md](03-requisitos.md)), nunca la calidad de lo que se entrega.
+El alumno elige cuándo presentar. Cada punto de entrega es un estado coherente del repositorio que se puede mostrar, y entre uno y otro se recorta o se amplía alcance según lo que dé cada sesión.
 
-| Escenario | Plazo aproximado | Alcance |
+| Punto | Qué se muestra | Condición mínima |
 |---|---|---|
-| Completo | 16 a 17 semanas | H1 a H6 como está |
-| Reducido | 10 a 11 semanas | H1 y H2 completos; H3 con CU-11, CU-06 y CU-05; H4 con CU-12, CU-04 y CU-08 básicos; H5 con CU-09 básico y CU-14; H6 acotado |
-| Mínimo | 6 a 7 semanas | H1 y H2, más la documentación completa. Es el prototipo funcional |
+| Avance 1 | Documentación 00 a 09 en `main` (PR mergeado), con las brechas todavía "a confirmar" | Etapa A completa |
+| Avance 2 | Sistema base en local: login con roles y gestión de productos (H1) | H1 terminado y sus pruebas pasando |
+| Avance 3 (prototipo) | Caja y ventas funcionando (H1 y H2) | H2 terminado, validación de PR-01 y PR-08 |
+| Avance 4 | Más módulos (H3, H4, H5 según se llegue) | Los hitos incluidos terminados |
+| Entrega final | Sistema integrado, pruebas, informe maquetado y presentación | H6 y etapa C |
 
-**Lo primero que se posterga** (prioridad Baja o "a confirmar"): reportes automáticos (RF-46), pedidos a proveedor (RF-34), control de vencimientos (RF-28), pago mixto (RF-19), anticipos (RF-38) y carga de datos históricos (RF-47).
+Si hace falta recortar, se posterga primero lo de prioridad Baja o "a confirmar" ([03-requisitos.md](03-requisitos.md)): reportes automáticos (RF-46), pedidos a proveedor (RF-34), control de vencimientos (RF-28), pago mixto (RF-19), anticipos (RF-38) y carga de datos históricos (RF-47). Nunca se recorta la calidad de lo que se entrega.
 
 ## 6. Seguimiento de tareas
 
@@ -107,9 +103,9 @@ Cuando el responsable del negocio confirma algo:
 
 | ID | Riesgo | Mitigación |
 |---|---|---|
-| RP-01 | El plazo de la cátedra es menor al cronograma completo | Escenarios de la sección 5; confirmar PA-01 cuanto antes |
+| RP-01 | La cátedra fije una fecha que no deje llegar al alcance completo | Puntos de entrega de la sección 5; el orden de los hitos permite cortar en un estado coherente |
 | RP-02 | Brechas de prioridad alta sin responder al llegar a H2 o H4 | Validación puntual en paralelo; construir con el supuesto más simple y marcarlo "a confirmar" |
-| RP-03 | Estimaciones optimistas, sin dato de horas disponibles | Recalcular con PA-06 al terminar H1 y ajustar el resto |
+| RP-03 | Sin ritmo fijo de trabajo, el avance es difícil de predecir | Medir cuántas sesiones llevó H1 y usarlo para estimar los siguientes hitos |
 | RP-04 | Trabajar con varios agentes a la vez genere conflictos | Una rama por tarea y trabajo en carpetas separadas cuando sea simultáneo |
 | RP-05 | Cambios de la cátedra obliguen a rehacer documentos | Documentación modular en `/docs` y un procedimiento claro para actualizar (sección 6) |
 | RP-06 | El informe final se deje para el último momento | Empieza al terminar H4, en paralelo al desarrollo |
@@ -118,12 +114,12 @@ Cuando el responsable del negocio confirma algo:
 
 | Brecha | Impacto en la planificación |
 |---|---|
-| PA-01 | Fechas de entrega parciales y final |
+| PA-01 | Respondida: no hay fecha fija; el alumno decide cuándo presentar avances. Si la cátedra impone una fecha, se agrega aquí y en [09-decisiones.md](09-decisiones.md) |
 | PA-02 | Estructura y formato exigidos para el informe |
-| PA-06 | Horas semanales disponibles y fecha límite personal |
+| PA-06 | Respondida: sin horas fijas; se trabaja por sesiones y se avanza lo que se pueda en cada una |
 | PA-05 | Si el despliegue es parte de la entrega |
 | PR-33 | Costo del alojamiento, si se despliega |
 
 ## 9. Mantenimiento
 
-Al cambiar fechas o alcance, actualizar este documento y el cronograma, el alcance en [02-alcance-objetivos.md](02-alcance-objetivos.md) (metas M-01) y el tablero de GitHub Projects.
+Al cambiar fechas o alcance, actualizar este documento, el diagrama de orden, el alcance en [02-alcance-objetivos.md](02-alcance-objetivos.md) (metas M-01) y el tablero de GitHub Projects.

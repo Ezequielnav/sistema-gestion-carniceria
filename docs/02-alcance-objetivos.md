@@ -73,7 +73,7 @@ Desarrollar un sistema de gestión web que centralice y organice la información
 
 | ID | Meta | Observación |
 |---|---|---|
-| M-01 | Prototipo funcional del sistema en 2 meses | El plazo se contrasta con el cronograma en [07-planificacion.md](07-planificacion.md) y con las fechas de la cátedra (PA-01) |
+| M-01 | Prototipo funcional del sistema en 2 meses | **Plazo no vigente como fecha:** no hay fecha de entrega fija (PA-01). Se interpreta como el prototipo H1 + H2, que se presenta cuando el alumno decida (ver [07-planificacion.md](07-planificacion.md)) |
 | M-02 | Lograr el registro de ventas y pagos al 100% desde el sistema | **Conflicto:** con Kendra fuera de alcance, las ventas de carne podrían no registrarse. Se resuelve con PR-01 (H-01) |
 | M-03 | Obtener reportes automáticos de ventas y stock al finalizar cada jornada | **Conflicto:** el caso de uso describe reportes a pedido. Se resuelve con PR-27 (H-13) |
 

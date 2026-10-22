@@ -32,6 +32,7 @@
 | DEC-13 | El repositorio pasa a privado más adelante. Al hacerlo, verificar que la protección de `main` siga aplicándose (en el plan gratuito de GitHub puede no aplicarse a repositorios privados) | Posible pérdida de la protección de rama | Diferida (el alumno decide cuándo) | — |
 | DEC-14 | `.mcp.json` (servidor de Playwright, sin secretos) queda fuera de los commits actuales; se versiona después, con versión fija en lugar de `@latest` | No es necesario para la documentación | Diferida | — |
 | DEC-15 | Los riesgos de alcance de `02-alcance-objetivos.md` pasan de RI-xx a RA-xx, porque RI-xx ya identifica las reglas de integridad del modelo de datos | Evitar IDs duplicados | Vigente | 02 |
+| DEC-16 | No hay fecha de entrega fija ni horas semanales fijas (PA-01, PA-06). El alumno decide cuándo presenta un avance al profesor y el trabajo se hace por sesiones. La planificación usa orden de hitos, tamaño relativo y puntos de entrega, sin semanas ni fechas | Respuesta del alumno | Vigente (si la cátedra impone una fecha, se reemplaza) | 01, 02, 07 |
 
 ## 3. Decisiones técnicas (detalle en [06-arquitectura.md](06-arquitectura.md))
 
@@ -87,7 +88,6 @@ Si algún hallazgo se resolvió de forma distinta a la anotada, corregir esta ta
 | PR-12, PR-13 | Cuenta corriente: límites y vencimiento |
 | PR-17, PR-19 | Pagos a proveedores y pedidos |
 | PR-25, PR-27 | Quién es el Administrador y reportes automáticos |
-| PA-01, PA-06 | Fecha de entrega y horas semanales (definen cuál de los escenarios de [07-planificacion.md](07-planificacion.md) es realista) |
 | PA-05, PR-33 | Si hace falta desplegar y con qué costo |
 
 ## 7. Registro de cambios solicitados
