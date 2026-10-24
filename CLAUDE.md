@@ -41,4 +41,4 @@ Karpathy guidelines y Agent Skills son de uso personal (plugins de terceros): se
 - Karpathy guidelines: siempre activas (pensar antes, cambios mínimos y quirúrgicos).
 - Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request.
 - frontend-design: los prototipos v0 de /docs son solo guía funcional (qué datos y acciones tiene cada pantalla); no copiar su diseño visual (DEC-07).
-- Playwright (MCP), diferido (DEC-14): probar flujos solo contra el entorno local (localhost) con datos de ejemplo.
+- Playwright (MCP), vigente (DEC-14): probar flujos solo contra el entorno local (localhost) con datos de ejemplo.

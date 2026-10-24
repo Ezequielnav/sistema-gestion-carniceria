@@ -72,8 +72,8 @@
                     {% endif %}
                   </td>
                   <td class="px-5 py-3 text-right whitespace-nowrap">
-                    <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>
                     {% if producto.activo %}
+                      <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>
                       <a href="{% url 'catalogo:baja' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja</a>
                     {% endif %}
                   </td>

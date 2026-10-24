@@ -125,6 +125,11 @@ def _pedir(vista, usuario):
     return vista(request)
 
 
+def test_una_funcion_inexistente_falla_con_un_error_claro():
+    with pytest.raises(ValueError, match="no existe la función 'Ventass'"):
+        _vista("Ventass")
+
+
 def test_cp52_una_pantalla_protegida_pide_sesion():
     respuesta = _pedir(_vista("Reportes"), AnonymousUser())
 

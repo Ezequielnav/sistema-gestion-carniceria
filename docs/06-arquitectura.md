@@ -285,13 +285,14 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | RT-04 | El agente introduce cambios sin pruebas | Pull Request obligatorio, pruebas automáticas y reglas en `CLAUDE.md` |
 | RT-05 | Reglas de negocio mezcladas con las pantallas | Capa de servicios y pruebas de reglas |
 | RT-06 | Poco conocimiento repartido del sistema | Documentación actualizada en `/docs` y pruebas que explican el comportamiento |
+| RT-07 | El inicio de sesión no limita los intentos fallidos: se puede probar contraseñas sin freno (fuerza bruta) | En local el riesgo es bajo. Si el sistema se despliega (PA-05), agregar un límite de intentos por usuario y por dirección antes de publicarlo |
 
 ## 12. Preguntas pendientes que afectan esta arquitectura
 
 | Brecha | Impacto |
 |---|---|
 | PR-33 | Costo y elección del alojamiento |
-| PA-05 | Si el despliegue es parte de la entrega |
+| PA-05 | Si el despliegue es parte de la entrega; si lo es, antes hay que limitar los intentos de inicio de sesión (RT-07) |
 | PR-23 | Cantidad de usuarios y dispositivos |
 | PR-29 | Contingencia ante caída de internet |
 | PR-24 | Impresión de tickets |

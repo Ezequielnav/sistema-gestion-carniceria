@@ -14,7 +14,9 @@ from apps.comun.menu import FUNCIONES, puede_usar
 
 def requiere_funcion(nombre):
     """Vista solo para usuarios con sesión cuyo rol tiene la función `nombre` (403 si no)."""
-    funcion = next(f for f in FUNCIONES if f.nombre == nombre)
+    funcion = next((f for f in FUNCIONES if f.nombre == nombre), None)
+    if funcion is None:
+        raise ValueError(f"requiere_funcion: no existe la función {nombre!r} en apps/comun/menu.py")
 
     def decorador(vista):
         @wraps(vista)

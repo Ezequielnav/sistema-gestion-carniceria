@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.models import fields_for_model
 
-from apps.catalogo.models import Producto
+from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import CAMPOS_EDITABLES
 
 ETIQUETAS = {
@@ -30,6 +30,8 @@ class ProductoForm(forms.Form):
             fields_for_model(Producto, fields=CAMPOS_EDITABLES, labels=ETIQUETAS, help_texts=AYUDAS)
         )
         self.fields["categoria"].empty_label = "Sin categoría"
+        # Sin unidad por defecto: la primera opción no es válida y obliga a elegir (PR-03).
+        self.fields["unidad_medida"].choices = [("", "Elegí una unidad"), *UnidadMedida.choices]
         for campo in self.fields.values():
             if isinstance(campo.widget, forms.CheckboxInput):
                 campo.widget.attrs["class"] = "casilla"
