@@ -466,8 +466,10 @@ flowchart LR
 
 | ID | Condición | Resultado |
 |---|---|---|
-| A1 | El plus interno o el nombre ya existe | El sistema avisa y no guarda (propuesta) |
+| A1 | El plus interno ya existe | El sistema avisa junto al campo y no guarda. El nombre repetido no se bloquea: era una propuesta y no está confirmada (PR-04, PR-22) |
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
+
+**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; la reactivación se hace desde el panel de administración. La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) llega con H2 (DEC-33).
 
 ### CU-12 Gestionar clientes
 

@@ -9,5 +9,6 @@ admin.site.index_title = "Panel"
 urlpatterns = [
     path("", inicio, name="inicio"),
     path("", include("apps.usuarios.urls")),
+    path("productos/", include("apps.catalogo.urls")),
     path("admin/", admin.site.urls),
 ]

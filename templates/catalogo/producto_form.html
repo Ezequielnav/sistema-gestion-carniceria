@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block titulo %}{% if producto %}Editar producto{% else %}Nuevo producto{% endif %}{% endblock %}
+{% block encabezado %}Productos{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-2xl">
+    <a href="{% url 'catalogo:productos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a productos</a>
+    <h2 class="mt-2 text-2xl font-semibold tracking-tight">{% if producto %}Editar «{{ producto.nombre }}»{% else %}Nuevo producto{% endif %}</h2>
+
+    <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% for campo in form %}
+          <div class="{% if campo.name == 'nombre' %}sm:col-span-2{% endif %}">
+            {% if campo.widget_type == "checkbox" %}
+              <label class="flex items-center gap-2 pt-7 text-sm font-medium text-gray-700">{{ campo }} {{ campo.label }}</label>
+            {% else %}
+              <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+              {{ campo }}
+            {% endif %}
+            {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
+            {% for error in campo.errors %}
+              <p class="mt-1.5 text-sm text-red-700">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <p class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
+        {% if producto %}
+          Stock actual: <span class="cifras font-medium">{{ producto.stock_actual|floatformat:"-3" }}</span>.
+        {% else %}
+          El stock arranca en 0.
+        {% endif %}
+        Lo cambian solo las ventas y los ingresos de mercadería.
+      </p>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <a href="{% url 'catalogo:productos' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
+        <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+          {% if producto %}Guardar cambios{% else %}Dar de alta{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

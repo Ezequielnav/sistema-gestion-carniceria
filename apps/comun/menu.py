@@ -36,6 +36,7 @@ FUNCIONES = [
         "CU-11",
         frozenset({ADMIN, CAJERA}),
         "paquete",
+        url="catalogo:productos",
         requiere_alta_productos=True,
     ),
     Funcion("Stock", "Existencias y faltantes", "CU-06", frozenset({ADMIN}), "capas"),

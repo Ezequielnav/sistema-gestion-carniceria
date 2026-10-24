@@ -37,4 +37,8 @@
   .campo {
     @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base shadow-xs placeholder:text-gray-400 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/20;
   }
+
+  .casilla {
+    @apply size-4 rounded border-gray-300 accent-red-600;
+  }
 }

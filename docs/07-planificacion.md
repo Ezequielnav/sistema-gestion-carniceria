@@ -38,9 +38,9 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
 
-**Estado:** H1 en curso (etapa 1 de 3: proyecto, modelo de datos y pruebas de integridad). H2 a H6 pendientes.
+**Estado:** H1 con sus tres etapas terminadas en local (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). Falta el Pull Request a `main`. H2 a H6 pendientes.
 
-El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo. Al terminar H1 se anota cuánto costó en sesiones y se ajusta la expectativa de los siguientes.
+El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo.
 
 ### Criterio de aceptación de cada hito
 
@@ -107,7 +107,7 @@ Cuando el responsable del negocio confirma algo:
 |---|---|---|
 | RP-01 | La cátedra fije una fecha que no deje llegar al alcance completo | Puntos de entrega de la sección 5; el orden de los hitos permite cortar en un estado coherente |
 | RP-02 | Brechas de prioridad alta sin responder al llegar a H2 o H4 | Validación puntual en paralelo; construir con el supuesto más simple y marcarlo "a confirmar" |
-| RP-03 | Sin ritmo fijo de trabajo, el avance es difícil de predecir | Medir cuántas sesiones llevó H1 y usarlo para estimar los siguientes hitos |
+| RP-03 | Sin ritmo fijo de trabajo, el avance es difícil de predecir | Avanzar por hitos chicos y puntos de entrega coherentes (sección 5) |
 | RP-04 | Trabajar con varios agentes a la vez genere conflictos | Una rama por tarea y trabajo en carpetas separadas cuando sea simultáneo |
 | RP-05 | Cambios de la cátedra obliguen a rehacer documentos | Documentación modular en `/docs` y un procedimiento claro para actualizar (sección 6) |
 | RP-06 | El informe final se deje para el último momento | Empieza al terminar H4, en paralelo al desarrollo |

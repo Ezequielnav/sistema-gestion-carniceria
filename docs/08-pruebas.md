@@ -39,7 +39,7 @@ No se prevén pruebas de carga ni de interfaz automatizadas: no se justifican pa
 | Credenciales | Exclusivas de desarrollo, definidas en el `.env` local (no se sube). Ver D-14 en [06-arquitectura.md](06-arquitectura.md) |
 | Datos | Ficticios, cargados con un comando propio (H1.3) o creados dentro de cada prueba |
 | Reloj | Las pruebas que dependen de fecha o turno fijan la fecha, para no depender del día en que se corren |
-| Integración continua | GitHub Actions corre las pruebas en cada Pull Request cuando existan las primeras (D-09) |
+| Integración continua | GitHub Actions corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (D-09, `.github/workflows/pruebas.yml`) |
 
 ## 4. Casos de prueba automáticos
 
@@ -106,11 +106,11 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-52 | Usuario sin sesión accede a una pantalla | RNF-06 | Redirige al inicio de sesión | Confirmado |
 | CP-53 | Dueños intentan crear o modificar datos | RN-06, RF-45 | Se rechaza (403 en las pantallas, sin acceso al panel); sí pueden ver reportes | Confirmado |
 | CP-54 | Cajera accede a funciones de administrador | RF-02 | Se rechaza (403 en las pantallas, sin acceso al panel) | Confirmado |
-| CP-55 | Cajera sin permiso crea un producto | RN-05 | Se rechaza | Confirmado |
-| CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea | Confirmado |
-| CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas | Confirmado |
+| CP-55 | Cajera sin permiso crea un producto | RN-05 | Se rechaza en el servicio, en la pantalla y por URL directa (403) | Confirmado |
+| CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; el alta durante la venta se prueba en H2. La cajera con permiso no modifica ni da de baja | Confirmado |
+| CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador | Confirmado |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
-| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza | Confirmado para `usuario`; `producto` a confirmar (PR-03, PR-22) |
+| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1) | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-04, PR-22) |
 
 ### 4.6 Reportes (CU-09)
 
@@ -179,6 +179,7 @@ Se ejecutan al cerrar cada hito, en Chrome de PC y en un celular. Cada recorrido
 | Fecha | Recorrido | Resultado | Observaciones |
 |---|---|---|---|
 | 2026-10-22 | RM-01 | OK | En local con los usuarios de ejemplo (H1.3), en PC y en tamaño de celular (375 px). Clave equivocada: mensaje genérico. Administrador: productos, stock, clientes, proveedores, reportes, usuarios y el panel. Cajera con permiso: ventas, caja y productos. Cajera sin permiso: ventas y caja; el panel le pide ingresar de nuevo. Dueño: reportes. Las funciones sin pantalla aparecen deshabilitadas ("Pronto"). Los cuatro salen y vuelven al ingreso. Recorrido confirmado por el alumno: hecho |
+| 2026-10-22 | RM-02 | OK | En local con los usuarios de ejemplo. Administrador: alta de un producto de prueba (plus 990), edición del precio, plus repetido rechazado con el mensaje junto al campo, baja con confirmación; el producto deja de listarse y aparece "Dado de baja" con el filtro "Incluir dados de baja", sin opción de reactivar. Cajera con permiso: listado sin stock, sin Editar, sin Dar de baja y sin el filtro; alta de un producto (plus 991); la URL de edición responde "Sin permiso". Cajera sin permiso: el menú no muestra Productos y `/productos/` y `/productos/nuevo/` responden "Sin permiso" (CP-55). Recorrido hecho por el agente en el navegador; validado por el alumno |
 
 ## 7. Criterios de aceptación por hito
 

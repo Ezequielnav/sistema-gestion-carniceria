@@ -37,7 +37,7 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-06 | Autenticación | **Sesiones de Django** con permisos por rol. JWT no se usa por ahora. En H1 los permisos salen del campo `rol` del usuario y de una tabla de funciones por rol (`apps/comun/menu.py`), la misma que arma el menú; no se usan los grupos de Django (DEC-32) | Recomendación (delegada por el alumno) | Media |
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
-| D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions corre las pruebas en cada Pull Request cuando existan las primeras | Propuesta | Fácil |
+| D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1) | Propuesta | Fácil |
 | D-10 | Reportes PDF y Excel | Diferidos hasta CU-09 | Propuesta | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
