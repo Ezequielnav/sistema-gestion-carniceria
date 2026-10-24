@@ -20,7 +20,7 @@
 | Etapa | Contenido | Entregable | Estado |
 |---|---|---|---|
 | A. Documentación | Cerrar los documentos 07, 08 y 09, revisar la consistencia y subir todo al repositorio en un solo Pull Request | `/docs` completo y coherente | Terminada (Avance 1 disponible) |
-| B. Sistema | Construir la aplicación por hitos (sección 3) | Sistema funcionando en local, con pruebas | En curso (H1) |
+| B. Sistema | Construir la aplicación por hitos (sección 3) | Sistema funcionando en local, con pruebas | En curso (H2) |
 | C. Informe y presentación | Armar el informe final maquetado a partir de `/docs` y la presentación | Informe y presentación listos para entregar | Pendiente |
 
 En paralelo a la etapa A corre la **validación puntual con el responsable del negocio** (preguntas de prioridad alta de [01-relevamiento.md](01-relevamiento.md)). No bloquea el avance: lo no confirmado queda marcado "a confirmar".
@@ -38,7 +38,7 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
 
-**Estado:** H1 con sus tres etapas terminadas en local (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). Falta el Pull Request a `main`. H2 a H6 pendientes.
+**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 a H6 pendientes.
 
 El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo.
 

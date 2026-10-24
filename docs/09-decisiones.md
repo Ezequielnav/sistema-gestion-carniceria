@@ -56,6 +56,8 @@
 
 **Nota sobre D-14:** las reglas de denegar lectura de Claude Code no alcanzan a los procesos que lance. Se acepta porque las credenciales locales son descartables. Si más adelante hubiera secretos con valor, se agrega un entorno aislado.
 
+**Cambio en D-14 (H2):** `.claude/settings.json` deja de usar la regla `Read(./.env.*)`, que también bloqueaba `.env.example`, y deniega la lectura de cada archivo con secretos por su nombre: `.env`, `.env.local`, `.env.development`, `.env.development.local`, `.env.test`, `.env.test.local`, `.env.staging`, `.env.production`, `.env.production.local`, `.env.prod`, `.env.dev`, `.env.backup`, `.env.bak` y `.env.old`. Así el agente puede leer `.env.example`, que no tiene secretos. Un archivo `.env.*` con otro nombre no queda cubierto: si aparece uno, se agrega a la lista. `.gitignore` sigue ignorando todos los `.env.*` salvo `.env.example`.
+
 ## 4. Decisiones del modelo de datos (detalle en [05-modelo-datos.md](05-modelo-datos.md))
 
 | ID | Decisión | Motivo | Estado |

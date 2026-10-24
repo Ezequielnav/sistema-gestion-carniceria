@@ -108,9 +108,9 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-54 | Cajera accede a funciones de administrador | RF-02 | Se rechaza (403 en las pantallas, sin acceso al panel) | Confirmado |
 | CP-55 | Cajera sin permiso crea un producto | RN-05 | Se rechaza en el servicio, en la pantalla y por URL directa (403) | Confirmado |
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; el alta durante la venta se prueba en H2. La cajera con permiso no modifica ni da de baja | Confirmado |
-| CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador | Confirmado |
+| CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador y no se edita desde la pantalla ni por su URL (DEC-33) | Confirmado |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
-| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1) | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-04, PR-22) |
+| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-04, PR-22) |
 
 ### 4.6 Reportes (CU-09)
 

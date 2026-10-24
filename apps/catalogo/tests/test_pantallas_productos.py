@@ -80,6 +80,19 @@ def test_por_defecto_solo_se_listan_los_activos(client, admin, producto):
     contenido = respuesta.content.decode()
     assert "Dado de baja" in contenido
     assert _baja(producto) not in contenido  # sin reactivar ni volver a dar de baja
+    assert _editar(producto) not in contenido
+
+
+def test_un_producto_dado_de_baja_no_se_edita_por_url(client, admin, producto):
+    # DEC-33: se reactiva solo desde el panel.
+    producto.activo = False
+    producto.save()
+    client.force_login(admin)
+
+    assert client.get(_editar(producto)).status_code == 404
+    assert client.post(_editar(producto), _form(nombre="Cambiado")).status_code == 404
+    producto.refresh_from_db()
+    assert producto.nombre == "Aceite 1 l"
 
 
 def test_la_cajera_no_ve_el_filtro_ni_los_dados_de_baja(client, cajera_alta, producto):
@@ -171,6 +184,34 @@ def test_cp59_plus_repetido_muestra_el_mensaje_junto_al_campo(client, admin):
         "plus_interno": ["Ya existe un producto con el plus interno 700."]
     }
     assert Producto.objects.count() == 1
+
+
+def test_tras_un_error_al_editar_el_titulo_muestra_el_nombre_guardado(client, admin):
+    client.force_login(admin)
+    client.post(NUEVO, _form())
+    client.post(NUEVO, _form(nombre="Arroz", plus_interno="800"))
+    arroz = Producto.objects.get(plus_interno="800")
+
+    respuesta = client.post(_editar(arroz), _form(nombre="Nombre sin guardar"))
+
+    assert respuesta.context["form"].errors == {
+        "plus_interno": ["Ya existe un producto con el plus interno 700."]
+    }
+    contenido = respuesta.content.decode()
+    assert "Editar «Arroz»" in contenido
+    assert "Editar «Nombre sin guardar»" not in contenido
+
+
+def test_la_unidad_de_medida_no_viene_elegida_y_es_obligatoria(client, admin):
+    client.force_login(admin)
+
+    campo = client.get(NUEVO).context["form"]["unidad_medida"]
+    assert campo.field.choices[0] == ("", "Elegí una unidad")
+    assert "---------" not in str(campo)
+
+    respuesta = client.post(NUEVO, _form(unidad_medida=""))
+    assert "unidad_medida" in respuesta.context["form"].errors
+    assert not Producto.objects.exists()
 
 
 def test_precio_negativo_muestra_el_mensaje_junto_al_campo(client, admin):

@@ -76,7 +76,8 @@ def nuevo(request):
 def editar(request, pk):
     if not puede_modificar(request.user):
         raise PermissionDenied
-    producto = get_object_or_404(Producto, pk=pk)
+    # Un producto dado de baja se reactiva solo desde el panel (DEC-33).
+    producto = get_object_or_404(Producto, pk=pk, activo=True)
     form = ProductoForm(request.POST or None, initial=model_to_dict(producto, CAMPOS_EDITABLES))
     respuesta = _guardar_con(
         request,
@@ -84,9 +85,12 @@ def editar(request, pk):
         lambda datos: modificar_producto(request.user, producto, datos),
         "Se guardaron los cambios de «{producto}».",
     )
-    return respuesta or render(
-        request, "catalogo/producto_form.html", {"form": form, "producto": producto}
-    )
+    if respuesta:
+        return respuesta
+    if request.method == "POST":
+        # Si el servicio rechazó los datos, el título vuelve a mostrar lo guardado.
+        producto.refresh_from_db()
+    return render(request, "catalogo/producto_form.html", {"form": form, "producto": producto})
 
 
 @requiere_funcion("Productos")

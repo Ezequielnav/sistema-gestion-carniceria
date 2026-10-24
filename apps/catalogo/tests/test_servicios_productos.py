@@ -1,9 +1,11 @@
 """CU-11: reglas de apps/catalogo/services.py."""
 
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import QuerySet
 
 from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import (
@@ -77,6 +79,23 @@ def test_cp59_plus_interno_repetido_no_se_guarda_y_avisa(admin):
     crear_producto(admin, _datos())
 
     with pytest.raises(ValidationError) as error:
+        crear_producto(admin, _datos(nombre="Otro"))
+
+    assert error.value.message_dict == {
+        "plus_interno": ["Ya existe un producto con el plus interno 700."]
+    }
+    assert Producto.objects.count() == 1
+
+
+def test_cp59_plus_guardado_a_la_vez_por_otra_operacion_avisa_igual(admin):
+    crear_producto(admin, _datos())
+
+    # Simula que el otro guardado ocurre entre la verificación previa y el save: la base
+    # rechaza el plus y el servicio lo traduce al mismo mensaje.
+    with (
+        mock.patch.object(QuerySet, "exists", return_value=False),
+        pytest.raises(ValidationError) as error,
+    ):
         crear_producto(admin, _datos(nombre="Otro"))
 
     assert error.value.message_dict == {
