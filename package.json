@@ -1,0 +1,13 @@
+{
+  "name": "sistema-gestion-carniceria",
+  "private": true,
+  "description": "Solo compila los estilos de Tailwind (D-13).",
+  "scripts": {
+    "estilos": "tailwindcss -i static/src/estilos.css -o static/css/estilos.css --minify",
+    "estilos:vigilar": "tailwindcss -i static/src/estilos.css -o static/css/estilos.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

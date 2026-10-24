@@ -8,7 +8,7 @@
 | Criterio | Se incluye ahora lo que es barato de definir y caro de cambiar después. Lo que agrega complejidad permanente y se puede sumar más adelante queda diferido |
 | Alcance de esta etapa | Dejar funcionando **en local** la base de datos, el back y el front. No se preparan archivos de despliegue |
 
-> Las versiones concretas de las herramientas no se fijan en este documento: se elige la versión estable vigente al iniciar el desarrollo y se anota en el archivo de dependencias del repositorio.
+> Las versiones se eligieron al iniciar el desarrollo (H1) y se anotan en D-02 y D-04; las dependencias de Python quedan con versión fija en `requirements.txt`.
 
 ## 1. Requisitos que condicionan la arquitectura
 
@@ -30,18 +30,18 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | ID | Tema | Decisión | Origen | Reversibilidad |
 |---|---|---|---|---|
 | D-01 | Estilo de arquitectura | Arquitectura **por capas**, en un solo proyecto (monolito en capas) | Elegido por el alumno | Difícil |
-| D-02 | Lenguaje y framework | Python con **Django** | Elegido por el alumno | Difícil |
+| D-02 | Lenguaje y framework | Python con **Django**. Versiones: Python 3.13 y Django 5.2 LTS (`requirements.txt`) | Elegido por el alumno | Difícil |
 | D-03 | Interfaz | HTML con plantillas de Django, **Tailwind CSS** y **JavaScript** propio | Elegido por el alumno | Media |
-| D-04 | Base de datos | **PostgreSQL** | Elegido por el alumno | Difícil |
+| D-04 | Base de datos | **PostgreSQL**. Versión local: 18 | Elegido por el alumno | Difícil |
 | D-05 | Claves primarias | Numéricas autoincrementales de 64 bits | Recomendación (delegada por el alumno) | Difícil |
-| D-06 | Autenticación | **Sesiones de Django** con grupos de permisos por rol. JWT no se usa por ahora | Recomendación (delegada por el alumno) | Media |
+| D-06 | Autenticación | **Sesiones de Django** con permisos por rol. JWT no se usa por ahora. En H1 los permisos salen del campo `rol` del usuario y de una tabla de funciones por rol (`apps/comun/menu.py`), la misma que arma el menú; no se usan los grupos de Django (DEC-32) | Recomendación (delegada por el alumno) | Media |
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
 | D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions corre las pruebas en cada Pull Request cuando existan las primeras | Propuesta | Fácil |
 | D-10 | Reportes PDF y Excel | Diferidos hasta CU-09 | Propuesta | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
-| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos, sin empaquetador de JavaScript | Propuesta | Fácil |
+| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript | Propuesta | Fácil |
 | D-14 | Credenciales de la base local | `.env.example` solo con nombres y valores de ejemplo; el `.env` local queda fuera de GitHub y del permiso de lectura de los agentes; las pruebas usan una base de prueba con credenciales exclusivas de desarrollo | Decidida (sección 6) | Fácil |
 
 ### 2.1 Autenticación: por qué sesiones y no JWT (D-06)
@@ -134,7 +134,8 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | `catalogo` | `categoria`, `producto` | CU-06, CU-11 |
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
-| `reportes` | (consultas sobre las anteriores) | CU-09 |
+| `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |
+| `comun` | Ninguna: solo el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades | — |
 
 ### Estructura propuesta del repositorio
 
@@ -144,15 +145,19 @@ sistema-gestion-carniceria/
 ├── docs/                      documentación (fuente de verdad)
 ├── config/                    configuración del proyecto
 ├── apps/
+│   ├── comun/                 modelo base de auditoría
 │   └── <módulo>/              usuarios, caja, ventas, catalogo, proveedores, clientes, reportes
 │       ├── models.py          capa de acceso a datos
 │       ├── services.py        capa de servicios (reglas de negocio)
 │       ├── views.py           capa de vistas
 │       ├── forms.py
 │       ├── urls.py
+│       ├── admin.py           registro en el panel de administración
 │       └── tests/
 ├── templates/                 plantillas HTML
 ├── static/                    JavaScript, estilos compilados y recursos
+├── conftest.py                datos ficticios compartidos por las pruebas
+├── pyproject.toml             configuración de ruff y pytest
 ├── requirements.txt           dependencias con versión fija
 ├── .env.example               plantilla: solo nombres y valores de ejemplo
 ├── CLAUDE.md                  instrucciones para Claude Code
@@ -194,7 +199,7 @@ El objetivo de esta etapa es tener la base de datos, el back y el front funciona
 | H1.1 | Proyecto Django configurado con PostgreSQL local y variables de entorno | El servidor arranca y conecta a la base |
 | H1.2 | Modelos y migraciones de las 17 entidades de [05-modelo-datos.md](05-modelo-datos.md), con sus restricciones `UNIQUE`, `CHECK` y claves foráneas | Las migraciones se aplican en una base vacía |
 | H1.3 | Datos de ejemplo cargables con un comando (sin datos reales) | Hay productos, clientes y usuarios de prueba |
-| H1.4 | Tailwind configurado y plantilla base responsive con menú según el rol | La página se ve bien en PC y en celular |
+| H1.4 | Tailwind configurado y plantilla base responsive con menú según el rol (`templates/base.html`, `apps/comun/menu.py`; estilo en DEC-30) | La página se ve bien en PC y en celular |
 | H1.5 | Inicio y cierre de sesión con permisos por rol (CU-10; RF-01, RF-02) | Cada rol ve solo sus funciones |
 | H1.6 | Un caso de uso completo de punta a punta que atraviese todas las capas: **CU-11 Gestionar productos** (alta, modificación y baja lógica) | Se puede crear y editar un producto desde la pantalla y queda en la base |
 | H1.7 | `pytest` funcionando con la base de datos de prueba y las primeras pruebas de reglas de integridad | Las pruebas pasan |
@@ -223,9 +228,9 @@ CU-11 se elige para el hito porque no depende de otros casos de uso y ejercita t
 | Dinero y cantidades | `DecimalField` con dos decimales para montos; nunca `float` |
 | Transacciones | Cada servicio que toca varias tablas usa una transacción atómica (RNF-10) |
 | Zona horaria | Guardar en UTC y mostrar en hora local |
-| Panel de administración de Django | Útil para el alta inicial de datos y para el administrador, pero la cajera usa pantallas propias |
+| Panel de administración de Django | Útil para el alta inicial de datos y para el administrador, pero la cajera usa pantallas propias. Usa el tema django-unfold con el estilo del sistema (DEC-30). Desde H1 todos los modelos están registrados; el primer administrador se crea con `createsuperuser` (ver `README.md`). Los registros operativos (cajas, cierres, movimientos de caja, ventas, pagos, ingresos y movimientos de cuenta corriente) se consultan en el panel pero no se cargan, modifican ni borran ahí: se crean solo desde su caso de uso, que aplica las reglas en una transacción (DEC-31). Los formularios repiten los límites de la base (no negativo, mayor a 0) para mostrar el error junto al campo |
 | Datos de ejemplo | Un comando que carga datos ficticios, para desarrollar y probar sin datos reales |
-| Formato del código | Una herramienta automática de formato y análisis, ejecutada antes de cada commit |
+| Formato del código | Una herramienta automática de formato y análisis, ejecutada antes de cada commit: `ruff` (configurado en `pyproject.toml`) |
 | Reglas de negocio | Cada regla RN-xx o RI-xx con al menos una prueba automática |
 | Documentación | Todo cambio de código actualiza los archivos afectados de `/docs` |
 
@@ -234,8 +239,8 @@ CU-11 se elige para el hito porque no depende de otros casos de uso y ejercita t
 | Aspecto | Decisión |
 |---|---|
 | Contraseñas | Con el sistema de hash del framework, nunca en texto plano (RNF-07) |
-| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02) |
-| Sesiones | Cookies protegidas y cierre por inactividad; el tiempo se define con el negocio |
+| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02). Cada pantalla se protege con `requiere_funcion`, que usa la tabla del menú: sin sesión redirige al ingreso y sin permiso responde 403. El panel de Django es solo para el Administrador (DEC-32). Qué ve la cajera en el inicio está a confirmar (PR-35) |
+| Sesiones | Cookies protegidas y cierre por inactividad. El tiempo está a confirmar (PR-34); mientras tanto queda el valor por defecto de Django (dos semanas). Salir cierra la sesión en el servidor |
 | Formularios | Protección contra falsificación de solicitudes del framework |
 | Base de datos | Consultas por el ORM, que evita la inyección SQL |
 | Secretos | Variables de entorno; el repositorio solo incluye `.env.example` sin secretos (RE-02, D-14) |
@@ -291,6 +296,8 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | PR-29 | Contingencia ante caída de internet |
 | PR-24 | Impresión de tickets |
 | PR-04 | Lector de códigos de barras y formato del plus interno |
+| PR-34 | Tiempo de cierre de sesión por inactividad |
+| PR-35 | Qué ve la cajera en el inicio (total del día y últimas ventas, o solo su caja) |
 
 ## 13. Mantenimiento
 

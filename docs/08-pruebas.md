@@ -101,15 +101,15 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
-| CP-50 | Inicio de sesión correcto e incorrecto | RF-01 | Entra con credenciales válidas; con inválidas, no | Confirmado |
+| CP-50 | Inicio de sesión correcto e incorrecto | RF-01 | Entra con credenciales válidas; con inválidas o dado de baja, no, con un mensaje genérico (CU-10 A1, A2) | Confirmado |
 | CP-51 | La contraseña no se guarda en texto plano | RNF-07 | En la base figura el hash | Confirmado |
 | CP-52 | Usuario sin sesión accede a una pantalla | RNF-06 | Redirige al inicio de sesión | Confirmado |
-| CP-53 | Dueños intentan crear o modificar datos | RN-06, RF-45 | Se rechaza; sí pueden ver reportes | Confirmado |
-| CP-54 | Cajera accede a funciones de administrador | RF-02 | Se rechaza | Confirmado |
+| CP-53 | Dueños intentan crear o modificar datos | RN-06, RF-45 | Se rechaza (403 en las pantallas, sin acceso al panel); sí pueden ver reportes | Confirmado |
+| CP-54 | Cajera accede a funciones de administrador | RF-02 | Se rechaza (403 en las pantallas, sin acceso al panel) | Confirmado |
 | CP-55 | Cajera sin permiso crea un producto | RN-05 | Se rechaza | Confirmado |
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea | Confirmado |
 | CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas | Confirmado |
-| CP-58 | Intentar borrar un registro referenciado | RI-11 | La base lo impide | Confirmado |
+| CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
 | CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza | Confirmado para `usuario`; `producto` a confirmar (PR-03, PR-22) |
 
 ### 4.6 Reportes (CU-09)
@@ -127,8 +127,13 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 |---|---|---|---|
 | CP-70 | `movimiento_caja` con ninguna o más de una referencia a venta/pago | RI-13 | La base rechaza el registro |
 | CP-71 | Montos negativos y cantidades menores o iguales a cero en la base | RI-16 | La base los rechaza (restricción `CHECK`, no solo validación de formulario) |
-| CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores |
-| CP-73 | Las 17 entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo |
+| CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores, no quedan migraciones sin aplicar y los modelos no tienen cambios sin migrar |
+| CP-73 | Las 17 entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo: las 17 tablas (y ninguna condicional), auditoría en todas, cada `CHECK` y `UNIQUE` de la sección 7.4 (los parciales, con su condición), los índices de la sección 7.5 y toda clave foránea con `PROTECT` |
+| CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: productos, stock, clientes, proveedores, reportes y usuarios; cajera: ventas y caja, y productos solo con permiso de alta; dueños: solo reportes |
+| CP-75 | Abrir el inicio sin sesión | RF-01, RNF-06 (H1.4) | Redirige al ingreso |
+| CP-76 | Resumen del día en el inicio | H1.4 (DEC-30) | Ventas de hoy (cantidad y monto, sin las de otros días), cajas abiertas, productos activos y últimas ventas salen de la base |
+| CP-77 | Cargar los datos de ejemplo dos veces | H1.3 | No se duplica nada; hay un usuario por rol, una cajera con permiso de alta y otra sin él, y cada uno entra con la contraseña de `DEMO_PASSWORD`; fuera de desarrollo o sin esa variable el comando no corre |
+| CP-78 | Usuario que no es Administrador con acceso al panel o como superusuario | DEC-32 | La base lo rechaza |
 
 ## 5. Trazabilidad de reglas a pruebas
 
@@ -140,7 +145,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-02 | CP-03 | RI-02 | CP-05 |
 | RN-03 | CP-05 | RI-03 | CP-10 |
 | RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
-| RN-05 | CP-55, CP-56 | RI-05 | CP-18, CP-19 |
+| RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19 |
 | RN-06 | CP-53 | RI-06 | CP-41 |
 | RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30 |
 | RN-08 | CP-30, CP-32 | RI-08 | CP-34 |
@@ -168,6 +173,12 @@ Se ejecutan al cerrar cada hito, en Chrome de PC y en un celular. Cada recorrido
 | RM-07 | Vender a cuenta corriente, registrar un pago y ver el estado de cuenta | H4 | Administrador / Cajera |
 | RM-08 | Generar un reporte, exportarlo y comparar sus totales con la caja | H5 | Administrador / Dueños |
 | RM-09 | Usar el sistema desde el celular en todas las pantallas anteriores | H6 | Los tres |
+
+### Registro de recorridos
+
+| Fecha | Recorrido | Resultado | Observaciones |
+|---|---|---|---|
+| 2026-10-22 | RM-01 | OK | En local con los usuarios de ejemplo (H1.3), en PC y en tamaño de celular (375 px). Clave equivocada: mensaje genérico. Administrador: productos, stock, clientes, proveedores, reportes, usuarios y el panel. Cajera con permiso: ventas, caja y productos. Cajera sin permiso: ventas y caja; el panel le pide ingresar de nuevo. Dueño: reportes. Las funciones sin pantalla aparecen deshabilitadas ("Pronto"). Los cuatro salen y vuelven al ingreso. Recorrido confirmado por el alumno: hecho |
 
 ## 7. Criterios de aceptación por hito
 

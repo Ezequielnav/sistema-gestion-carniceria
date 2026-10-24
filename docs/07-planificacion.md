@@ -17,11 +17,11 @@
 
 ## 2. Etapas y entregables
 
-| Etapa | Contenido | Entregable |
-|---|---|---|
-| A. Documentación | Cerrar los documentos 07, 08 y 09, revisar la consistencia y subir todo al repositorio en un solo Pull Request | `/docs` completo y coherente |
-| B. Sistema | Construir la aplicación por hitos (sección 3) | Sistema funcionando en local, con pruebas |
-| C. Informe y presentación | Armar el informe final maquetado a partir de `/docs` y la presentación | Informe y presentación listos para entregar |
+| Etapa | Contenido | Entregable | Estado |
+|---|---|---|---|
+| A. Documentación | Cerrar los documentos 07, 08 y 09, revisar la consistencia y subir todo al repositorio en un solo Pull Request | `/docs` completo y coherente | Terminada (Avance 1 disponible) |
+| B. Sistema | Construir la aplicación por hitos (sección 3) | Sistema funcionando en local, con pruebas | En curso (H1) |
+| C. Informe y presentación | Armar el informe final maquetado a partir de `/docs` y la presentación | Informe y presentación listos para entregar | Pendiente |
 
 En paralelo a la etapa A corre la **validación puntual con el responsable del negocio** (preguntas de prioridad alta de [01-relevamiento.md](01-relevamiento.md)). No bloquea el avance: lo no confirmado queda marcado "a confirmar".
 
@@ -37,6 +37,8 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 | H6 | Integración, pruebas integrales, correcciones, manual de usuario y capacitación breve (RNF-04) | Todos | Todos | PR-23, PR-29 | Mediano |
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
+
+**Estado:** H1 en curso (etapa 1 de 3: proyecto, modelo de datos y pruebas de integridad). H2 a H6 pendientes.
 
 El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo. Al terminar H1 se anota cuánto costó en sesiones y se ajusta la expectativa de los siguientes.
 
@@ -75,7 +77,7 @@ El alumno elige cuándo presentar. Cada punto de entrega es un estado coherente 
 
 | Punto | Qué se muestra | Condición mínima |
 |---|---|---|
-| Avance 1 | Documentación 00 a 09 en `main` (PR mergeado), con las brechas todavía "a confirmar" | Etapa A completa |
+| Avance 1 | Documentación 00 a 09 en `main` (PR mergeado), con las brechas todavía "a confirmar" | Etapa A completa (cumplida: disponible) |
 | Avance 2 | Sistema base en local: login con roles y gestión de productos (H1) | H1 terminado y sus pruebas pasando |
 | Avance 3 (prototipo) | Caja y ventas funcionando (H1 y H2) | H2 terminado, validación de PR-01 y PR-08 |
 | Avance 4 | Más módulos (H3, H4, H5 según se llegue) | Los hitos incluidos terminados |

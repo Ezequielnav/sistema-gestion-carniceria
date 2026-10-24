@@ -48,7 +48,7 @@ Estas preguntas **no repiten el relevamiento**: cubren lo que el alcance ampliad
 |---|---|---|
 | Alta | Bloquean alcance, casos de uso o modelo de datos | PR-01, PR-08, PR-12, PR-13, PR-17, PR-19, PR-25, PR-27 |
 | Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32 |
-| Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33 |
+| Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35 |
 
 Estado posible: **Pendiente**, **Respondida**, **Descartada**. La columna "Documentos afectados" indica qué actualizar al responder.
 
@@ -109,6 +109,8 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada**. La columna "Docum
 | PR-27 | ¿Qué reportes se necesitan, con qué frecuencia y en qué formato? ¿Deben generarse solos al cierre o a pedido? | La meta dice "automáticos"; el caso de uso, "a pedido" | 02, 03, 04 | Pendiente |
 | PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente |
 | PR-29 | Si falla internet en el local, ¿qué debería poder hacerse? | Internet es bueno, pero conviene definir contingencia | 03, 06 | Pendiente |
+| PR-34 | ¿Después de cuánto tiempo sin uso se debe cerrar la sesión? | Seguridad en una PC compartida del mostrador; mientras tanto queda el valor por defecto de Django | 06 | Pendiente |
+| PR-35 | ¿La cajera debe ver en el inicio el total vendido del día y las últimas ventas, o solo el estado de su caja? | Hoy el inicio lo muestra a todos los roles; relacionado con PR-25 | 04, 06 | Pendiente |
 
 ### 3.6 Cuestiones académicas
 

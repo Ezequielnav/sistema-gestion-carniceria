@@ -1,4 +1,3 @@
-# 00-contexto
 # 00 - Contexto del negocio y del proceso actual
 
 | Campo | Valor |

@@ -441,7 +441,9 @@ flowchart LR
 | A2 | Usuario dado de baja | El sistema no permite el ingreso |
 | A3 | El usuario cierra sesión | La sesión termina |
 
-**Pendientes:** PR-26 (usuarios individuales).
+**Implementación (H1):** pantalla propia de ingreso para los tres roles. A1 y A2 muestran el mismo mensaje genérico ("Usuario o contraseña incorrectos."), para no revelar si la cuenta existe o está dada de baja. A3 cierra la sesión con un botón y vuelve al ingreso. Solo el Administrador entra además al panel de administración (DEC-32).
+
+**Pendientes:** PR-26 (usuarios individuales), PR-34 (cierre de sesión por inactividad).
 
 ### CU-11 Gestionar productos
 
