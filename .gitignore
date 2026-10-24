@@ -10,3 +10,4 @@ datos-reales/
 .DS_Store
 .env.*
 !.env.example
+.vscode/
