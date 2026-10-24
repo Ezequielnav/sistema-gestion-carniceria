@@ -1,0 +1,73 @@
+/*
+ * Ajustes del panel (Unfold) para que se vea como el sistema en / (DEC-30).
+ * Unfold trae sus clases ya compiladas, así que se ajusta con CSS sobre su estructura
+ * (ids estables) y sus variables de color (--color-base-*, --color-primary-*).
+ */
+
+/* Barra lateral blanca con borde, contenido sobre gris claro: igual que base.html. */
+#nav-sidebar,
+#nav-sidebar-inner,
+div:has(> #nav-sidebar) {
+  background-color: #fff;
+}
+
+#main {
+  background-color: var(--color-base-50);
+}
+
+/* Encabezado superior blanco y translúcido, como la barra de /. */
+#main > div:first-child {
+  background-color: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(8px);
+}
+
+/* Títulos de grupo pequeños y grises ("Funciones", "Sistema" en /). */
+#nav-sidebar-apps h2 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-base-400);
+  margin-top: 0.75rem;
+}
+
+/* Ítems del menú: gris, y el activo en gris oscuro sobre gris claro (sin rojo). */
+#nav-sidebar-apps ol a {
+  height: 36px;
+  gap: 0;
+  font-weight: 500;
+  color: var(--color-base-600);
+  border-radius: 6px;
+}
+
+#nav-sidebar-apps ol a:hover {
+  background-color: var(--color-base-50);
+  color: var(--color-base-900);
+}
+
+#nav-sidebar-apps ol a.active {
+  background-color: var(--color-base-100);
+  color: var(--color-base-900);
+  font-weight: 500;
+}
+
+/* Íconos de trazo fino, del tamaño de los de /. */
+#nav-sidebar-apps .material-symbols-outlined {
+  font-size: 20px;
+  width: 20px;
+  font-variation-settings: "wght" 300;
+}
+
+/* Avatar redondo con la inicial en rojo, como en /. */
+#nav-sidebar-inner div[class*="bg-cover"] {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-600);
+  border-radius: 9999px;
+}
+
+/* Tarjetas del contenido: blancas, borde gris y esquinas de 12 px como en /. */
+#content fieldset.module,
+#content .module > div.bg-white,
+#changelist-form > div > div.bg-white,
+#content .inline-group {
+  background-color: #fff;
+  border-radius: 12px;
+}

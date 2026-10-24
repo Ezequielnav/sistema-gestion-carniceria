@@ -1,0 +1,44 @@
+/* Entrada de Tailwind (D-13). Se compila a static/css/estilos.css con `npm run estilos`. */
+@import "tailwindcss";
+
+@source "../../templates";
+@source "../../apps";
+
+/*
+ * Estilo de dashboard (DEC-30): grises y rojo de la paleta de Tailwind, los mismos
+ * que usa el panel de administración (Unfold), y tipografía Inter.
+ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  body {
+    @apply bg-gray-50 font-sans text-gray-900 antialiased;
+  }
+
+  /* Montos y cantidades alineados en columnas. */
+  .cifras {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-red-600;
+  }
+}
+
+@layer components {
+  /* Campos de formulario grandes, pensando en el mostrador y el uso táctil (RNF-03). */
+  .campo {
+    @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base shadow-xs placeholder:text-gray-400 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/20;
+  }
+
+  .casilla {
+    @apply size-4 rounded border-gray-300 accent-red-600;
+  }
+}

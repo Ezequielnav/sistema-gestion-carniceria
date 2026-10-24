@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block titulo %}Dar de baja{% endblock %}
+{% block encabezado %}Productos{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xs">
+    <h2 class="text-xl font-semibold tracking-tight">¿Dar de baja «{{ producto.nombre }}»?</h2>
+    <p class="mt-2 text-sm text-gray-600">
+      Deja de aparecer en el catálogo, pero no se borra: las ventas e ingresos donde figura quedan como están.
+    </p>
+    <form method="post" class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {% csrf_token %}
+      <a href="{% url 'catalogo:productos' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
+      <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Dar de baja</button>
+    </form>
+  </div>
+{% endblock %}

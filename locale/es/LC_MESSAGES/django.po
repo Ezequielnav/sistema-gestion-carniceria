@@ -1,0 +1,350 @@
+# Traducciones al español de los textos de django-unfold que no traen catálogo (DEC-30).
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es\n"
+
+msgid "Add new item"
+msgstr "Agregar elemento"
+
+msgid "Add row"
+msgstr "Agregar fila"
+
+msgid "After you've created a user, you’ll be able to edit more user options."
+msgstr "Después de crear el usuario vas a poder editar más opciones."
+
+msgid "All applications"
+msgstr "Todas las secciones"
+
+msgid "Apply Filters"
+msgstr "Aplicar filtros"
+
+msgid "Available shortcuts"
+msgstr "Atajos disponibles"
+
+msgid "Bold"
+msgstr "Negrita"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Change History"
+msgstr "Historial de cambios"
+
+msgid "Changelist shortcuts"
+msgstr "Atajos del listado"
+
+msgid "Choose file to upload"
+msgstr "Elegir archivo"
+
+msgid "Click to cancel"
+msgstr "Hacé clic para cancelar"
+
+msgid "Click to download"
+msgstr "Hacé clic para descargar"
+
+msgid "Code"
+msgstr "Código"
+
+msgid "Collapse"
+msgstr "Contraer"
+
+msgid "Command tool shortcuts"
+msgstr "Atajos del buscador de comandos"
+
+msgid "Comment"
+msgstr "Comentario"
+
+msgid "Create new record"
+msgstr "Crear registro"
+
+msgid "Current file"
+msgstr "Archivo actual"
+
+msgid "Dark"
+msgstr "Oscuro"
+
+msgid "Date"
+msgstr "Fecha"
+
+msgid "Date from"
+msgstr "Desde"
+
+msgid "Date to"
+msgstr "Hasta"
+
+msgid "Default"
+msgstr "Predeterminado"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Enter an URL"
+msgstr "Ingresá una URL"
+
+msgid "Export"
+msgstr "Exportar"
+
+msgid "False"
+msgstr "No"
+
+msgid "Field"
+msgstr "Campo"
+
+msgid "Filters"
+msgstr "Filtros"
+
+msgid "Forgotten your password or username?"
+msgstr "¿Olvidaste tu contraseña o tu usuario?"
+
+msgid "From"
+msgstr "Desde"
+
+msgid "General"
+msgstr "General"
+
+msgid "Global shortcuts"
+msgstr "Atajos generales"
+
+msgid "Go back"
+msgstr "Volver"
+
+msgid "Group"
+msgstr "Grupo"
+
+msgid "Group permissions"
+msgstr "Permisos del grupo"
+
+msgid "Heading"
+msgstr "Título"
+
+msgid "Image preview"
+msgstr "Vista previa de la imagen"
+
+msgid "Import"
+msgstr "Importar"
+
+msgid "Indent decrease"
+msgstr "Reducir sangría"
+
+msgid "Indent increase"
+msgstr "Aumentar sangría"
+
+msgid "Italic"
+msgstr "Cursiva"
+
+msgid "Light"
+msgstr "Claro"
+
+msgid "Line number"
+msgstr "Número de línea"
+
+msgid "Link"
+msgstr "Enlace"
+
+msgid "Manage group"
+msgstr "Administrar grupo"
+
+msgid "Manage user"
+msgstr "Administrar usuario"
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Navigate"
+msgstr "Navegar"
+
+msgid "New"
+msgstr "Nuevo"
+
+msgid "New value"
+msgstr "Valor nuevo"
+
+msgid "Next"
+msgstr "Siguiente"
+
+msgid "No"
+msgstr "No"
+
+msgid "No data"
+msgstr "Sin datos"
+
+msgid "No results found"
+msgstr "No se encontraron resultados"
+
+msgid "Non field specific"
+msgstr "Errores generales"
+
+msgid "Not enough data."
+msgstr "No hay datos suficientes."
+
+msgid "Nothing matched your search"
+msgstr "Ningún resultado coincide con la búsqueda"
+
+msgid "Object"
+msgstr "Objeto"
+
+msgid "Object permissions"
+msgstr "Permisos del objeto"
+
+msgid "Old value"
+msgstr "Valor anterior"
+
+msgid "Open command tool"
+msgstr "Abrir buscador de comandos"
+
+msgid "Open selection"
+msgstr "Abrir selección"
+
+msgid "Open selection in new tab"
+msgstr "Abrir selección en otra pestaña"
+
+msgid "Open shortcuts list"
+msgstr "Ver atajos"
+
+msgid "Ordered list"
+msgstr "Lista numerada"
+
+msgid "Paragraph"
+msgstr "Párrafo"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Quote"
+msgstr "Cita"
+
+msgid "Recent searches"
+msgstr "Búsquedas recientes"
+
+msgid "Record picture"
+msgstr "Sacar foto"
+
+msgid "Redo"
+msgstr "Rehacer"
+
+msgid "Reset filters"
+msgstr "Quitar filtros"
+
+msgid "Reset to default"
+msgstr "Restablecer"
+
+msgid "Return to site"
+msgstr "Volver al sistema"
+
+msgid "Row"
+msgstr "Fila"
+
+msgid "Run"
+msgstr "Ejecutar"
+
+msgid "Search apps and models..."
+msgstr "Buscar secciones..."
+
+msgid "Select"
+msgstr "Seleccionar"
+
+msgid "Select action"
+msgstr "Elegir acción"
+
+msgid "Select action to run"
+msgstr "Elegir acción para ejecutar"
+
+msgid "Select currency"
+msgstr "Elegir moneda"
+
+msgid "Select format"
+msgstr "Elegir formato"
+
+msgid "Select record"
+msgstr "Elegir registro"
+
+msgid "Select value"
+msgstr "Elegir valor"
+
+msgid "Skipped"
+msgstr "Omitido"
+
+msgid "Strike"
+msgstr "Tachado"
+
+msgid "Submit"
+msgstr "Enviar"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "There are no differences."
+msgstr "No hay diferencias."
+
+msgid "This item will be deleted."
+msgstr "Este elemento se va a eliminar."
+
+msgid "This page yielded into no results."
+msgstr "Esta página no tiene resultados."
+
+msgid "To"
+msgstr "Hasta"
+
+msgid "Toggle dark/light mode"
+msgstr "Cambiar modo claro u oscuro"
+
+msgid "Toggle filter"
+msgstr "Mostrar u ocultar filtros"
+
+msgid "Toggle password visibility"
+msgstr "Mostrar u ocultar contraseña"
+
+msgid "Toggle sidebar"
+msgstr "Mostrar u ocultar menú"
+
+msgid "True"
+msgstr "Sí"
+
+msgid "Type to search"
+msgstr "Escribí para buscar"
+
+msgid "Underlined"
+msgstr "Subrayado"
+
+msgid "Undo"
+msgstr "Deshacer"
+
+msgid "Unlink"
+msgstr "Quitar enlace"
+
+msgid "Unordered list"
+msgstr "Lista con viñetas"
+
+msgid "Update"
+msgstr "Actualizar"
+
+msgid "User permissions"
+msgstr "Permisos del usuario"
+
+msgid "Value"
+msgstr "Valor"
+
+msgid "View traceback"
+msgstr "Ver detalle del error"
+
+msgid "Welcome"
+msgstr "Bienvenido"
+
+msgid "Welcome back to"
+msgstr "Ingresá a"
+
+msgid "You can not create nested object without parent"
+msgstr "No se puede crear un elemento anidado sin su elemento principal"
+
+msgid "You have been successfully logged out from the administration"
+msgstr "Cerraste la sesión"
+
+msgid "hide warning"
+msgstr "ocultar aviso"
+
+msgid "next"
+msgstr "siguiente"
+
+msgid "previous"
+msgstr "anterior"

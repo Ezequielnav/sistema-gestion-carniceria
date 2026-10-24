@@ -1,0 +1,61 @@
+# Pruebas en cada Pull Request y en main (D-09). Base PostgreSQL de prueba con credenciales
+# exclusivas de CI: no hay secretos ni datos reales (D-14).
+name: Pruebas
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: carniceria_ci
+          POSTGRES_PASSWORD: carniceria_ci
+          POSTGRES_DB: carniceria_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U carniceria_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DJANGO_SECRET_KEY: clave-solo-para-ci
+      DJANGO_DEBUG: "False"
+      DB_NAME: carniceria_ci
+      DB_USER: carniceria_ci
+      DB_PASSWORD: carniceria_ci
+      DB_HOST: localhost
+      DB_PORT: "5432"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Formato y análisis (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Migraciones al día
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Pruebas (pytest)
+        run: pytest

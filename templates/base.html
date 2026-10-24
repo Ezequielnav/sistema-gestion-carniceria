@@ -1,0 +1,127 @@
+{% load static %}<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Inicio{% endblock %} | Carnicería Rojano</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+  <script src="{% static 'js/menu.js' %}" defer></script>
+</head>
+<body class="min-h-screen">
+  <div class="md:flex">
+    {# Barra lateral: fija desde 768 px; en celular se abre con el botón de la barra superior. #}
+    <aside id="menu-lateral" data-menu
+           class="hidden border-r border-gray-200 bg-white md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
+      <a href="{% url 'inicio' %}" class="flex h-16 items-center gap-3 border-b border-gray-200 px-5">
+        <span class="flex size-9 items-center justify-center rounded-lg bg-red-700 text-white">
+          {% include "comun/_icono.html" with nombre="local" clase="size-5" %}
+        </span>
+        <span class="leading-tight">
+          <span class="block text-sm font-semibold">Carnicería Rojano</span>
+          <span class="block text-xs text-gray-500">Gestión del local</span>
+        </span>
+      </a>
+
+      <nav aria-label="Funciones" class="flex-1 overflow-y-auto px-3 py-4">
+        <ul class="space-y-0.5">
+          <li>
+            <a href="{% url 'inicio' %}"
+               {% if request.resolver_match.url_name == 'inicio' %}aria-current="page"{% endif %}
+               class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 aria-[current=page]:bg-gray-100 aria-[current=page]:text-gray-900">
+              {% include "comun/_icono.html" with nombre="inicio" %}
+              Inicio
+            </a>
+          </li>
+        </ul>
+
+        {% if menu %}
+          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Funciones</p>
+          <ul class="space-y-0.5">
+            {% for funcion in menu %}
+              <li>
+                {% if funcion.url %}
+                  <a href="{% url funcion.url %}"
+                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                    {% include "comun/_icono.html" with nombre=funcion.icono %}
+                    {{ funcion.nombre }}
+                  </a>
+                {% else %}
+                  <span aria-disabled="true" title="Todavía no está disponible"
+                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-400">
+                    {% include "comun/_icono.html" with nombre=funcion.icono %}
+                    <span class="flex-1">{{ funcion.nombre }}</span>
+                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">Pronto</span>
+                  </span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if user.is_staff %}
+          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Sistema</p>
+          <ul>
+            <li>
+              <a href="{% url 'admin:index' %}"
+                 class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                {% include "comun/_icono.html" with nombre="ajustes" %}
+                Administración
+              </a>
+            </li>
+          </ul>
+        {% endif %}
+      </nav>
+
+      {% if user.is_authenticated %}
+        <div class="flex items-center gap-3 border-t border-gray-200 px-4 py-4">
+          <span class="flex size-9 items-center justify-center rounded-full bg-red-50 text-sm font-semibold text-red-700">
+            {{ user.nombre_completo|default:user.username|slice:":1"|upper }}
+          </span>
+          <span class="min-w-0 flex-1 leading-tight">
+            <span class="block truncate text-sm font-medium">{{ user.nombre_completo|default:user.username }}</span>
+            <span class="block text-xs text-gray-500">{{ user.get_rol_display }}</span>
+          </span>
+          <form method="post" action="{% url 'usuarios:salir' %}">
+            {% csrf_token %}
+            <button type="submit" title="Cerrar sesión"
+                    class="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+              {% include "comun/_icono.html" with nombre="salir" clase="size-4" %}
+              <span class="sr-only">Cerrar sesión</span>
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </aside>
+
+    <div class="min-w-0 flex-1">
+      <header class="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-gray-200 bg-white/90 px-4 backdrop-blur sm:px-8">
+        <div class="flex items-center gap-3">
+          <button type="button" data-menu-boton aria-controls="menu-lateral" aria-expanded="false"
+                  class="rounded-md p-2 text-gray-600 hover:bg-gray-100 md:hidden">
+            {% include "comun/_icono.html" with nombre="menu" %}
+            <span class="sr-only">Abrir menú</span>
+          </button>
+          <h1 class="text-base font-semibold">{% block encabezado %}Inicio{% endblock %}</h1>
+        </div>
+        {% now "l j \d\e F" as hoy %}
+        <p class="hidden text-sm text-gray-500 sm:block">{{ hoy|capfirst }}</p>
+      </header>
+
+      <main class="mx-auto max-w-7xl px-4 py-8 sm:px-8">
+        {% if messages %}
+          <ul class="mb-6 space-y-2">
+            {% for mensaje in messages %}
+              <li role="status" class="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-xs">{{ mensaje }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% block contenido %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>

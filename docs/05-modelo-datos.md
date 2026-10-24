@@ -254,6 +254,18 @@ classDiagram
 | puede_crear_productos | boolean | S | Solo aplica a `CAJERA` (RN-05) |
 | activo | boolean | S | Baja lógica |
 
+**Implementación (DEC-27):** `usuario` es el modelo de usuario propio de Django (`AUTH_USER_MODEL = "usuarios.Usuario"`, hereda de `AbstractUser`), definido antes de la primera migración. Correspondencia con el diccionario:
+
+| Diccionario | Campo en Django |
+|---|---|
+| `nombre_usuario` | `username` (ya es único) |
+| `contrasena_hash` | `password` (hash del framework, RNF-07) |
+| `activo` | `is_active` |
+| `nombre_completo`, `telefono`, `rol`, `puede_crear_productos` | Campos propios; `rol` con lista fija y `CHECK` |
+| `email` | `email` (ya existe en `AbstractUser`) |
+
+`first_name` y `last_name` de `AbstractUser` se eliminan porque los reemplaza `nombre_completo`. El framework agrega además `is_staff`, `is_superuser`, `last_login`, `date_joined` y dos tablas de relación con grupos y permisos (`usuario_groups`, `usuario_user_permissions`), que usa el panel de administración.
+
 ### 4.2 Caja y ventas
 
 **medio_pago**
@@ -528,16 +540,22 @@ Solo se incorporan si el negocio lo confirma.
 | Entidad | Restricción |
 |---|---|
 | `usuario` | `UNIQUE (nombre_usuario)`; `CHECK` de `rol` |
-| `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)` |
-| `caja` | Índice único parcial sobre (`fecha`, `turno`) cuando `estado = 'ABIERTA'` (RI-01); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')` |
-| `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)` |
-| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13) |
-| `venta` y `detalle_venta` | `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)` |
-| `movimiento_cuenta_corriente` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `tipo` y referencias |
-| `producto_proveedor` | `UNIQUE (producto_id, proveedor_id)` |
+| `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
+| `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
+| `caja` | Índice único parcial sobre (`fecha`, `turno`) cuando `estado = 'ABIERTA'` (RI-01); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
+| `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
+| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto` |
+| `venta` y `detalle_venta` | `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
+| `movimiento_cuenta_corriente` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `tipo` y referencias; `CHECK` de `tipo`; `UNIQUE (venta_id)` si no es nulo (una venta genera como mucho un movimiento, diagrama 3.1) |
+| `pago_cliente`, `pago_proveedor` | `CHECK (monto > 0)`, coherente con `movimiento_caja` y `movimiento_cuenta_corriente`, que exigen monto positivo (más estricto que RI-16) |
+| `producto_proveedor` | `UNIQUE (producto_id, proveedor_id)`; `CHECK (precio_compra >= 0)` |
+| `ingreso_mercaderia` y `detalle_ingreso` | `CHECK (total >= 0)`; `CHECK` de `condicion_pago`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)` |
+| `cliente` | `CHECK (limite_credito >= 0)` |
 | Todas las claves foráneas | `ON DELETE RESTRICT` |
 
 Con PostgreSQL, el motor elegido en [06-arquitectura.md](06-arquitectura.md), se pueden usar índices únicos parciales. Si más adelante se cambia de motor y no los admite, la regla se valida en la aplicación dentro de la transacción.
+
+**Implementación (H1):** las claves foráneas usan `on_delete=PROTECT` de Django, que rechaza el borrado desde la aplicación. En la base, Django crea la clave foránea como `NO ACTION` diferida hasta el final de la transacción en lugar de `RESTRICT`: el efecto es el mismo (la base impide borrar un registro referenciado), pero el rechazo llega al confirmar la transacción. La prueba CP-58 fuerza el control inmediato para verificarlo. Las listas fijas (`rol`, `turno`, `estado`, `tipo`, `concepto`, `unidad_medida`, `condicion_pago`) llevan todas su `CHECK` (sección 7.1). RI-14 y RI-15 cruzan tablas y no se pueden expresar con `CHECK`: se validan en la capa de servicios.
 
 ### 7.5 Índices sugeridos
 
