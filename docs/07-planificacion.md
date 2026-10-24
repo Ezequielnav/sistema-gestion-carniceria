@@ -91,7 +91,7 @@ Si hace falta recortar, se posterga primero lo de prioridad Baja o "a confirmar"
 - **Columnas:** Pendiente, Listo para empezar, En curso, En revisión (Pull Request) y Hecho.
 - **Unidad de trabajo:** una tarea por caso de uso o sub-caso, vinculada a sus requisitos. Un hito de GitHub agrupa las tareas de H1 a H6.
 - **Etiquetas sugeridas:** `docs`, `backend`, `frontend`, `pruebas` y `espera-negocio` (para lo que depende de una pregunta pendiente).
-- **Rama y revisión:** una rama por tarea y Pull Request con las pruebas pasando, como en las reglas del proyecto.
+- **Rama y revisión:** el código se trabaja en una rama por hito, se commitea cuando hay un avance completo y entra a `main` en un solo Pull Request por hito, con las pruebas pasando, mergeado con "Squash and merge" (un commit por Pull Request en `main`; DEC-34).
 
 ### Cómo se cierran los pendientes
 
@@ -108,7 +108,7 @@ Cuando el responsable del negocio confirma algo:
 | RP-01 | La cátedra fije una fecha que no deje llegar al alcance completo | Puntos de entrega de la sección 5; el orden de los hitos permite cortar en un estado coherente |
 | RP-02 | Brechas de prioridad alta sin responder al llegar a H2 o H4 | Validación puntual en paralelo; construir con el supuesto más simple y marcarlo "a confirmar" |
 | RP-03 | Sin ritmo fijo de trabajo, el avance es difícil de predecir | Avanzar por hitos chicos y puntos de entrega coherentes (sección 5) |
-| RP-04 | Trabajar con varios agentes a la vez genere conflictos | Una rama por tarea y trabajo en carpetas separadas cuando sea simultáneo |
+| RP-04 | Trabajar con varios agentes a la vez genere conflictos | Una rama por hito y trabajo en carpetas separadas cuando sea simultáneo |
 | RP-05 | Cambios de la cátedra obliguen a rehacer documentos | Documentación modular en `/docs` y un procedimiento claro para actualizar (sección 6) |
 | RP-06 | El informe final se deje para el último momento | Empieza al terminar H4, en paralelo al desarrollo |
 
