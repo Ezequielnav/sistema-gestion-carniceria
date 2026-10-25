@@ -83,11 +83,18 @@ class Caja(ModeloBase):
             models.CheckConstraint(
                 condition=Q(estado__in=EstadoCaja.values), name="caja_estado_valido"
             ),
-            # RI-01: una sola caja abierta por fecha y turno.
+            # RI-01 (DEC-39): una caja por fecha y turno, aunque esté cerrada (no se reabre)...
             models.UniqueConstraint(
                 fields=["fecha", "turno"],
+                name="caja_unica_por_fecha_turno",
+                violation_error_message="Ya hay una caja para esa fecha y turno.",
+            ),
+            # ...y una sola caja abierta a la vez, de cualquier fecha y turno.
+            models.UniqueConstraint(
+                fields=["estado"],
                 condition=Q(estado=EstadoCaja.ABIERTA),
-                name="caja_abierta_unica_por_fecha_turno",
+                name="caja_una_sola_abierta",
+                violation_error_message="Ya hay una caja abierta.",
             ),
             models.CheckConstraint(
                 condition=Q(cerrada_en__isnull=True) | Q(estado=EstadoCaja.CERRADA),

@@ -12,7 +12,7 @@ Python + Django, PostgreSQL, Tailwind CSS + HTML + JavaScript, arquitectura por 
 - Todo Pull Request se abre contra `main`; verificar la rama base antes de crearlo.
 - Cada regla RN-xx / RI-xx lleva al menos una prueba automática.
 - Todo cambio de código actualiza los archivos afectados de `/docs`.
-- No inventar reglas del negocio: si falta un dato, anotarlo como pregunta pendiente (PR-xx / PA-xx).
+- No inventar reglas del negocio: si falta un dato, se anota como pregunta pendiente (PR-xx / PA-xx) y se cierra con una decisión de diseño (DEC-35) registrada en `docs/09-decisiones.md`. Esas decisiones nunca se presentan como datos confirmados por el negocio.
 - Dinero con `DecimalField`; nunca `float`.
 
 ## Commits, Pull Requests y textos
@@ -39,6 +39,6 @@ Los permisos de lectura sobre secretos están en `.claude/settings.json`. Esas r
 ## Herramientas de IA (plugins del proyecto)
 Karpathy guidelines y Agent Skills son de uso personal (plugins de terceros): se configuran en `.claude/settings.local.json`, que no se sube al repositorio. `.claude/settings.json` solo activa frontend-design y security-guidance.
 - Karpathy guidelines: siempre activas (pensar antes, cambios mínimos y quirúrgicos).
-- Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request.
+- Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request. Los specs se guardan en `docs/specs/` (`SPEC-CU-xx.md`).
 - frontend-design: los prototipos v0 de /docs son solo guía funcional (qué datos y acciones tiene cada pantalla); no copiar su diseño visual (DEC-07).
 - Playwright (MCP), vigente (DEC-14): probar flujos solo contra el entorno local (localhost) con datos de ejemplo.

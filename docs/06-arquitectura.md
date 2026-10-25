@@ -67,7 +67,7 @@ Se usan enteros de 64 bits autoincrementales, que es el valor por defecto de Dja
 - **Tailwind CSS:** diseño responsive desde el celular hacia la PC. Se compila a un único archivo de estilos con su herramienta de línea de comandos. Se verifica en la instalación si la versión elegida ofrece un ejecutable independiente que no requiere Node; si no, se usa `npm` solo para esa compilación.
 - **JavaScript:** archivos propios, sin empaquetador ni librería pesada. Se usa donde la pantalla lo necesita, por ejemplo en la venta para buscar productos, sumar líneas y mostrar el total. Esas pantallas consultan unos pocos puntos internos de la misma aplicación que devuelven JSON; no son una API pública y usan la sesión y el CSRF de siempre.
 - **Mostrador:** botones y campos grandes y buen contraste, pensando en uso táctil y en pantallas de PC chicas.
-- **Lector de códigos de barras:** los lectores USB comunes escriben el código como si fuera un teclado, por lo que alcanza con un campo de búsqueda enfocado (RF-11). Se confirma el lector con PR-04.
+- **Lector de códigos de barras:** los lectores USB comunes escriben el código como si fuera un teclado, por lo que alcanza con un campo de búsqueda enfocado (RF-11). El lector carga el plus interno (DEC-37).
 
 ## 3. Arquitectura por capas
 
@@ -271,7 +271,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | Libro de movimientos de stock | Si aparecen diferencias de stock (ver [05-modelo-datos.md](05-modelo-datos.md)) |
 | API con JWT y aplicación móvil | Si hace falta un cliente que no sea el navegador |
 | Modo sin conexión | Según PR-29 |
-| Impresora térmica de tickets | Según PR-24 |
+| Impresora térmica de tickets | El ticket se imprime desde el navegador (DEC-44); una impresora térmica sirve sin integración |
 | Docker | Si la instalación local resulta engorrosa |
 | Limitación de intentos de ingreso | Antes del uso real |
 
@@ -295,8 +295,6 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | PA-05 | Si el despliegue es parte de la entrega; si lo es, antes hay que limitar los intentos de inicio de sesión (RT-07) |
 | PR-23 | Cantidad de usuarios y dispositivos |
 | PR-29 | Contingencia ante caída de internet |
-| PR-24 | Impresión de tickets |
-| PR-04 | Lector de códigos de barras y formato del plus interno |
 | PR-34 | Tiempo de cierre de sesión por inactividad |
 | PR-35 | Qué ve la cajera en el inicio (total del día y últimas ventas, o solo su caja) |
 

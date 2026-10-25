@@ -1,0 +1,62 @@
+{% load static %}<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket {{ venta.pk }} | Carnicería Rojano</title>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body class="min-h-screen bg-white print:min-h-0">
+  {# Comprobante no fiscal (DEC-44); se imprime desde el navegador, angosto para impresora térmica. #}
+  <main class="mx-auto max-w-sm px-4 py-8 text-sm print:max-w-none print:p-0">
+    {% if messages %}
+      <ul class="mb-6 space-y-2 print:hidden">
+        {% for mensaje in messages %}
+          <li role="status" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">{{ mensaje }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <section aria-label="Ticket">
+      <header class="text-center">
+        <h1 class="text-base font-semibold">Carnicería Rojano</h1>
+        <p class="mt-1">Venta N.º {{ venta.pk }}</p>
+        <p>{{ venta.fecha_hora|date:"d/m/Y H:i" }}</p>
+        <p>Atendió: {{ venta.usuario.get_full_name }}</p>
+      </header>
+
+      <table class="mt-4 w-full border-y border-dashed border-gray-400">
+        <thead class="text-left text-xs">
+          <tr>
+            <th scope="col" class="py-1.5 font-medium">Producto</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Cant.</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Precio</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detalle in detalles %}
+            <tr>
+              <td class="py-1 pr-2">{{ detalle.producto.nombre }}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">{{ detalle.cantidad|floatformat:"-3" }}{% if detalle.producto.unidad_medida == "KG" %} kg{% endif %}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p class="mt-3 flex justify-between text-base font-semibold">
+        <span>Total</span><span class="cifras">$ {{ venta.monto_total|floatformat:"2g" }}</span>
+      </p>
+      <p class="mt-1">Medio de pago: {{ venta.medio_pago }}</p>
+      <p class="mt-4 text-center text-xs">No válido como factura</p>
+    </section>
+
+    <div class="mt-8 flex gap-3 print:hidden">
+      <button type="button" onclick="window.print()" class="flex-1 rounded-md border border-gray-300 px-4 py-2.5 font-medium hover:bg-gray-50">Imprimir</button>
+      <a href="{% url 'ventas:nueva' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Nueva venta</a>
+    </div>
+  </main>
+</body>
+</html>
