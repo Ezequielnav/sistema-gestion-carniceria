@@ -28,8 +28,22 @@ CAJERA = Rol.CAJERA
 DUENIO = Rol.DUENIO
 
 FUNCIONES = [
-    Funcion("Ventas", "Cobrar en el mostrador", "CU-01", frozenset({CAJERA}), "carrito"),
-    Funcion("Caja", "Abrir y cerrar el turno", "CU-02, CU-03", frozenset({CAJERA}), "billetera"),
+    Funcion(
+        "Ventas",
+        "Cobrar en el mostrador",
+        "CU-01",
+        frozenset({CAJERA}),
+        "carrito",
+        url="ventas:nueva",
+    ),
+    Funcion(
+        "Caja",
+        "Abrir y cerrar el turno",
+        "CU-02, CU-03",
+        frozenset({CAJERA}),
+        "billetera",
+        url="caja:caja",
+    ),
     Funcion(
         "Productos",
         "Precios, categorías y altas",

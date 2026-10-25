@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | DEC-01 | El relevamiento ya realizado (documento base del alumno) es la fuente de verdad; no se rehace desde cero. Las brechas se cierran con preguntas puntuales (PR-xx, PA-xx) | El relevamiento se hizo para una materia anterior con un alcance menor; rehacerlo no agrega valor | Vigente | 00, 01 |
 | DEC-02 | Lo que no está confirmado se marca "a confirmar" y no se implementa como regla del negocio | No inventar información del negocio | Vigente | Todos |
-| DEC-03 | Las brechas de prioridad alta (PR-01, 08, 12, 13, 17, 19, 25, 27) se validan con el responsable del negocio antes de construir los módulos que dependen de ellas | Son las que cambian el modelo o los casos de uso | Vigente | 01, 03 |
+| DEC-03 | Las brechas de prioridad alta (PR-01, 08, 12, 13, 17, 19, 25, 27) se validan con el responsable del negocio antes de construir los módulos que dependen de ellas | Son las que cambian el modelo o los casos de uso | Reemplazada para H2 (DEC-35) | 01, 03 |
 | DEC-04 | Enfoque iterativo: no se agrega complejidad por adelantado; lo que falte o sobre se ajusta sobre la marcha | Un proyecto individual con plazo acotado | Vigente | Todos |
 | DEC-05 | El sistema cubre caja, ventas, stock **no cárnico**, proveedores, pagos y cuentas corrientes. Quedan fuera: control de cortes de carne, facturación electrónica e integración con Kendra y balanzas | Alcance del relevamiento base | Vigente | 02, 03 |
 | DEC-06 | Se agregan los casos de uso CU-10 a CU-14 (sesión, productos, clientes, proveedores, usuarios) | El relevamiento base no los incluía y sin ellos no se pueden cargar datos (H-04) | Vigente (propuesto; a confirmar con PR-25, PR-26) | 03, 04 |
@@ -34,6 +34,31 @@
 | DEC-15 | Los riesgos de alcance de `02-alcance-objetivos.md` pasan de RI-xx a RA-xx, porque RI-xx ya identifica las reglas de integridad del modelo de datos | Evitar IDs duplicados | Vigente | 02 |
 | DEC-16 | No hay fecha de entrega fija ni horas semanales fijas (PA-01, PA-06). El alumno decide cuándo presenta un avance al profesor y el trabajo se hace por sesiones. La planificación usa orden de hitos, tamaño relativo y puntos de entrega, sin semanas ni fechas | Respuesta del alumno | Vigente (si la cátedra impone una fecha, se reemplaza) | 01, 02, 07 |
 | DEC-34 | Reemplaza a DEC-09. Los cambios entran por rama y Pull Request; `main` está protegida. El código se trabaja en una rama por hito, se commitea cuando hay un avance completo y entra a `main` en un solo Pull Request por hito, en lugar de una rama y un Pull Request por tarea. De acá en adelante los Pull Request se mergean con "Squash and merge": un commit por Pull Request en `main`. El Pull Request #6 (H1) entró con merge commit y queda así | Menos ramas y Pull Request para una sola persona, y un historial de `main` con un commit por cambio | Vigente | 07, 08 |
+| DEC-35 | Reemplaza a DEC-03 para H2 y acota DEC-02. Para H2 no se espera al negocio: cada pregunta pendiente que lo afecta se cierra con una decisión de diseño (la opción más simple y habitual para una carnicería, coherente con `/docs`), registrada en la sección 2.1. La pregunta queda **Cerrada** en 01 con referencia a su DEC. Si el negocio después responde distinto, se registra una DEC nueva que reemplaza a la anterior | Pedido del alumno: avanzar con H2 sin bloquearse por la entrevista | Vigente | 01, 03, 04, 05, 07, 08 |
+
+### 2.1 Decisiones de diseño de H2 (cierran preguntas pendientes, DEC-35)
+
+| ID | Decisión | Justificación | Cierra | Documentos |
+|---|---|---|---|---|
+| DEC-36 | La carne se vende en el sistema como cualquier producto: por kg, con su precio por kg, y sin descontar stock (`controla_stock = false`). El peso se toma de la balanza y se carga a mano (sin integración, DEC-05) | El modelo ya lo contempla (05, sección 11) y así se cumple el registro del 100% de las ventas sin entidades nuevas | PR-01, H-01 | 02, 03, 04, 05, 08 |
+| DEC-37 | El lector de códigos carga el plus interno: escribe el código en el campo de búsqueda de la venta y, si coincide exacto con un plus, agrega el producto. El plus es texto libre de hasta 30 caracteres; en los productos envasados es su código de barras | Los lectores USB funcionan como teclado (06) y no hace falta un campo nuevo | PR-04, hueco del lector | 03, 04, 05, 06 |
+| DEC-38 | Al abrir la caja se puede cargar un fondo de cambio en efectivo (opcional; si se deja vacío se guarda 0). Al cerrar, el efectivo esperado es el fondo más los ingresos en efectivo menos los egresos en efectivo | Es lo habitual en un mostrador y `caja.monto_inicial` ya existe | PR-05 | 03, 04, 05, 08 |
+| DEC-39 | Hay una caja por turno (mañana y tarde) y una sola caja abierta a la vez: no se abre la de la tarde sin cerrar la de la mañana, y un turno ya cerrado no se reabre el mismo día; el formulario de apertura ofrece solo los turnos que se pueden abrir. La venta se registra en la única caja abierta | Un solo mostrador; evita decidir a qué caja va cada venta y deja cada turno con un único cierre | PR-06, huecos de cajas abiertas y reapertura | 04, 05, 08 |
+| DEC-40 | Al cerrar, el sistema muestra la diferencia por medio de pago. Si alguna es distinta de cero, avisa y pide un motivo obligatorio (`observacion_cierre`); no hace falta autorización. El Administrador la ve en el reporte de cierre | Deja registro sin frenar el cierre de una sola cajera | PR-07, H-12 | 03, 04, 05, 08 |
+| DEC-41 | Los medios de pago son efectivo, tarjeta, transferencia, QR y cuenta corriente, en la tabla `medio_pago` (se ajustan desde el panel sin cambiar código). Cuenta corriente no se ofrece en la venta hasta H4 (SC-03) | Es la lista del relevamiento y de los datos de ejemplo | PR-08, H-05 | 03, 04, 05 |
+| DEC-42 | Cada venta se paga con un solo medio de pago. RF-19 (pago mixto) queda descartado | Es el modelo actual (`venta.medio_pago_id`) y lo más simple en el mostrador | PR-09 | 03, 04, 05, 08 |
+| DEC-43 | Los egresos de caja son los pagos a proveedores (CU-07, H3) y "otros" (gastos y retiros en efectivo) con descripción obligatoria, concepto `OTRO`. La cajera registra los "otros" desde la pantalla de Caja con la caja abierta. Se implementan en la etapa 3 de H2, junto con el cierre de caja | Sin registrar los retiros, el efectivo del cierre no cuadra; el concepto `OTRO` ya existe (RI-13) | PR-10 | 03, 04, 05, 07 |
+| DEC-44 | El ticket es un comprobante no fiscal en pantalla que se imprime desde el navegador (sirve para impresora común o térmica). Lleva: nombre del negocio, número de venta, fecha y hora, cajera, detalle (producto, cantidad, precio unitario, subtotal), total, medio de pago y la leyenda "No válido como factura" | No requiere integración con impresoras y cubre lo habitual de un comprobante interno | PR-24 | 03, 04, 06 |
+| DEC-45 | Una venta confirmada no se edita ni se borra. El Administrador puede anularla mientras su caja esté abierta: la venta queda anulada y, en la misma operación, se revierten su ingreso de caja (un egreso de reversa) y el stock. Con la caja cerrada no se anula. Requiere un estado en `venta` (cambio de modelo). Se implementa en la etapa 4 de H2 | Conserva el historial inmutable (05, 7.1) y corrige errores sin tocar cajas cerradas (RN-03) | PR-30 | 04, 05, 07, 08 |
+| DEC-46 | Si un producto con control de stock no tiene stock suficiente, la venta se permite con un aviso a la cajera y el `stock_actual` puede quedar negativo. No se registra un faltante aparte: `faltante_stock` no se agrega (DEC-25) | No frena la venta en el mostrador; el stock negativo muestra la diferencia para corregirla después | CU-01 A3, SC-04 | 04, 05, 08 |
+| DEC-47 | La lista de la venta en curso vive en el navegador y se manda completa al confirmar. El servidor vuelve a calcular todo (precios, subtotales y total) y nunca acepta esos valores desde el navegador | Evita una recarga por producto y una tabla de ventas en curso (RNF-03) | Spec de CU-01 | 04, 06 |
+| DEC-48 | Los productos por `UNIDAD` se venden en cantidades enteras; los productos por `KG`, con hasta 3 decimales | Coincide con `campo_cantidad` (3 decimales) y evita fracciones de un producto envasado | Spec de CU-01 | 04, 05, 08 |
+| DEC-49 | El subtotal de cada línea es cantidad × precio unitario, redondeado a 2 decimales con la mitad hacia arriba; el total es la suma de los subtotales ya redondeados (RI-03) | Los montos se guardan con 2 decimales (DEC-22) y el total coincide siempre con sus detalles | Spec de CU-01 | 05, 08 |
+| DEC-50 | Si la única caja abierta es de una fecha anterior, no se vende y se pide cerrarla | Las ventas de hoy no quedan en el cierre de otro día | Spec de CU-01 | 04, 08 |
+| DEC-51 | El medio de pago de la venta no tiene valor por defecto: la primera opción es "Elegí un medio de pago" | Evita registrar una venta con un medio que la cajera no eligió | Spec de CU-01 | 04 |
+| DEC-52 | Un texto que coincide exacto con un plus agrega el producto: por `UNIDAD`, con cantidad 1; por `KG`, deja el cursor en la cantidad para cargar el peso. Si no coincide exacto, se muestra la lista de resultados para elegir | Completa DEC-37 para el lector y la búsqueda | Spec de CU-01 | 04, 08 |
+| DEC-53 | Si se agrega un producto que ya está en la venta, se suma a su línea en lugar de crear otra | Una línea por producto en el ticket y en la venta | Spec de CU-01 | 04 |
+| DEC-54 | Después de confirmar se muestra el ticket con los botones "Imprimir" y "Nueva venta" | Completa DEC-44 con el paso siguiente del mostrador | Spec de CU-01 | 04 |
 
 ## 3. Decisiones técnicas (detalle en [06-arquitectura.md](06-arquitectura.md))
 
@@ -67,7 +92,7 @@
 | DEC-22 | Dinero con `DecimalField`; nunca `float` | Exactitud | Vigente |
 | DEC-23 | Baja lógica para registros con historia; las claves foráneas impiden el borrado físico | Preservar el historial (RI-11) | Vigente |
 | DEC-24 | `movimiento_stock` queda fuera del modelo por ahora; el stock se guarda solo como `stock_actual`. Se reevalúa si aparecen diferencias de stock o se confirma PR-32 | Pedido del alumno: evitar complejidad por adelantado | Diferida |
-| DEC-25 | `pedido_proveedor` y `faltante_stock` son entidades condicionales: solo se agregan si el negocio lo confirma (PR-19, SC-04) | No tienen caso de uso confirmado | Diferida |
+| DEC-25 | `pedido_proveedor` y `faltante_stock` son entidades condicionales: solo se agregan si el negocio lo confirma (PR-19, SC-04) | No tienen caso de uso confirmado | Diferida para `pedido_proveedor`; `faltante_stock` descartada (DEC-46) |
 | DEC-26 | El modelo base se rediseñó (turno duplicado, un único medio de pago por venta, saldo derivable, categoría y unidad de medida, entre otros: H-09) | Corregir inconsistencias del modelo de clases original | Vigente |
 | DEC-27 | La entidad `usuario` se implementa como modelo de usuario propio de Django (`AUTH_USER_MODEL = "usuarios.Usuario"`, hereda de `AbstractUser`), definido antes de la primera migración: `nombre_usuario` → `username`, `contrasena_hash` → `password`, `activo` → `is_active`; `nombre_completo`, `telefono`, `rol` y `puede_crear_productos` son campos propios y `email` ya existe. `rol` usa una lista fija con `CHECK` | Aprovechar el hash de contraseñas, las sesiones y el panel del framework (RNF-07, D-06) sin duplicar la tabla de usuarios; cambiar el modelo de usuario después de la primera migración es costoso | Vigente |
 | DEC-28 | Restricciones agregadas al implementar H1, además de las sugeridas originalmente en la sección 7.4 de 05: `CHECK` en todas las listas fijas; `pago_cliente.monto` y `pago_proveedor.monto` mayores a 0; `UNIQUE (venta_id)` parcial en `movimiento_cuenta_corriente`; `producto.plus_interno` sin texto vacío; `UNIQUE (nombre)` en `medio_pago` y `categoria` | Coherencia con el diccionario de datos, el diagrama 3.1 y las demás restricciones de montos (pedido del alumno) | Vigente |
@@ -83,8 +108,8 @@ Se registraron al revisar el documento del alumno y están detalladas en [01-rel
 
 | Estado actual | Hallazgos |
 |---|---|
-| Esperan respuesta del negocio | H-01, H-02, H-05, H-06, H-07, H-08, H-13 |
-| Parcialmente resueltos | H-12 (falta PR-07) |
+| Esperan respuesta del negocio | H-02, H-06, H-07, H-08, H-13 |
+| Resueltos por decisión de diseño | H-01 (DEC-36), H-05 (DEC-41), H-12 (DEC-40) |
 | Resueltos en la documentación | H-03 (actor Dueños), H-04 (CU-10 a CU-14), H-09 (modelo), H-10 (diagramas en Mermaid), H-11 (prototipos marcados como v0) |
 | Para el informe final | H-14 |
 
@@ -94,8 +119,7 @@ Si algún hallazgo se resolvió de forma distinta a la anotada, corregir esta ta
 
 | Pendiente | Qué bloquea |
 |---|---|
-| PR-01, PR-02 | Cómo se registra la venta de carne (RF-20, RF-16, CP-20) |
-| PR-08 | Medios de pago exactos |
+| PR-02 | Si los reportes de Kendra se importan (la venta de carne ya está decidida: DEC-36) |
 | PR-12, PR-13 | Cuenta corriente: límites y vencimiento |
 | PR-17, PR-19 | Pagos a proveedores y pedidos |
 | PR-25, PR-27 | Quién es el Administrador y reportes automáticos |

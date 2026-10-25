@@ -11,3 +11,5 @@ datos-reales/
 .env.*
 !.env.example
 .vscode/
+.playwright-mcp/
+.claude/launch.json

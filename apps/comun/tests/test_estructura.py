@@ -76,7 +76,8 @@ CHECKS = {
 
 # (tabla, nombre, columnas, parcial)
 UNICOS = [
-    ("caja", "caja_abierta_unica_por_fecha_turno", ["fecha", "turno"], True),
+    ("caja", "caja_unica_por_fecha_turno", ["fecha", "turno"], False),
+    ("caja", "caja_una_sola_abierta", ["estado"], True),
     (
         "cierre_caja_detalle",
         "cierre_caja_detalle_caja_medio_unico",

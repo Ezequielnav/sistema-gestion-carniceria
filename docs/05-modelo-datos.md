@@ -28,7 +28,7 @@ El modelo se organiza en cuatro áreas.
 | Catálogo, stock y proveedores | `categoria`, `producto`, `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` |
 | Clientes y cuentas corrientes | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` |
 
-Hay además tres entidades **condicionales** que solo se agregan si el negocio lo confirma o si el desarrollo lo muestra necesario: `pedido_proveedor` (PR-19), `faltante_stock` (SC-04) y `movimiento_stock` (diferida por ahora). Se describen en la sección 6.
+Hay además tres entidades **condicionales** que solo se agregan si el negocio lo confirma o si el desarrollo lo muestra necesario: `pedido_proveedor` (PR-19), `faltante_stock` (descartada: DEC-46) y `movimiento_stock` (diferida por ahora). Se describen en la sección 6.
 
 ## 3. Diagramas
 
@@ -273,8 +273,8 @@ classDiagram
 | Campo | Tipo | Req. | Notas |
 |---|---|---|---|
 | id | int | S | |
-| nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (a confirmar: PR-08) |
-| ingresa_a_caja | boolean | S | `false` para cuenta corriente (a confirmar: PR-08) |
+| nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (DEC-41) |
+| ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41) |
 | activo | boolean | S | |
 
 Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambiar el código.
@@ -287,12 +287,12 @@ Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambi
 | fecha | date | S | |
 | turno | enum | S | `MANANA`, `TARDE` (RN-02) |
 | usuario_id | FK usuario | S | Quien abrió la caja |
-| monto_inicial | decimal | N | Fondo de cambio (a confirmar: PR-05) |
+| monto_inicial | decimal | N | Fondo de cambio en efectivo, opcional; si se deja vacío, la aplicación guarda 0 (DEC-38) |
 | estado | enum | S | `ABIERTA`, `CERRADA` |
 | abierta_en | datetime | S | |
 | cerrada_en | datetime | N | |
 | cerrada_por_usuario_id | FK usuario | N | |
-| observacion_cierre | text | N | Para diferencias (a confirmar: PR-07) |
+| observacion_cierre | text | N | Motivo obligatorio si hay diferencia (DEC-40) |
 
 Los totales por medio de pago (`totalEfectivo`, `totalTarjeta`, `totalTransferencia` del modelo base) ya no son columnas: se calculan desde `movimiento_caja` y se guardan al cerrar en `cierre_caja_detalle`.
 
@@ -318,7 +318,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | tipo | enum | S | `INGRESO`, `EGRESO` |
 | monto | decimal | S | Siempre positivo; el signo lo da `tipo` |
 | medio_pago_id | FK medio_pago | S | |
-| concepto | enum | S | `VENTA`, `PAGO_CLIENTE`, `PAGO_PROVEEDOR`, `OTRO` (lista final a confirmar: PR-10) |
+| concepto | enum | S | `VENTA`, `PAGO_CLIENTE`, `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43) |
 | venta_id | FK venta | N | Si `concepto = VENTA` |
 | pago_cliente_id | FK pago_cliente | N | Si `concepto = PAGO_CLIENTE` |
 | pago_proveedor_id | FK pago_proveedor | N | Si `concepto = PAGO_PROVEEDOR` |
@@ -334,7 +334,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | caja_id | FK caja | S | |
 | usuario_id | FK usuario | S | Quien registró la venta (reemplaza `empleadoID`) |
 | cliente_id | FK cliente | N | Obligatorio si el medio de pago es cuenta corriente (a confirmar: PR-12) |
-| medio_pago_id | FK medio_pago | S | Un solo medio por venta (pago mixto a confirmar: PR-09) |
+| medio_pago_id | FK medio_pago | S | Un solo medio por venta (DEC-42) |
 | monto_total | decimal | S | Igual a la suma de `subtotal` de sus detalles |
 
 **detalle_venta**
@@ -364,11 +364,11 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | id | int | S | |
 | nombre | string | S | |
 | categoria_id | FK categoria | N | |
-| plus_interno | string | N | Código interno de la carnicería, único si existe (a confirmar: PR-04) |
+| plus_interno | string | N | Código interno de la carnicería, único si existe; en envasados, su código de barras (DEC-37) |
 | precio_venta | decimal | S | PDF: `precioUnitario` |
 | unidad_medida | enum | S | `UNIDAD`, `KG` (a confirmar: PR-03) |
-| controla_stock | boolean | S | `false` para los productos cárnicos (a confirmar: PR-01) |
-| stock_actual | decimal | S | Dato guardado: se actualiza en la misma operación que la venta o el ingreso (RI-07). Solo aplica si `controla_stock = true`. PDF: `StockActual` |
+| controla_stock | boolean | S | `false` para los productos cárnicos (DEC-36) |
+| stock_actual | decimal | S | Dato guardado: se actualiza en la misma operación que la venta o el ingreso (RI-07). Solo aplica si `controla_stock = true`; puede quedar negativo si se vende sin stock suficiente (DEC-46). PDF: `StockActual` |
 | stock_minimo | decimal | N | Umbral de alerta (a confirmar: PR-20) |
 | activo | boolean | S | |
 
@@ -496,7 +496,7 @@ Solo se incorporan si el negocio lo confirma.
 
 **movimiento_stock** (diferida por decisión del proyecto; se reevalúa si aparecen diferencias de stock o si se confirma PR-32). Sería un libro de entradas y salidas de stock con campos tentativos: `id`, `producto_id`, `fecha_hora`, `tipo` (`INGRESO`, `VENTA`, `AJUSTE`), `cantidad` con signo, referencias al detalle de venta o de ingreso, `usuario_id` y `motivo`. Permitiría verificar que `stock_actual` coincide con lo registrado.
 
-**faltante_stock** (a confirmar: SC-04). Campos tentativos: `id`, `fecha_hora`, `producto_id`, `venta_id` (opcional), `cantidad_faltante`, `usuario_id`.
+**faltante_stock** (descartada: DEC-46; el stock puede quedar negativo). Campos tentativos: `id`, `fecha_hora`, `producto_id`, `venta_id` (opcional), `cantidad_faltante`, `usuario_id`.
 
 ## 7. Normalización y buenas prácticas
 
@@ -510,7 +510,7 @@ Solo se incorporan si el negocio lo confirma.
 | Integridad referencial | Toda relación es una clave foránea; no se permite borrar registros referenciados (baja lógica) |
 | Restricciones en la base, no solo en la aplicación | `UNIQUE`, `NOT NULL`, `CHECK` y claves foráneas protegen los datos aunque haya errores de código |
 | Operaciones atómicas | Venta, ingreso, pagos y cierre de caja se ejecutan en una transacción (RNF-10) |
-| Historial inmutable | Los precios se copian en los detalles; ventas y movimientos no se reescriben (correcciones: PR-30) |
+| Historial inmutable | Los precios se copian en los detalles; ventas y movimientos no se reescriben; una venta se anula con reversa (DEC-45) |
 | Fechas | `datetime` en UTC y se muestran en la hora local; `caja.fecha` es la fecha de negocio, no se deriva del UTC |
 | Nombres | Tablas en singular, `snake_case`, claves foráneas como `<entidad>_id` |
 | Claves primarias | Numéricas autoincrementales de 64 bits (decisión D-05 en [06-arquitectura.md](06-arquitectura.md)) |
@@ -542,7 +542,7 @@ Solo se incorporan si el negocio lo confirma.
 | `usuario` | `UNIQUE (nombre_usuario)`; `CHECK` de `rol` |
 | `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
-| `caja` | Índice único parcial sobre (`fecha`, `turno`) cuando `estado = 'ABIERTA'` (RI-01); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
+| `caja` | `UNIQUE (fecha, turno)` y un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01, DEC-39: `caja_unica_por_fecha_turno` y `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
 | `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto` |
 | `venta` y `detalle_venta` | `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
@@ -577,7 +577,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 
 | ID | Regla | Origen |
 |---|---|---|
-| RI-01 | Una sola caja `ABIERTA` por fecha y turno (RN-01) | CU-02 |
+| RI-01 | Una sola caja por fecha y turno, y una sola caja `ABIERTA` a la vez (RN-01, DEC-39) | CU-02 |
 | RI-02 | No se pueden agregar ni modificar ventas ni movimientos de una caja `CERRADA` (RN-03) | CU-03, RNF-09 |
 | RI-03 | `venta.monto_total` es igual a la suma de los `subtotal` de sus detalles | CU-01 |
 | RI-04 | Toda venta con un medio de pago que ingresa a caja genera un `movimiento_caja` de tipo `INGRESO` en la misma operación | RN-04, RNF-10 |
@@ -636,15 +636,15 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 
 | Brecha | Impacto en el modelo |
 |---|---|
-| PR-01, PR-02 (ventas de carne) | El modelo contempla vender carne como productos con `controla_stock = false`. Si el negocio prefiere registrar solo un total de carne por turno, se necesita otra entidad (por ejemplo `venta_carne_turno`) |
-| PR-09 (pago mixto) | Si se necesita, `venta.medio_pago_id` pasa a una entidad `venta_pago` (venta, medio de pago, monto) |
-| PR-08, PR-10 | Ajustan los valores de `medio_pago` y de `movimiento_caja.concepto` |
+| PR-02 (reportes de Kendra) | Define si se importan totales; la venta de carne ya está decidida (DEC-36) |
 | PR-12, PR-13, PR-15, PR-16 | Definen `limite_credito`, `fecha_vencimiento`, `ANTICIPO` y posibles recargos |
 | PR-18, PR-19 | Definen `condicion_pago`, remitos y si existe `pedido_proveedor` |
 | PR-20, PR-21 | Definen `stock_minimo` y `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes |
 | PR-31 (datos de contacto) | Define si hacen falta más campos (dirección, identificación fiscal) en cliente y proveedor |
 | PR-32 (ajustes de stock) | Define si hace falta un caso de uso de ajuste de stock (conteo de inventario). Hoy un ajuste modificaría `stock_actual` directamente; conviene evaluar entonces el libro de movimientos |
-| PR-30 (anulaciones y correcciones) | Puede requerir un `estado` en venta y movimientos de reversa |
+| DEC-45 (anulaciones, ex PR-30) | Agrega un `estado` en `venta` y un egreso de reversa en `movimiento_caja` (se diseña al implementarlo) |
+| DEC-39 (una caja abierta a la vez, ex PR-06) | RI-01 pasa a: una caja por (`fecha`, `turno`) y una sola caja `ABIERTA` en total. Aplicado en la migración `caja/0004` (H2, etapa 1) |
+| DEC-46 (stock insuficiente) | Se acepta `stock_actual` negativo en productos con control de stock |
 
 ## 12. Mantenimiento
 

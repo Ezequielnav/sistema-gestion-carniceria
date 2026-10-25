@@ -49,30 +49,37 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
-| CP-01 | Abrir caja de un turno sin caja abierta | RN-01, RF-04 | Se crea la caja en estado `ABIERTA` con fecha, turno y empleado | Confirmado |
-| CP-02 | Abrir una segunda caja del mismo turno y fecha | RN-01, RI-01, RF-05 | La base y el servicio la rechazan | Confirmado |
+| CP-01 | Abrir caja de un turno sin caja abierta | RN-01, RF-04 | Se crea la caja en estado `ABIERTA` con la fecha de hoy, el turno elegido y la cajera | Confirmado; automatizado (H2, etapa 1) |
+| CP-02 | Abrir una segunda caja del mismo turno y fecha | RN-01, RI-01, RF-05 | La base y el servicio la rechazan, con un mensaje que nombra la caja abierta | Confirmado; automatizado (H2, etapa 1) |
 | CP-03 | Los turnos válidos son mañana y tarde | RN-02 | Un turno distinto es rechazado | Confirmado |
 | CP-04 | Cerrar caja con montos contados | RF-07, RI-10 | La diferencia es `monto_contado - monto_sistema` y no se guarda | Confirmado |
 | CP-05 | Agregar una venta o un movimiento a una caja cerrada | RN-03, RI-02, RNF-09 | Se rechaza | Confirmado |
-| CP-06 | Cierre con diferencia distinta de cero | RF-09 | Según lo que defina el negocio (aviso, motivo, autorización) | A confirmar (PR-07) |
-| CP-07 | Abrir caja con fondo de cambio | RF-10 | Se registra el monto inicial | A confirmar (PR-05) |
+| CP-06 | Cierre con diferencia distinta de cero | RF-09 | El sistema avisa y no cierra sin un motivo; con motivo, cierra sin autorización | Decidido (DEC-40) |
+| CP-07 | Abrir caja con fondo de cambio | RF-10 | Se registra el monto inicial (opcional, en efectivo; vacío se guarda 0) y se suma al efectivo esperado del cierre | Decidido (DEC-38); apertura automatizada (H2, etapa 1), suma en el cierre con CU-03 |
+| CP-79 | Abrir la caja de la tarde con la de la mañana abierta | RI-01, CU-02 A3 | Se rechaza y pide cerrar la caja abierta | Decidido (DEC-39); automatizado (H2, etapa 1) |
+| CP-80 | Reabrir un turno ya cerrado el mismo día | RI-01, CU-02 A4 | Se rechaza; el formulario solo ofrece los turnos que se pueden abrir | Decidido (DEC-39); automatizado (H2, etapa 1) |
+| CP-81 | Egreso "otro" (gasto o retiro en efectivo) | SC-02, RI-13 | Se registra con concepto `OTRO` y descripción obligatoria, y se resta del efectivo esperado; sin descripción se rechaza | Decidido (DEC-43) |
 
 ### 4.2 Ventas (CU-01)
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
-| CP-10 | Venta con varios productos | RF-12, RI-03 | `monto_total` es la suma de los subtotales de los detalles | Confirmado |
-| CP-11 | Venta en efectivo | RN-04, RI-04 | Genera un `movimiento_caja` de ingreso por el monto y el medio de pago, en la misma operación | Confirmado |
-| CP-12 | Venta con producto con control de stock | RF-16, RI-07 | El `stock_actual` baja la cantidad vendida | Confirmado (no cárnicos) |
-| CP-13 | Venta con producto sin control de stock | RI-07 | El stock no cambia | Confirmado |
-| CP-14 | Falla a mitad de la venta (error forzado al registrar el movimiento de caja) | RNF-10 | No quedan venta, detalle, movimiento ni cambio de stock | Confirmado |
-| CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado |
-| CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado |
-| CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro | A confirmar (regla implícita en el relevamiento) |
+| CP-10 | Venta con varios productos | RF-12, RI-03 | `monto_total` es la suma de los subtotales de los detalles | Confirmado; automatizado (H2, etapa 2) |
+| CP-11 | Venta en efectivo | RN-04, RI-04 | Genera un `movimiento_caja` de ingreso por el monto y el medio de pago, en la misma operación | Confirmado; automatizado (H2, etapa 2) |
+| CP-12 | Venta con producto con control de stock | RF-16, RI-07 | El `stock_actual` baja la cantidad vendida | Confirmado (no cárnicos); automatizado (H2, etapa 2) |
+| CP-13 | Venta con producto sin control de stock | RI-07 | El stock no cambia | Confirmado; automatizado (H2, etapa 2) |
+| CP-14 | Falla a mitad de la venta (error forzado al registrar el movimiento de caja) | RNF-10 | No quedan venta, detalle, movimiento ni cambio de stock | Confirmado; automatizado (H2, etapa 2) |
+| CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado; automatizado (H2, etapa 2) |
+| CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado; automatizado (H2, etapa 2) |
+| CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro; también si la caja abierta es de otro día | Decidido (DEC-39, DEC-50); automatizado (H2, etapa 2) |
 | CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | A confirmar (PR-12, PR-13) |
 | CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | A confirmar (PR-12) |
-| CP-20 | Venta de carne | RF-20 | Según el nivel de detalle que defina el negocio | A confirmar (PR-01, PR-02) |
-| CP-21 | Venta con más de un medio de pago | RF-19 | Según lo que defina el negocio | A confirmar (PR-09) |
+| CP-20 | Venta de carne | RF-20, RF-16 | Se registra por producto y por kg con su precio; el stock no cambia | Decidido (DEC-36); automatizado (H2, etapa 2) |
+| CP-21 | Venta con más de un medio de pago | RF-19 | No se permite: un solo medio por venta | Decidido (DEC-42); automatizado (H2, etapa 2) |
+| CP-82 | Buscar con el código del lector | RF-11 | Un código que coincide exacto con un plus agrega el producto a la venta | Decidido (DEC-37); automatizado (H2, etapa 2) |
+| CP-83 | Venta con stock insuficiente | CU-01 A3, RI-07 | Se permite con aviso y el `stock_actual` queda negativo | Decidido (DEC-46); automatizado (H2, etapa 2) |
+| CP-84 | Ticket de una venta confirmada | RF-14 | Muestra negocio, número, fecha y hora, cajera, detalle, total, medio de pago y "No válido como factura" | Decidido (DEC-44); automatizado (H2, etapa 2) |
+| CP-85 | Anular una venta | RI-02, RI-07 | Solo el Administrador y con la caja abierta: la venta queda anulada y se revierten caja y stock en la misma operación; con la caja cerrada se rechaza | Decidido (DEC-45) |
 
 ### 4.3 Stock, ingresos y proveedores (CU-05, CU-06, CU-07)
 
@@ -110,7 +117,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; el alta durante la venta se prueba en H2. La cajera con permiso no modifica ni da de baja | Confirmado |
 | CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador y no se edita desde la pantalla ni por su URL (DEC-33) | Confirmado |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
-| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-04, PR-22) |
+| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-22; el plus, DEC-37) |
 
 ### 4.6 Reportes (CU-09)
 
@@ -141,7 +148,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 
 | Regla | Casos | Regla | Casos |
 |---|---|---|---|
-| RN-01 | CP-01, CP-02 | RI-01 | CP-02 |
+| RN-01 | CP-01, CP-02, CP-79 | RI-01 | CP-02, CP-79, CP-80 |
 | RN-02 | CP-03 | RI-02 | CP-05 |
 | RN-03 | CP-05 | RI-03 | CP-10 |
 | RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
@@ -199,12 +206,9 @@ Para un proyecto individual alcanza con **GitHub Issues**, con las etiquetas `bu
 
 | Pendiente | Efecto |
 |---|---|
-| PR-01, PR-02 (ventas de carne) | CP-20 no se puede definir |
-| PR-07, PR-05 (diferencias y fondo de cambio) | CP-06 y CP-07 |
 | PR-12, PR-13 (crédito y vencimiento) | CP-18, CP-19, CP-44 |
 | PR-15 (excedente de pago) | CP-41 |
 | PR-17, PR-18 (pagos y deuda a proveedores) | CP-32, CP-36 |
-| PR-09 (varios medios de pago) | CP-21 |
 | PR-03, PR-22 (códigos y unicidad de productos) | CP-59 |
 | RNF-12 (umbral de rendimiento) | No hay prueba de rendimiento hasta definirlo |
 

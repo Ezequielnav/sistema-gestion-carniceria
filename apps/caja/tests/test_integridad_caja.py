@@ -23,22 +23,33 @@ def _rechaza(crear):
         crear()
 
 
-# CP-02 y CP-03 a nivel base (RN-01, RN-02, RI-01)
+# CP-02, CP-79, CP-80 y CP-03 a nivel base (RN-01, RN-02, RI-01, DEC-39)
+
+
+def _cerrar(caja):
+    caja.estado = EstadoCaja.CERRADA
+    caja.cerrada_en = timezone.now()
+    caja.save()
 
 
 def test_cp02_segunda_caja_abierta_mismo_turno_y_fecha_se_rechaza(caja, usuario):
     _rechaza(lambda: Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario))
 
 
-def test_cp02_con_la_caja_anterior_cerrada_se_puede_abrir_otra(caja, usuario):
-    caja.estado = EstadoCaja.CERRADA
-    caja.cerrada_en = timezone.now()
-    caja.save()
+def test_cp80_un_turno_cerrado_no_se_reabre_el_mismo_dia(caja, usuario):
+    _cerrar(caja)
 
-    Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario)
+    _rechaza(lambda: Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario))
 
 
-def test_cp02_otro_turno_de_la_misma_fecha_se_permite(caja, usuario):
+def test_cp79_con_una_caja_abierta_no_se_abre_otra_de_otro_turno_ni_fecha(caja, usuario):
+    _rechaza(lambda: Caja.objects.create(fecha=caja.fecha, turno=Turno.TARDE, usuario=usuario))
+    _rechaza(lambda: Caja.objects.create(fecha="2026-01-16", turno=Turno.MANANA, usuario=usuario))
+
+
+def test_cp79_con_la_manana_cerrada_se_abre_la_tarde(caja, usuario):
+    _cerrar(caja)
+
     Caja.objects.create(fecha=caja.fecha, turno=Turno.TARDE, usuario=usuario)
 
 

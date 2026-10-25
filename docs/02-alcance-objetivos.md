@@ -43,7 +43,7 @@ Surgen de contradicciones entre las secciones del documento base (ver hallazgos 
 | Registro de faltante de stock detectado | Aparece en el diagrama de casos de uso, no en el texto | A confirmar |
 | Gestión de pedidos a proveedores | El modelo de clases los incluye, los casos de uso no (PR-19) | A confirmar |
 | Reportes automáticos al cierre de jornada | Es una meta; el caso de uso describe reportes a pedido (PR-27) | A confirmar |
-| Registro de ventas de carne | La meta pide el 100% de ventas en el sistema, pero Kendra queda afuera (PR-01) | A confirmar |
+| Registro de ventas de carne | La carne se vende en el sistema por producto y por kg, sin descontar stock; Kendra sigue afuera | Decidido (DEC-36) |
 
 ## 3. Objetivos
 
@@ -74,7 +74,7 @@ Desarrollar un sistema de gestión web que centralice y organice la información
 | ID | Meta | Observación |
 |---|---|---|
 | M-01 | Prototipo funcional del sistema en 2 meses | **Plazo no vigente como fecha:** no hay fecha de entrega fija (PA-01). Se interpreta como el prototipo H1 + H2, que se presenta cuando el alumno decida (ver [07-planificacion.md](07-planificacion.md)) |
-| M-02 | Lograr el registro de ventas y pagos al 100% desde el sistema | **Conflicto:** con Kendra fuera de alcance, las ventas de carne podrían no registrarse. Se resuelve con PR-01 (H-01) |
+| M-02 | Lograr el registro de ventas y pagos al 100% desde el sistema | Resuelto por DEC-36: las ventas de carne se registran en el sistema como cualquier producto, por kg (H-01) |
 | M-03 | Obtener reportes automáticos de ventas y stock al finalizar cada jornada | **Conflicto:** el caso de uso describe reportes a pedido. Se resuelve con PR-27 (H-13) |
 
 ## 6. Mapa de módulos
@@ -124,7 +124,7 @@ Análisis propio, **(propuesta)**. Los IDs son RA-xx (riesgos de alcance); no co
 | RA-01 | El alcance crece más de lo que una persona puede mantener | Priorizar requisitos (ver [03-requisitos.md](03-requisitos.md)) y dejar lo "a confirmar" para una segunda etapa |
 | RA-02 | Usuarios con uso limitado de tecnología (cajera) rechazan el sistema | Interfaz simple y pocos pasos en la venta; capacitación breve |
 | RA-03 | Brechas del relevamiento sin resolver retrasan el diseño | Validación puntual con el responsable, priorizada (ver PR de prioridad alta) |
-| RA-04 | Ventas de carne fuera del sistema dejan reportes incompletos | Definir con el dueño qué se registra (PR-01) |
+| RA-04 | Ventas de carne fuera del sistema dejan reportes incompletos | Mitigado por DEC-36: toda venta de carne se registra en el sistema |
 | RA-05 | Caída de internet en el local | Definir contingencia mínima (PR-29) |
 
 ## 10. Referencias
