@@ -43,6 +43,18 @@
         </tbody>
       </table>
 
+      {% if anulaciones %}
+        {# DEC-77: explica por qué baja lo esperado. #}
+        <div class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+          <p class="font-medium">Ventas anuladas (ya descontadas de lo esperado)</p>
+          <ul class="mt-1 space-y-0.5">
+            {% for anulacion in anulaciones %}
+              <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="cifras whitespace-nowrap">$ {{ anulacion.monto|floatformat:"2g" }} {{ anulacion.medio_pago }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div>
         <label for="{{ form.observacion.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.observacion.label }}</label>
         {{ form.observacion }}

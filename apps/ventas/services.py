@@ -8,19 +8,23 @@ from django.db.models import Count, F, Sum
 from django.utils import timezone
 
 from apps.caja.models import Caja, EstadoCaja, MedioPago
-from apps.caja.services import caja_abierta, registrar_ingreso_venta
+from apps.caja.services import caja_abierta, registrar_ingreso_venta, registrar_reversa_venta
 from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import buscar_productos
 from apps.usuarios.models import Rol
-from apps.ventas.models import DetalleVenta, Venta
+from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
 
 CENTAVO = Decimal("0.01")
 MILESIMA = Decimal("0.001")
+# Máximo por línea, en kg o unidades: supuesto del proyecto, no confirmado por el negocio
+# (DEC-76, pendiente de relevamiento PR-36). Frena errores como un código en el peso (DF-01).
+CANTIDAD_MAXIMA = Decimal("100")
+MOTIVO_MAXIMO = 255
 
 
 def resumen_del_dia(fecha):
-    """Cantidad y monto total de las ventas de una fecha (hora local)."""
-    datos = Venta.objects.filter(fecha_hora__date=fecha).aggregate(
+    """Cantidad y monto total de las ventas de una fecha (hora local), sin anuladas (DEC-73)."""
+    datos = Venta.objects.filter(fecha_hora__date=fecha, estado=EstadoVenta.CONFIRMADA).aggregate(
         cantidad=Count("id"), total=Sum("monto_total")
     )
     return datos["cantidad"], datos["total"] or Decimal("0.00")
@@ -57,9 +61,16 @@ def subtotal(cantidad, precio):
 
 
 def _validar_cantidad(producto, cantidad):
-    """Mayor a 0 (RI-16); entera por unidad y hasta 3 decimales por kg (DEC-48)."""
+    """Mayor a 0 (RI-16) y hasta el máximo (DEC-76); entera por unidad y hasta 3 decimales
+    por kg (DEC-48)."""
     if cantidad <= 0:
         raise ValidationError(f"La cantidad de {producto} tiene que ser mayor a 0.")
+    if cantidad > CANTIDAD_MAXIMA:
+        unidad = "kg" if producto.unidad_medida == UnidadMedida.KG else "unidades"
+        raise ValidationError(
+            f"La cantidad de {producto} supera el máximo de {CANTIDAD_MAXIMA} {unidad} por "
+            "línea. Revisá que no se haya cargado un código en la cantidad."
+        )
     if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
         raise ValidationError(f"{producto} se vende por unidad: la cantidad tiene que ser entera.")
     if cantidad != cantidad.quantize(MILESIMA):
@@ -161,3 +172,74 @@ def registrar_venta(usuario, lineas, medio_pago):
                 stock_actual=F("stock_actual") - detalle.cantidad
             )
     return venta, avisos
+
+
+# Anulación (DEC-45, DEC-66 a DEC-73)
+
+
+def puede_anular(usuario):
+    """DEC-45: solo el Administrador."""
+    return usuario.rol == Rol.ADMINISTRADOR
+
+
+def ventas_de_la_caja_abierta():
+    """Las ventas de la caja abierta, de la última a la primera (DEC-71)."""
+    caja = caja_abierta()
+    if caja is None:
+        return None, []
+    ventas = (
+        Venta.objects.filter(caja=caja)
+        .select_related("usuario", "medio_pago")
+        .order_by("-fecha_hora", "-pk")
+    )
+    return caja, list(ventas)
+
+
+def anular_venta(usuario, venta, motivo):
+    """Anula la venta y revierte su ingreso de caja y su stock en una operación (DEC-45).
+
+    La venta, sus detalles y su ingreso no se tocan: solo cambian el estado y los datos de
+    la anulación (DEC-67). La caja tiene que estar abierta, aunque sea de otro día (DEC-72).
+    """
+    if not puede_anular(usuario):
+        raise PermissionDenied("Solo el administrador anula ventas.")
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise ValidationError({"motivo": "Escribí por qué se anula la venta."}, code="sin_motivo")
+    if len(motivo) > MOTIVO_MAXIMO:
+        # Va también en la descripción de la reversa de caja, que admite 255 caracteres.
+        raise ValidationError(
+            {"motivo": f"El motivo admite hasta {MOTIVO_MAXIMO} caracteres."}, code="motivo_largo"
+        )
+    with transaction.atomic():
+        # Mismo orden de bloqueo que la venta y el cierre: primero la caja (RNF-10).
+        caja = Caja.objects.select_for_update().get(pk=venta.caja_id)
+        venta = Venta.objects.select_for_update().select_related("medio_pago").get(pk=venta.pk)
+        if venta.estado == EstadoVenta.ANULADA:
+            raise ValidationError("La venta ya está anulada.", code="ya_anulada")
+        if caja.estado != EstadoCaja.ABIERTA:
+            raise ValidationError(
+                "La caja de esta venta está cerrada: ya no se puede anular.", code="caja_cerrada"
+            )
+        venta.caja = caja
+        registrar_reversa_venta(venta, usuario, motivo)
+        venta.estado = EstadoVenta.ANULADA
+        venta.anulada_en = timezone.now()
+        venta.anulada_por_usuario = usuario
+        venta.motivo_anulacion = motivo
+        venta.save(
+            update_fields=[
+                "estado",
+                "anulada_en",
+                "anulada_por_usuario",
+                "motivo_anulacion",
+                "actualizado_en",
+            ]
+        )
+        # DEC-70: vuelve el stock de los productos que hoy lo controlan.
+        detalles = venta.detalleventa_set.filter(producto__controla_stock=True)
+        for detalle in detalles.select_related("producto"):
+            Producto.objects.filter(pk=detalle.producto_id).update(
+                stock_actual=F("stock_actual") + detalle.cantidad
+            )
+    return venta

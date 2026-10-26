@@ -56,6 +56,16 @@
         </ul>
       {% endif %}
 
+      {% if anulaciones %}
+        {# DEC-77 #}
+        <h2 class="mt-4 font-semibold">Ventas anuladas</h2>
+        <ul class="mt-1 space-y-0.5">
+          {% for anulacion in anulaciones %}
+            <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="cifras whitespace-nowrap">$ {{ anulacion.monto|floatformat:"2g" }} {{ anulacion.medio_pago }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       <p class="mt-4"><span class="font-semibold">Motivo de la diferencia:</span> {{ caja.observacion_cierre|default:"Sin diferencias." }}</p>
     </section>
 

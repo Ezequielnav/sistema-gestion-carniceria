@@ -78,7 +78,9 @@
                   <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ venta.fecha_hora|date:"j/m H:i" }}</td>
                   <td class="px-5 py-3">{{ venta.medio_pago }}</td>
                   <td class="px-5 py-3 text-gray-600">{{ venta.cliente|default:"Consumidor final" }}</td>
-                  <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">$ {{ venta.monto_total|floatformat:"2g" }}</td>
+                  <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">
+                    {% if venta.estado == "ANULADA" %}<span class="mr-2 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Anulada</span><span class="text-gray-500 line-through">{% endif %}$ {{ venta.monto_total|floatformat:"2g" }}{% if venta.estado == "ANULADA" %}</span>{% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>

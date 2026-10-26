@@ -23,16 +23,18 @@ class TipoMovimientoCaja(models.TextChoices):
 
 
 class ConceptoMovimientoCaja(models.TextChoices):
-    """Lista final a confirmar (PR-10)."""
+    """Gastos y retiros (DEC-43) y reversa de anulación (DEC-68); PR-10 cerrada."""
 
     VENTA = "VENTA", "Venta"
     PAGO_CLIENTE = "PAGO_CLIENTE", "Pago de cliente"
     PAGO_PROVEEDOR = "PAGO_PROVEEDOR", "Pago a proveedor"
     OTRO = "OTRO", "Otro"
+    # Reversa de una venta anulada (DEC-45, DEC-68).
+    ANULACION = "ANULACION", "Anulación de venta"
 
 
 class MedioPago(ModeloBase):
-    """Valores a confirmar (PR-08)."""
+    """Los medios se cargan en el panel (DEC-41, PR-08 cerrada)."""
 
     nombre = models.CharField(max_length=50)
     ingresa_a_caja = models.BooleanField(default=True)
@@ -70,7 +72,7 @@ class Caja(ModeloBase):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="cajas_abiertas"
     )
-    # Fondo de cambio (a confirmar: PR-05).
+    # Fondo de cambio, opcional; vacío se guarda 0 (DEC-38).
     monto_inicial = campo_monto(null=True, blank=True, validators=[NO_NEGATIVO])
     estado = models.CharField(max_length=7, choices=EstadoCaja.choices, default=EstadoCaja.ABIERTA)
     abierta_en = models.DateTimeField(default=timezone.now)
@@ -82,7 +84,7 @@ class Caja(ModeloBase):
         blank=True,
         related_name="cajas_cerradas",
     )
-    # Para diferencias (a confirmar: PR-07).
+    # Motivo de las diferencias del cierre (DEC-40).
     observacion_cierre = models.TextField(blank=True)
 
     class Meta:
@@ -183,7 +185,8 @@ class MovimientoCaja(ModeloBase):
             # RI-13: exactamente la referencia que corresponde al concepto; OTRO no lleva ninguna.
             models.CheckConstraint(
                 condition=(
-                    Q(concepto=ConceptoMovimientoCaja.VENTA) & _solo_referencia(venta=True)
+                    Q(concepto__in=[ConceptoMovimientoCaja.VENTA, ConceptoMovimientoCaja.ANULACION])
+                    & _solo_referencia(venta=True)
                     | Q(concepto=ConceptoMovimientoCaja.PAGO_CLIENTE)
                     & _solo_referencia(pago_cliente=True)
                     | Q(concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR)
@@ -191,6 +194,18 @@ class MovimientoCaja(ModeloBase):
                     | Q(concepto=ConceptoMovimientoCaja.OTRO) & _solo_referencia()
                 ),
                 name="movimiento_caja_referencia_segun_concepto",
+            ),
+            # DEC-68: la anulación es siempre un egreso, y una venta tiene a lo sumo una.
+            models.CheckConstraint(
+                condition=~Q(concepto=ConceptoMovimientoCaja.ANULACION)
+                | Q(tipo=TipoMovimientoCaja.EGRESO),
+                name="movimiento_caja_anulacion_es_egreso",
+            ),
+            models.UniqueConstraint(
+                fields=["venta"],
+                condition=Q(concepto=ConceptoMovimientoCaja.ANULACION),
+                name="movimiento_caja_una_anulacion_por_venta",
+                violation_error_message="La venta ya tiene su anulación.",
             ),
         ]
         indexes = [
