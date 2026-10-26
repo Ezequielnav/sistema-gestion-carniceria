@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block titulo %}Cerrar caja{% endblock %}
+{% block encabezado %}Caja{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-2xl">
+    <a href="{% url 'caja:caja' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a Caja</a>
+    <h2 class="mt-2 text-2xl font-semibold tracking-tight">Cerrar caja</h2>
+    <p class="mt-1 text-sm text-gray-500">
+      Turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}. Contá lo que hay de cada medio de pago y cargalo.
+    </p>
+
+    <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+          <tr>
+            <th scope="col" class="py-2 font-medium">Medio de pago</th>
+            <th scope="col" class="py-2 text-right font-medium">Esperado</th>
+            <th scope="col" class="py-2 pl-4 font-medium">Contado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for medio, esperado, campo in form.filas %}
+            <tr>
+              <td class="py-3 font-medium">{{ medio }}{% if medio.es_efectivo %}<span class="block text-xs font-normal text-gray-500">Incluye el fondo de cambio</span>{% endif %}</td>
+              <td class="cifras py-3 text-right whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
+              <td class="py-3 pl-4">
+                <label for="{{ campo.id_for_label }}" class="sr-only">{{ campo.label }}</label>
+                {{ campo }}
+                {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div>
+        <label for="{{ form.observacion.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.observacion.label }}</label>
+        {{ form.observacion }}
+        <p class="mt-1.5 text-xs text-gray-500">{{ form.observacion.help_text }}</p>
+        {% for error in form.observacion.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <a href="{% url 'caja:caja' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
+        <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Cerrar caja</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

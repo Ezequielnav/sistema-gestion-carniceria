@@ -1,44 +1,42 @@
-# Plan - CU-01 Registrar venta (H2, etapa 2)
+# Plan - Etapa 3 de H2: egresos "otros" y cierre de caja (CU-03)
 
-Fuente: `docs/specs/SPEC-CU-01.md` (aprobado, DEC-47 a DEC-54). El plan de CU-02 (etapa 1) quedó completo.
+Fuente: `docs/specs/SPEC-CU-03.md` (aprobado, DEC-55 a DEC-61). Plan completo; el estado de H2 y lo que falta está en `tasks/todo.md`.
 
 ## Dependencias
 
 ```
-SC-02: registrar_ingreso_venta (caja)
-        └── registrar_venta (ventas): validación, precios, stock, transacción
-                ├── buscar_para_venta + JSON /ventas/buscar/
-                └── Pantalla /ventas/nueva/ + venta.js + confirmar + ticket
-                        └── Docs y recorrido con Playwright
+medio_pago.es_efectivo (DEC-55, migración caja/0005, datos de ejemplo)
+        ├── A. Egresos "otros": servicio + formulario en la pantalla de Caja
+        └── B. Cierre: esperado por medio, cierre, bloqueo
+                    └── Pantallas de cierre y reporte
+                            └── Docs, verificación y RM-03 con Playwright
 ```
 
 ## Tareas
 
-### T1. Registrar una venta (servicio de punta a punta)
-- `caja.services.registrar_ingreso_venta(venta)` (SC-02, RI-02, RI-04, RI-13).
-- `ventas.services`: `puede_vender`, `medios_de_pago_para_venta`, `registrar_venta(usuario, lineas, medio_pago)` con `transaction.atomic()`, precios desde la base, DEC-48 a DEC-50, DEC-53 (líneas repetidas se suman), stock con `F()` y avisos de DEC-46.
-- **Acepta:** CP-10 a CP-17, CP-20, CP-21, CP-83.
-- **Verifica:** `pytest apps/ventas apps/caja`.
+### T1. Efectivo identificado (DEC-55)
+- `MedioPago.es_efectivo` con un único parcial `medio_pago_un_solo_efectivo`; migración `caja/0005` que marca el medio "Efectivo" existente. Datos de ejemplo, panel y fixture `efectivo` de las pruebas.
+- **Acepta:** la base rechaza dos medios en efectivo; la migración marca "Efectivo".
+- **Verifica:** `pytest apps/caja apps/comun`, `makemigrations --check`.
 
-### T2. Búsqueda para la venta
-- `buscar_para_venta(texto)`: activos, nombre que contiene o plus exacto; marca si hubo coincidencia exacta de plus (DEC-52). Vista JSON `/ventas/buscar/`.
-- **Acepta:** CP-82; inactivos excluidos.
-- **Verifica:** `pytest apps/ventas`.
+### T2. Egresos "otros" (módulo A)
+- Servicio `registrar_egreso_otro` (DEC-43, DEC-57, RI-13), formulario y `/caja/egreso/`; lista de egresos en la pantalla de Caja (DEC-58).
+- **Acepta:** CP-81; sin descripción, monto no positivo, sin caja o por encima del efectivo disponible se rechaza.
+- **Verifica:** `pytest apps/caja`.
 
 ### Punto de control 1
-Servicios y búsqueda en verde.
+Efectivo y egresos en verde.
 
-### T3. Pantalla de venta, confirmación y ticket
-- `/ventas/nueva/` (sin caja abierta o con caja de otro día: aviso y enlace a Caja), `static/js/venta.js` (lista en el navegador, DEC-47, DEC-51 a DEC-53), `/ventas/confirmar/` (POST, recalcula en el servidor) y `/ventas/<id>/ticket/` (DEC-44, DEC-54). Menú "Ventas".
-- **Acepta:** venta completa desde la pantalla, ticket con la leyenda, permisos por rol, datos manipulados del navegador ignorados.
-- **Verifica:** `pytest`, `npm run estilos`.
+### T3. Cierre de caja (módulo B)
+- `resumen_de_cierre` (DEC-38, DEC-56) y `cerrar_caja` (RI-10, DEC-40, RN-03, RNF-10) con bloqueo de la fila; `/caja/cerrar/` y `/caja/<id>/cierre/` (DEC-59, DEC-60); botón "Cerrar caja".
+- **Acepta:** CP-04 a CP-07; caja cerrada sin ventas ni egresos; reporte visible para cajera, Administrador y Dueños.
+- **Verifica:** `pytest`.
 
 ### T4. Docs y verificación
-- 04 (implementación de CU-01), 05 (si corresponde), 08 (casos automatizados).
-- `check`, `makemigrations --check`, `ruff`, `pytest`.
+- 04, 05, 07 y 08. `check`, `makemigrations --check`, `ruff`, `pytest`.
 
-### T5. Recorrido con Playwright en localhost
-- Con la caja abierta: venta con carne por kg (sin stock), un producto por unidad con stock suficiente y uno con stock insuficiente, en dos ventas con dos medios de pago distintos. Revisar ticket, caja y stock en la base.
+### T5. RM-03 con Playwright en localhost
+- Migrar la base de desarrollo, completar la caja de la mañana (tercera venta con otro medio y un egreso) y cerrarla con una diferencia y su motivo. Revisar el reporte como cajera, Administrador y Dueño.
 
 ### Punto de control 2
 Todo en verde, sin commit.

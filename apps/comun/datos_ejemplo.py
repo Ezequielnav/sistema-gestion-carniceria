@@ -104,7 +104,8 @@ def cargar(clave):
     creados["usuarios"] = nuevos
 
     creados["medios de pago"] = sum(
-        _por_nombre(MedioPago, nombre, ingresa_a_caja=ingresa) for nombre, ingresa in MEDIOS_PAGO
+        _por_nombre(MedioPago, nombre, ingresa_a_caja=ingresa, es_efectivo=nombre == "Efectivo")
+        for nombre, ingresa in MEDIOS_PAGO
     )
     creados["categorías"] = sum(_por_nombre(Categoria, nombre) for nombre in CATEGORIAS)
 

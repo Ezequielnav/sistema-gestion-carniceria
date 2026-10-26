@@ -52,13 +52,13 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-01 | Abrir caja de un turno sin caja abierta | RN-01, RF-04 | Se crea la caja en estado `ABIERTA` con la fecha de hoy, el turno elegido y la cajera | Confirmado; automatizado (H2, etapa 1) |
 | CP-02 | Abrir una segunda caja del mismo turno y fecha | RN-01, RI-01, RF-05 | La base y el servicio la rechazan, con un mensaje que nombra la caja abierta | Confirmado; automatizado (H2, etapa 1) |
 | CP-03 | Los turnos válidos son mañana y tarde | RN-02 | Un turno distinto es rechazado | Confirmado |
-| CP-04 | Cerrar caja con montos contados | RF-07, RI-10 | La diferencia es `monto_contado - monto_sistema` y no se guarda | Confirmado |
-| CP-05 | Agregar una venta o un movimiento a una caja cerrada | RN-03, RI-02, RNF-09 | Se rechaza | Confirmado |
-| CP-06 | Cierre con diferencia distinta de cero | RF-09 | El sistema avisa y no cierra sin un motivo; con motivo, cierra sin autorización | Decidido (DEC-40) |
-| CP-07 | Abrir caja con fondo de cambio | RF-10 | Se registra el monto inicial (opcional, en efectivo; vacío se guarda 0) y se suma al efectivo esperado del cierre | Decidido (DEC-38); apertura automatizada (H2, etapa 1), suma en el cierre con CU-03 |
+| CP-04 | Cerrar caja con montos contados | RF-07, RI-10 | La diferencia es `monto_contado - monto_sistema` y no se guarda | Confirmado; automatizado (H2, etapa 3) |
+| CP-05 | Agregar una venta o un movimiento a una caja cerrada | RN-03, RI-02, RNF-09 | Se rechaza | Confirmado; automatizado (H2, etapa 3) |
+| CP-06 | Cierre con diferencia distinta de cero | RF-09 | El sistema avisa y no cierra sin un motivo; con motivo, cierra sin autorización | Decidido (DEC-40); automatizado (H2, etapa 3) |
+| CP-07 | Abrir caja con fondo de cambio | RF-10 | Se registra el monto inicial (opcional, en efectivo; vacío se guarda 0) y se suma al efectivo esperado del cierre | Decidido (DEC-38); apertura automatizada (H2, etapa 1) y suma en el cierre (H2, etapa 3) |
 | CP-79 | Abrir la caja de la tarde con la de la mañana abierta | RI-01, CU-02 A3 | Se rechaza y pide cerrar la caja abierta | Decidido (DEC-39); automatizado (H2, etapa 1) |
 | CP-80 | Reabrir un turno ya cerrado el mismo día | RI-01, CU-02 A4 | Se rechaza; el formulario solo ofrece los turnos que se pueden abrir | Decidido (DEC-39); automatizado (H2, etapa 1) |
-| CP-81 | Egreso "otro" (gasto o retiro en efectivo) | SC-02, RI-13 | Se registra con concepto `OTRO` y descripción obligatoria, y se resta del efectivo esperado; sin descripción se rechaza | Decidido (DEC-43) |
+| CP-81 | Egreso "otro" (gasto o retiro en efectivo) | SC-02, RI-13 | Se registra con concepto `OTRO` y descripción obligatoria, y se resta del efectivo esperado; sin descripción se rechaza | Decidido (DEC-43); automatizado (H2, etapa 3) |
 
 ### 4.2 Ventas (CU-01)
 
@@ -187,6 +187,7 @@ Se ejecutan al cerrar cada hito, en Chrome de PC y en un celular. Cada recorrido
 |---|---|---|---|
 | 2026-10-22 | RM-01 | OK | En local con los usuarios de ejemplo (H1.3), en PC y en tamaño de celular (375 px). Clave equivocada: mensaje genérico. Administrador: productos, stock, clientes, proveedores, reportes, usuarios y el panel. Cajera con permiso: ventas, caja y productos. Cajera sin permiso: ventas y caja; el panel le pide ingresar de nuevo. Dueño: reportes. Las funciones sin pantalla aparecen deshabilitadas ("Pronto"). Los cuatro salen y vuelven al ingreso. Recorrido confirmado por el alumno: hecho |
 | 2026-10-22 | RM-02 | OK | En local con los usuarios de ejemplo. Administrador: alta de un producto de prueba (plus 990), edición del precio, plus repetido rechazado con el mensaje junto al campo, baja con confirmación; el producto deja de listarse y aparece "Dado de baja" con el filtro "Incluir dados de baja", sin opción de reactivar. Cajera con permiso: listado sin stock, sin Editar, sin Dar de baja y sin el filtro; alta de un producto (plus 991); la URL de edición responde "Sin permiso". Cajera sin permiso: el menú no muestra Productos y `/productos/` y `/productos/nuevo/` responden "Sin permiso" (CP-55). Recorrido hecho por el agente en el navegador; validado por el alumno |
+| 2026-10-26 | RM-03 | OK | En local con los datos de ejemplo, como cajera. Se cerró la caja de la mañana del 25/10 (dos ventas del día anterior y un retiro de $ 2.000): esperado en efectivo $ 22.250, contado $ 22.000; sin motivo no cerró y con motivo cerró. Después se abrió la mañana del 26/10 con fondo de $ 3.000, se registraron tres ventas con efectivo (vacío por kg), tarjeta y QR, y se cerró contando $ 100 de más con su motivo. Los reportes de cierre muestran esperado, contado, diferencia, egresos y motivo; el Administrador y los dueños ven el reporte y reciben 403 en Caja y en el cierre. Recorrido hecho en el navegador con Playwright |
 
 ## 7. Criterios de aceptación por hito
 

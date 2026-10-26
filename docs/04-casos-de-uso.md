@@ -256,6 +256,8 @@ flowchart LR
 
 **Decisiones de diseño (DEC-35):** el efectivo esperado incluye el fondo de cambio y los egresos en efectivo (DEC-38, DEC-43); diferencia con aviso y motivo obligatorio (DEC-40).
 
+**Implementación (H2, etapa 3):** desde la pantalla de Caja, "Cerrar caja" lleva a `/caja/cerrar/`, solo para la cajera (cualquier cajera puede cerrar la caja abierta, también si es de otro día). Muestra lo esperado por medio de pago (ingresos menos egresos; el efectivo suma el fondo de cambio), con todos los medios activos que ingresan a caja más los que tengan movimientos (DEC-56), y pide lo contado de cada uno. Si alguna diferencia no es cero, exige el motivo. Al cerrar, en una sola operación guarda esperado y contado por medio (la diferencia se calcula, no se guarda), deja la caja cerrada con fecha y usuario y bloquea su fila para que no se cuele una venta. Después se ve el reporte de cierre en `/caja/<id>/cierre/`, imprimible, que también pueden abrir el Administrador y los Dueños por enlace directo (DEC-59, DEC-60).
+
 ### CU-04 Registrar pago de cliente (cuenta corriente)
 
 | Campo | Detalle |
@@ -521,7 +523,9 @@ Incluido en CU-04, CU-08 y SC-03. El usuario busca o selecciona al cliente. Si n
 
 ### SC-02 Registrar movimiento de caja
 
-Incluido en CU-01, CU-04 y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa. La cajera también registra desde la pantalla de Caja los egresos "otros" (gastos y retiros en efectivo) con descripción obligatoria, concepto `OTRO` (DEC-43).
+Incluido en CU-01, CU-04 y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa.
+
+**Implementación (H2, etapas 2 y 3):** el ingreso de cada venta se registra junto con la venta. Los egresos "otros" se cargan desde la pantalla de Caja: monto mayor a 0, descripción obligatoria, en el medio marcado como efectivo (DEC-55) y sin superar el efectivo esperado (DEC-57). La pantalla lista los egresos del turno, que no se editan ni se borran (DEC-58). La cajera también registra desde la pantalla de Caja los egresos "otros" (gastos y retiros en efectivo) con descripción obligatoria, concepto `OTRO` (DEC-43).
 
 ### SC-03 Vender a cuenta corriente (a confirmar: PR-12, PR-13)
 

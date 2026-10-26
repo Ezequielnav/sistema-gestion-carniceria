@@ -275,6 +275,7 @@ classDiagram
 | id | int | S | |
 | nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (DEC-41) |
 | ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41) |
+| es_efectivo | boolean | S | `true` solo en el medio en efectivo: fondo de cambio y egresos "otros" (DEC-55) |
 | activo | boolean | S | |
 
 Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambiar el código.
@@ -541,6 +542,7 @@ Solo se incorporan si el negocio lo confirma.
 |---|---|
 | `usuario` | `UNIQUE (nombre_usuario)`; `CHECK` de `rol` |
 | `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
+| `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`) |
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
 | `caja` | `UNIQUE (fecha, turno)` y un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01, DEC-39: `caja_unica_por_fecha_turno` y `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
