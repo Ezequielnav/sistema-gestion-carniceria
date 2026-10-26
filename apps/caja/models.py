@@ -36,6 +36,8 @@ class MedioPago(ModeloBase):
 
     nombre = models.CharField(max_length=50)
     ingresa_a_caja = models.BooleanField(default=True)
+    # El medio del fondo de cambio y de los egresos "otros" (DEC-55).
+    es_efectivo = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
 
     class Meta:
@@ -48,6 +50,13 @@ class MedioPago(ModeloBase):
                 Lower("nombre"),
                 name="medio_pago_nombre_unico",
                 violation_error_message="Ya existe un medio de pago con ese nombre.",
+            ),
+            # DEC-55: un solo medio en efectivo.
+            models.UniqueConstraint(
+                fields=["es_efectivo"],
+                condition=Q(es_efectivo=True),
+                name="medio_pago_un_solo_efectivo",
+                violation_error_message="Ya hay otro medio de pago marcado como efectivo.",
             ),
         ]
 

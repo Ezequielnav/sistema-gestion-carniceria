@@ -38,6 +38,7 @@ Los permisos de lectura sobre secretos están en `.claude/settings.json`. Esas r
 
 ## Herramientas de IA (plugins del proyecto)
 Karpathy guidelines y Agent Skills son de uso personal (plugins de terceros): se configuran en `.claude/settings.local.json`, que no se sube al repositorio. `.claude/settings.json` solo activa frontend-design y security-guidance.
+- Seguí siempre las pautas de Karpathy Skills. Usá las demás skills y plugins instalados cuando la tarea lo amerite (frontend-design para pantallas, Playwright para probar en localhost).
 - Karpathy guidelines: siempre activas (pensar antes, cambios mínimos y quirúrgicos).
 - Agent Skills: usar /spec antes de implementar cada CU, /plan para dividirlo en tareas y /review antes de abrir un Pull Request. Los specs se guardan en `docs/specs/` (`SPEC-CU-xx.md`).
 - frontend-design: los prototipos v0 de /docs son solo guía funcional (qué datos y acciones tiene cada pantalla); no copiar su diseño visual (DEC-07).

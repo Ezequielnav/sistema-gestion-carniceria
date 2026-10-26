@@ -1,15 +1,18 @@
-"""Reglas de CU-02 Abrir caja por turno y SC-02 Registrar movimiento de caja."""
+"""Reglas de CU-02 Abrir caja, CU-03 Cerrar caja y SC-02 Registrar movimiento de caja."""
 
 from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from apps.caja.models import (
     Caja,
+    CierreCajaDetalle,
     ConceptoMovimientoCaja,
     EstadoCaja,
+    MedioPago,
     MovimientoCaja,
     TipoMovimientoCaja,
     Turno,
@@ -105,3 +108,151 @@ def registrar_ingreso_venta(venta):
         venta=venta,
         usuario=venta.usuario,
     )
+
+
+# Egresos "otros" (DEC-43, DEC-57, DEC-58)
+
+
+def efectivo():
+    """El medio de pago en efectivo (DEC-55)."""
+    medio = MedioPago.objects.filter(es_efectivo=True).first()
+    if medio is None:
+        raise ValidationError(
+            "No hay un medio de pago marcado como efectivo. Hay que marcarlo en el panel.",
+            code="sin_efectivo",
+        )
+    return medio
+
+
+def _caja_abierta_bloqueada():
+    """La caja abierta, con su fila bloqueada hasta terminar la operación (RNF-10)."""
+    caja = Caja.objects.select_for_update().filter(estado=EstadoCaja.ABIERTA).first()
+    if caja is None:
+        raise ValidationError("No hay una caja abierta.", code="sin_caja")
+    return caja
+
+
+def egresos_otros(caja):
+    return list(
+        MovimientoCaja.objects.filter(
+            caja=caja, tipo=TipoMovimientoCaja.EGRESO, concepto=ConceptoMovimientoCaja.OTRO
+        ).order_by("fecha_hora", "pk")
+    )
+
+
+def registrar_egreso_otro(usuario, monto, descripcion):
+    """SC-02: gasto o retiro en efectivo de la caja abierta, con descripción (DEC-43, RI-13)."""
+    if not puede_abrir(usuario):
+        raise PermissionDenied("Solo la cajera registra egresos de caja.")
+    descripcion = (descripcion or "").strip()
+    errores = {}
+    if monto is None or monto <= 0:
+        errores["monto"] = "El monto tiene que ser mayor a 0."
+    if not descripcion:
+        errores["descripcion"] = "Contá en qué se usó el efectivo."
+    if errores:
+        raise ValidationError(errores)
+    with transaction.atomic():
+        caja = _caja_abierta_bloqueada()
+        medio = efectivo()
+        disponible = _esperado(caja, medio)
+        if monto > disponible:
+            # DEC-57: no sale más efectivo del que hay.
+            raise ValidationError(
+                {"monto": f"En la caja hay $ {disponible:.2f} en efectivo: no alcanza."},
+                code="sin_efectivo_suficiente",
+            )
+        return MovimientoCaja.objects.create(
+            caja=caja,
+            tipo=TipoMovimientoCaja.EGRESO,
+            monto=monto,
+            medio_pago=medio,
+            concepto=ConceptoMovimientoCaja.OTRO,
+            usuario=usuario,
+            descripcion=descripcion,
+        )
+
+
+# CU-03 Cerrar caja (RF-07, RF-08, RF-09, RI-10, DEC-38, DEC-40, DEC-56)
+
+
+def _esperado(caja, medio):
+    """Ingresos menos egresos del medio en la caja; el efectivo suma el fondo (DEC-38)."""
+    totales = MovimientoCaja.objects.filter(caja=caja, medio_pago=medio).aggregate(
+        ingresos=Sum("monto", filter=Q(tipo=TipoMovimientoCaja.INGRESO)),
+        egresos=Sum("monto", filter=Q(tipo=TipoMovimientoCaja.EGRESO)),
+    )
+    esperado = (totales["ingresos"] or Decimal("0")) - (totales["egresos"] or Decimal("0"))
+    if medio.es_efectivo:
+        esperado += caja.monto_inicial or Decimal("0")
+    return esperado
+
+
+def medios_del_cierre(caja):
+    """Activos que ingresan a caja, más los que tengan movimientos en esta caja (DEC-56)."""
+    return list(
+        MedioPago.objects.filter(Q(activo=True, ingresa_a_caja=True) | Q(movimientocaja__caja=caja))
+        .distinct()
+        .order_by("pk")
+    )
+
+
+def resumen_de_cierre(caja):
+    """Lo esperado por medio de pago: lista de (medio, esperado)."""
+    return [(medio, _esperado(caja, medio)) for medio in medios_del_cierre(caja)]
+
+
+def cerrar_caja(usuario, contados, observacion=""):
+    """Cierra la caja abierta con lo contado por medio (`contados`: id de medio -> monto).
+
+    Guarda esperado y contado por medio (la diferencia no se guarda, RI-10), exige motivo
+    si alguna diferencia no es cero (DEC-40) y bloquea la caja (RN-03, RI-02).
+    """
+    if not puede_abrir(usuario):
+        raise PermissionDenied("Solo la cajera cierra la caja.")
+    observacion = (observacion or "").strip()
+    with transaction.atomic():
+        caja = _caja_abierta_bloqueada()
+        resumen = resumen_de_cierre(caja)
+        errores = {}
+        for medio, _ in resumen:
+            contado = contados.get(medio.pk)
+            if contado is None:
+                errores[f"contado_{medio.pk}"] = f"Falta lo contado en {medio}."
+            elif contado < 0:
+                errores[f"contado_{medio.pk}"] = "No puede ser negativo."
+        if errores:
+            raise ValidationError(errores)
+        if any(contados[medio.pk] != esperado for medio, esperado in resumen) and not observacion:
+            raise ValidationError(
+                {"observacion": "Hay diferencias: escribí el motivo para poder cerrar."},
+                code="falta_motivo",
+            )
+        CierreCajaDetalle.objects.bulk_create(
+            CierreCajaDetalle(
+                caja=caja,
+                medio_pago=medio,
+                monto_sistema=esperado,
+                monto_contado=contados[medio.pk],
+            )
+            for medio, esperado in resumen
+        )
+        caja.estado = EstadoCaja.CERRADA
+        caja.cerrada_en = timezone.now()
+        caja.cerrada_por_usuario = usuario
+        caja.observacion_cierre = observacion
+        caja.save()
+    return caja
+
+
+def puede_ver_cierre(usuario):
+    """DEC-59: cajera, Administrador y Dueños."""
+    return usuario.is_authenticated and usuario.rol in (Rol.CAJERA, Rol.ADMINISTRADOR, Rol.DUENIO)
+
+
+def detalle_de_cierre(caja):
+    """Por medio: (medio, esperado, contado, diferencia). La diferencia se calcula (RI-10)."""
+    return [
+        (d.medio_pago, d.monto_sistema, d.monto_contado, d.monto_contado - d.monto_sistema)
+        for d in caja.cierrecajadetalle_set.select_related("medio_pago").order_by("medio_pago")
+    ]

@@ -1,0 +1,72 @@
+{% load static %}<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cierre de caja {{ caja.pk }} | Carnicería Rojano</title>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body class="min-h-screen bg-white print:min-h-0">
+  {# Reporte de cierre (RF-08, DEC-59, DEC-60). La diferencia se calcula, no se guarda (RI-10). #}
+  <main class="mx-auto max-w-xl px-4 py-8 text-sm print:max-w-none print:p-0">
+    {% if messages %}
+      <ul class="mb-6 space-y-2 print:hidden">
+        {% for mensaje in messages %}
+          <li role="status" class="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-xs">{{ mensaje }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <section aria-label="Reporte de cierre">
+      <header>
+        <h1 class="text-base font-semibold">Carnicería Rojano · Cierre de caja</h1>
+        <p class="mt-1">Turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}</p>
+        <p>Abrió: {{ caja.usuario.get_full_name }} · {{ caja.abierta_en|date:"d/m/Y H:i" }}</p>
+        <p>Cerró: {{ caja.cerrada_por_usuario.get_full_name }} · {{ caja.cerrada_en|date:"d/m/Y H:i" }}</p>
+        <p>Fondo de cambio: $ {{ caja.monto_inicial|default_if_none:0|floatformat:"2g" }}</p>
+      </header>
+
+      <table class="mt-4 w-full border-y border-dashed border-gray-400">
+        <thead class="text-left text-xs">
+          <tr>
+            <th scope="col" class="py-1.5 font-medium">Medio de pago</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Esperado</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Contado</th>
+            <th scope="col" class="py-1.5 text-right font-medium">Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for medio, esperado, contado, diferencia in detalle %}
+            <tr>
+              <td class="py-1">{{ medio }}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ contado|floatformat:"2g" }}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap {% if diferencia %}font-semibold text-red-700{% endif %}">$ {{ diferencia|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if egresos %}
+        <h2 class="mt-4 font-semibold">Gastos y retiros en efectivo</h2>
+        <ul class="mt-1 space-y-0.5">
+          {% for egreso in egresos %}
+            <li class="flex justify-between gap-4"><span>{{ egreso.fecha_hora|date:"H:i" }} · {{ egreso.descripcion }}</span><span class="cifras">$ {{ egreso.monto|floatformat:"2g" }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <p class="mt-4"><span class="font-semibold">Motivo de la diferencia:</span> {{ caja.observacion_cierre|default:"Sin diferencias." }}</p>
+    </section>
+
+    <div class="mt-8 flex gap-3 print:hidden">
+      <button type="button" onclick="window.print()" class="flex-1 rounded-md border border-gray-300 px-4 py-2.5 font-medium hover:bg-gray-50">Imprimir</button>
+      {% if es_cajera %}
+        <a href="{% url 'caja:caja' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Ir a Caja</a>
+      {% else %}
+        <a href="{% url 'inicio' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Volver al inicio</a>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

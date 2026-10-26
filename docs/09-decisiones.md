@@ -59,6 +59,13 @@
 | DEC-52 | Un texto que coincide exacto con un plus agrega el producto: por `UNIDAD`, con cantidad 1; por `KG`, deja el cursor en la cantidad para cargar el peso. Si no coincide exacto, se muestra la lista de resultados para elegir | Completa DEC-37 para el lector y la búsqueda | Spec de CU-01 | 04, 08 |
 | DEC-53 | Si se agrega un producto que ya está en la venta, se suma a su línea en lugar de crear otra | Una línea por producto en el ticket y en la venta | Spec de CU-01 | 04 |
 | DEC-54 | Después de confirmar se muestra el ticket con los botones "Imprimir" y "Nueva venta" | Completa DEC-44 con el paso siguiente del mostrador | Spec de CU-01 | 04 |
+| DEC-55 | `medio_pago.es_efectivo` (boolean) marca el medio efectivo; un solo medio puede tenerlo en `true` | El fondo de cambio y los egresos "otros" son en efectivo, y buscar el medio por su nombre depende de cómo se escriba en el panel | Spec de CU-03 | 05, 08 |
+| DEC-56 | En el cierre aparecen todos los medios activos que ingresan a caja, más cualquier otro que tenga movimientos en esa caja, aunque su esperado sea 0 | Que la cajera cuente todo lo que puede haber en la caja | Spec de CU-03 | 04 |
+| DEC-57 | Un egreso "otro" se rechaza si deja el efectivo esperado de la caja por debajo de 0 | No puede salir de la caja más efectivo del que hay | Spec de CU-03 | 04, 08 |
+| DEC-58 | La pantalla de Caja lista los egresos del turno (hora, monto, descripción). No se editan ni se borran; un error se explica en el motivo del cierre | Historial inmutable (05, 7.1) sin un caso de uso de corrección | Spec de CU-03 | 04 |
+| DEC-59 | El reporte de cierre lo ven la cajera, el Administrador y los Dueños, por enlace directo. La consulta de cierres por fecha queda para CU-09 (H5) | El Administrador revisa las diferencias (DEC-40) y los Dueños solo consultan (RN-06) | Spec de CU-03 | 04 |
+| DEC-60 | Después de cerrar se muestra el reporte de cierre con "Imprimir" y un enlace a Caja, desde donde se abre el turno siguiente | Completa el flujo del mostrador | Spec de CU-03 | 04 |
+| DEC-61 | En la etapa 3 se construyen primero los egresos "otros" y después el cierre | El efectivo esperado del cierre resta los egresos | Spec de CU-03 | 07 |
 
 ## 3. Decisiones técnicas (detalle en [06-arquitectura.md](06-arquitectura.md))
 

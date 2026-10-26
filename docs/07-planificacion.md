@@ -38,7 +38,7 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
 
-**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso (etapas 1 y 2 implementadas). H3 a H6 pendientes.
+**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso: etapas 1 a 3 implementadas (las dos primeras entraron con el PR #11); falta la etapa 4. H3 a H6 pendientes.
 
 ### Etapas de H2
 

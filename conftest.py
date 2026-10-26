@@ -27,7 +27,7 @@ def usuario(db):
 
 @pytest.fixture
 def efectivo(db):
-    return MedioPago.objects.create(nombre="Efectivo")
+    return MedioPago.objects.create(nombre="Efectivo", es_efectivo=True)
 
 
 @pytest.fixture

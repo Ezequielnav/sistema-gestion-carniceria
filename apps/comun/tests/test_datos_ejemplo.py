@@ -57,6 +57,9 @@ def test_carga_medios_de_pago_y_cuenta_corriente_no_ingresa_a_caja(desarrollo):
     assert list(
         MedioPago.objects.filter(ingresa_a_caja=False).values_list("nombre", flat=True)
     ) == ["Cuenta corriente"]
+    assert list(MedioPago.objects.filter(es_efectivo=True).values_list("nombre", flat=True)) == [
+        "Efectivo"
+    ]
 
 
 def test_carga_productos_con_y_sin_control_de_stock(desarrollo):
