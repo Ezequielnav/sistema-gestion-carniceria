@@ -239,3 +239,18 @@ def test_el_menu_de_la_cajera_enlaza_ventas(client, usuario):
     client.force_login(usuario)
 
     assert f'href="{NUEVA}"' in client.get(reverse("inicio")).content.decode()
+
+
+# DF-02: a 375 px la página no se desplaza de costado; solo la tabla.
+
+
+def test_df02_la_tabla_de_la_venta_se_desplaza_sin_ensanchar_la_pagina(client, usuario, caja_hoy):
+    client.force_login(usuario)
+
+    contenido = client.get(NUEVA).content.decode()
+
+    # La grilla limita el ancho de sus columnas (minmax(0, 1fr) y min-w-0)...
+    assert 'id="venta" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"' in contenido
+    assert 'class="min-w-0 space-y-4 lg:col-span-2" aria-label="Productos de la venta"' in contenido
+    # ...y el recuadro de la tabla recorta también el texto sr-only del encabezado.
+    assert 'class="relative overflow-x-auto' in contenido

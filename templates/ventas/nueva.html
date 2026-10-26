@@ -3,7 +3,7 @@
 
 {% block titulo %}Nueva venta{% endblock %}
 {% block encabezado %}Ventas{% endblock %}
-{% block scripts %}<script src="{% static 'js/venta.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/lector.js' %}" defer></script><script src="{% static 'js/venta.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
   <h2 class="text-2xl font-semibold tracking-tight">Nueva venta</h2>
@@ -14,9 +14,10 @@
       <a href="{% url 'caja:caja' %}" class="mt-3 inline-block font-semibold underline">Ir a Caja</a>
     </div>
   {% else %}
-    <div id="venta" class="mt-6 grid gap-6 lg:grid-cols-3"
-         data-buscar="{% url 'ventas:buscar' %}" data-confirmar="{% url 'ventas:confirmar' %}">
-      <section class="space-y-4 lg:col-span-2" aria-label="Productos de la venta">
+    <div id="venta" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"
+         data-buscar="{% url 'ventas:buscar' %}" data-confirmar="{% url 'ventas:confirmar' %}"{% if form_producto %} data-producto="{% url 'ventas:producto_nuevo' %}"{% endif %}>
+      {# DF-02: min-w-0 y relative (por el texto sr-only) dejan que la tabla se desplace sola. #}
+      <section class="min-w-0 space-y-4 lg:col-span-2" aria-label="Productos de la venta">
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
           <label for="buscar" class="mb-1.5 block text-sm font-medium text-gray-700">Buscar o escanear</label>
           <input id="buscar" type="search" autocomplete="off" autofocus class="campo"
@@ -25,7 +26,7 @@
           <ul id="resultados" class="mt-3 hidden divide-y divide-gray-100 rounded-md border border-gray-200" aria-label="Resultados"></ul>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
+        <div class="relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
           <table class="w-full text-sm">
             <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
               <tr>
@@ -42,7 +43,7 @@
         </div>
       </section>
 
-      <aside class="h-fit space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-label="Cobro">
+      <aside class="h-fit min-w-0 space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-label="Cobro">
         <div>
           <p class="text-sm font-medium text-gray-500">Total</p>
           <p id="total" class="cifras mt-1 text-3xl font-semibold tracking-tight">$ 0,00</p>
@@ -59,5 +60,38 @@
         </div>
       </aside>
     </div>
+
+    {% if form_producto %}
+      {# CU-01 A1: alta de producto sin salir de la venta (RF-17, DEC-62). #}
+      <dialog id="alta-producto" aria-labelledby="alta-titulo"
+              class="m-auto w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-0 shadow-lg backdrop:bg-gray-900/40">
+        <form id="form-producto" method="dialog" class="space-y-5 p-6" novalidate>
+          <div>
+            <h3 id="alta-titulo" class="text-lg font-semibold tracking-tight">Nuevo producto</h3>
+            <p class="mt-1 text-sm text-gray-500">Se da de alta en el catálogo y se agrega a esta venta. El stock arranca en 0.</p>
+          </div>
+          <div data-error-de="__all__" role="alert" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"></div>
+          <div class="grid gap-5 sm:grid-cols-2">
+            {% for campo in form_producto %}
+              <div class="{% if campo.name == 'nombre' %}sm:col-span-2{% endif %}">
+                {% if campo.widget_type == "checkbox" %}
+                  <label class="flex items-center gap-2 pt-7 text-sm font-medium text-gray-700">{{ campo }} {{ campo.label }}</label>
+                {% else %}
+                  <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+                  {{ campo }}
+                {% endif %}
+                {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
+                {% if campo.name == "controla_stock" %}<p class="mt-1 text-xs text-amber-800">Si lo marcás, el stock arranca en 0 y queda negativo con esta venta hasta el primer ingreso de mercadería.</p>{% endif %}
+                <p data-error-de="{{ campo.name }}" class="mt-1.5 hidden text-sm text-red-700"></p>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button type="button" id="alta-cancelar" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Cancelar</button>
+            <button type="submit" id="alta-guardar" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700 disabled:opacity-50">Dar de alta y agregar</button>
+          </div>
+        </form>
+      </dialog>
+    {% endif %}
   {% endif %}
 {% endblock %}

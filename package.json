@@ -1,7 +1,7 @@
 {
   "name": "sistema-gestion-carniceria",
   "private": true,
-  "description": "Solo compila los estilos de Tailwind (D-13).",
+  "description": "Compila los estilos de Tailwind (D-13). Las pruebas de JavaScript usan node --test, sin dependencias.",
   "scripts": {
     "estilos": "tailwindcss -i static/src/estilos.css -o static/css/estilos.css --minify",
     "estilos:vigilar": "tailwindcss -i static/src/estilos.css -o static/css/estilos.css --watch"
