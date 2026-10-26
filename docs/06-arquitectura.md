@@ -41,7 +41,7 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-10 | Reportes PDF y Excel | Diferidos hasta CU-09 | Propuesta | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
-| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript | Propuesta | Fácil |
+| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |
 | D-14 | Credenciales de la base local | `.env.example` solo con nombres y valores de ejemplo; el `.env` local queda fuera de GitHub y del permiso de lectura de los agentes; las pruebas usan una base de prueba con credenciales exclusivas de desarrollo | Decidida (sección 6) | Fácil |
 
 ### 2.1 Autenticación: por qué sesiones y no JWT (D-06)
@@ -256,6 +256,7 @@ Por decisión del alumno, en esta etapa no se preparan archivos de despliegue. C
 - Despliegue desde el repositorio de GitHub.
 - Variables de entorno para claves y configuración.
 - Costo acorde al presupuesto del negocio (PR-33).
+- Archivos estáticos versionados (por ejemplo, con un hash en el nombre, como hace `ManifestStaticFilesStorage` de Django), para que el navegador no siga usando un JavaScript o CSS viejo después de una actualización. Pendiente: en el recorrido de la etapa 4 de H2 el navegador tenía en caché el `venta.js` anterior y no mostraba "Crear producto" hasta recargarlo sin caché (registro de recorridos de 08).
 
 El proveedor y el costo se verifican con los planes vigentes al decidir. Si la cátedra solo exige una demostración local (PA-05), el despliegue puede no ser parte de la entrega.
 
@@ -267,6 +268,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 |---|---|
 | Despliegue y alojamiento | Cuando el sistema funcione en local y se defina PA-05 |
 | Copias de seguridad automáticas | Junto con el despliegue |
+| Versionado de archivos estáticos (sección 9) | Junto con el despliegue |
 | Reportes PDF y Excel | Al llegar a CU-09 |
 | Libro de movimientos de stock | Si aparecen diferencias de stock (ver [05-modelo-datos.md](05-modelo-datos.md)) |
 | API con JWT y aplicación móvil | Si hace falta un cliente que no sea el navegador |

@@ -50,6 +50,7 @@
 | RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | A confirmar (PR-12, PR-13) |
 | RF-19 | El sistema debe permitir pagar una venta con más de un medio de pago | Propuesta (H-09) | Baja | Descartado (DEC-42): un solo medio por venta |
 | RF-20 | El sistema debe registrar la venta de carne con el nivel de detalle que defina el negocio | Propuesta (H-01) | Alta | Decidido (DEC-36): por producto y por kg |
+| RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77) |
 
 ### 2.4 Productos y stock
 
@@ -61,7 +62,7 @@
 | RF-24 | Si un producto del ingreso no existe, el sistema debe permitir crearlo | Base (CU-05, A1) | Media | Confirmado |
 | RF-25 | El Administrador debe poder consultar el stock de todos los productos y filtrar por categoría y proveedor | Base (CU-06) | Alta | Confirmado |
 | RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado (umbrales: PR-20) |
-| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar |
+| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte |
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
 
 ### 2.5 Proveedores
@@ -128,7 +129,7 @@
 
 | Caso de uso | Requisitos relacionados |
 |---|---|
-| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27 |
+| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48 |
 | CU-02 Abrir caja por turno | RF-04, RF-05, RF-10 |
 | CU-03 Cerrar caja por turno | RF-06, RF-07, RF-08, RF-09 |
 | CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38 |

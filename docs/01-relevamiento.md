@@ -47,8 +47,8 @@ Estas preguntas **no repiten el relevamiento**: cubren lo que el alcance ampliad
 | Prioridad | Criterio | Preguntas |
 |---|---|---|
 | Alta | Bloquean alcance, casos de uso o modelo de datos | PR-01, PR-08, PR-12, PR-13, PR-17, PR-19, PR-25, PR-27 |
-| Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32 |
-| Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35 |
+| Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32, PR-37 |
+| Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35, PR-36 |
 
 Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 en [09-decisiones.md](09-decisiones.md)). La columna "Documentos afectados" indica qué actualizar al responder.
 
@@ -60,6 +60,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-02 | ¿Qué reportes genera Kendra y se pueden exportar (formato, frecuencia)? | Posible carga manual o importación de totales | 02, 03, 06 | Pendiente |
 | PR-03 | ¿Qué productos no cárnicos se venden por peso y cuáles por unidad? | Unidad de medida en producto y stock | 05 | Pendiente |
 | PR-04 | ¿Cómo es el plus interno (formato) y cuántos productos hay aproximadamente? | Catálogo y búsqueda en la venta | 03, 05 | **Cerrada por decisión de diseño:** DEC-37 (DEC-35) |
+| PR-36 | ¿Cuál es la mayor cantidad que se vende en una sola operación de mostrador (kg de un corte, unidades de un producto)? ¿Hay ventas grandes, por ejemplo a comercios? | Límite por línea que frena errores de carga en la venta | 04, 08, 09 | Pendiente; mientras tanto rige el supuesto DEC-76 (100 kg o 100 unidades por línea) |
 
 ### 3.2 Caja y turnos
 
@@ -70,7 +71,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-07 | Si al cerrar hay diferencia entre lo contado y lo registrado, ¿qué se hace y quién lo autoriza? | Cierre de caja | 03, 04 | **Cerrada por decisión de diseño:** DEC-40 (DEC-35) |
 | PR-08 | ¿Qué medios de pago se aceptan exactamente (débito, crédito, QR, de qué billeteras, transferencia)? | Documento actual lista cinco medios pero no distingue débito/crédito | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-41 (DEC-35) |
 | PR-09 | ¿Se necesita pagar una misma venta con más de un medio? | Una venta con un solo medio de pago o varios | 04, 05 | **Cerrada por decisión de diseño:** DEC-42 (DEC-35) |
-| PR-10 | ¿Qué egresos de caja existen (gastos, retiros, pagos a proveedores)? | Tipos de egreso | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-43 (DEC-35) |
+| PR-10 | ¿Qué egresos de caja existen (gastos, retiros, pagos a proveedores)? | Tipos de egreso | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-43 (DEC-35); la reversa de una venta anulada usa el concepto `ANULACION` (DEC-68) |
 | PR-30 | Si se carga mal una venta o un movimiento de caja, ¿cómo se corrige hoy (anular, contra-asiento, editar) y quién lo autoriza? | Ningún caso de uso cubre anulaciones ni correcciones; define si el modelo necesita estados o movimientos de reversa | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-45 (DEC-35) |
 | PR-31 | ¿Qué datos de contacto se guardan de clientes y proveedores (teléfono, mail, dirección, identificación fiscal)? | Define los campos de cliente y proveedor | 03, 05 | Pendiente |
 | PR-32 | ¿Se hacen conteos de inventario o ajustes de stock (mermas, roturas, diferencias)? ¿Quién los autoriza? | Define si hace falta un caso de uso de ajuste de stock | 03, 04, 05 | Pendiente |
@@ -97,6 +98,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-20 | ¿Quién define el stock mínimo y es por producto? | Alertas de stock | 03, 05 | Pendiente |
 | PR-21 | ¿Qué productos tienen vencimiento y se controla por lote? | Control de vencimientos (objetivo del documento) | 03, 05 | Pendiente |
 | PR-22 | ¿Quién actualiza los precios y con qué frecuencia? ¿Se guarda historial de precios? | Producto y precio | 03, 05 | Pendiente |
+| PR-37 | Cuando se vende un producto y no hay stock registrado, ¿lo anotan hoy como faltante? ¿Quieren que el sistema registre esos faltantes? | El diagrama de CU-01 del relevamiento base incluye "Detectar y registrar stock faltante" (RF-27); define si hace falta la entidad `faltante_stock` | 03, 04, 05, 08, 09 | Pendiente; mientras tanto rige el supuesto DEC-46 (aviso y stock negativo, sin registro aparte) |
 
 ### 3.5 Usuarios, dispositivos y reportes
 

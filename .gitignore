@@ -13,3 +13,7 @@ datos-reales/
 .vscode/
 .playwright-mcp/
 .claude/launch.json
+
+# Archivos de trabajo del agente (planes, tareas, capturas y registros)
+tasks/
+*.log

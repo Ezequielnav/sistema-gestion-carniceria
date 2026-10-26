@@ -28,7 +28,7 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 
 | Caso de uso | Administrador | Cajera | Dueños |
 |---|---|---|---|
-| CU-01 Registrar venta | | C | |
+| CU-01 Registrar venta | solo anular (DEC-45) | C | |
 | CU-02 Abrir caja por turno | | C | |
 | CU-03 Cerrar caja por turno | | C | |
 | CU-04 Registrar pago de cliente | C | ? (PR-14) | |
@@ -141,7 +141,7 @@ flowchart LR
 | "Validar stock" y "Emitir comprobante" pasan a ser pasos de CU-01 | No se reutilizan en otros casos |
 | "Verificar existencia del cliente" pasa a SC-01 | Lo comparten CU-04, CU-08 y SC-03 |
 | "Crear cliente" ya no extiende el pago de cliente | CU-04 exige que el cliente exista; ahora extiende SC-01 |
-| "Detectar y registrar stock faltante" pasa a SC-04 | Se mantiene como extensión de CU-01; solo avisa y no registra el faltante aparte (DEC-46) |
+| "Detectar y registrar stock faltante" pasa a SC-04 | Se mantiene como extensión de CU-01; por ahora solo avisa y no registra el faltante aparte (supuesto DEC-46; el registro queda pendiente de PR-37) |
 | Se agregó el actor Dueños | Es un rol del relevamiento y no figuraba |
 | Se agregaron CU-10 a CU-14 | Cubren inicio de sesión y altas de datos (H-04) |
 | Cajera y CU-06 pasan a "a confirmar" | El diagrama y el texto del documento base se contradecían (H-02) |
@@ -187,7 +187,7 @@ flowchart LR
 
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
-| A1 | Producto no encontrado | La cajera puede crearlo si tiene permiso (CU-11) | PDF |
+| A1 | Producto no encontrado | La cajera puede crearlo si tiene permiso (CU-11), sin salir de la venta (DEC-62 a DEC-65) | PDF |
 | A2 | Medio de pago = cuenta corriente | Se ejecuta SC-03 | A confirmar: PR-12, PR-13 |
 | A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: la venta se permite con un aviso y el stock puede quedar negativo | Decidido (DEC-46) |
 | A4 | La caja del turno no está abierta | El sistema indica que debe abrir la caja (CU-02) | Propuesta |
@@ -196,7 +196,12 @@ flowchart LR
 **Decisiones de diseño (DEC-35):** la carne se vende por kg y no descuenta stock (DEC-36); el lector de códigos carga el plus en el campo de búsqueda (DEC-37); la venta va a la única caja abierta (DEC-39); medios de pago de la tabla `medio_pago`, sin cuenta corriente hasta H4 (DEC-41); un solo medio por venta (DEC-42); ticket no fiscal imprimible desde el navegador (DEC-44); una venta confirmada no se edita: el Administrador la anula con reversa mientras su caja esté abierta (DEC-45). Del spec de CU-01: lista de la venta en el navegador con todo recalculado en el servidor (DEC-47), cantidades enteras por unidad y hasta 3 decimales por kg (DEC-48), subtotal redondeado a 2 decimales (DEC-49), sin venta en una caja de otro día (DEC-50), medio de pago sin valor por defecto (DEC-51), código exacto que agrega el producto (DEC-52), una línea por producto (DEC-53) y ticket con "Imprimir" y "Nueva venta" (DEC-54).
 **Observación del prototipo:** no incluye selección de cliente ni la opción de cuenta corriente (H-11).
 
-**Implementación (H2, etapa 2):** pantalla `/ventas/nueva/`, solo para la cajera (con o sin permiso de alta); el Administrador y los dueños reciben 403. Sin caja abierta, o con la caja abierta de otro día, la pantalla avisa y enlaza a Caja. La búsqueda trae productos activos por nombre o plus; un código exacto agrega el producto. La lista de la venta vive en el navegador y, al confirmar, el servidor recalcula precios, subtotales y total, guarda la venta, sus detalles, el ingreso de caja (SC-02) y el descuento de stock en una sola transacción. Una venta con total 0 se rechaza, porque el ingreso de caja tiene que ser mayor a 0. Los avisos de stock insuficiente no muestran cantidades (la cajera no consulta stock). Después de confirmar se ve el ticket. El alta de producto durante la venta (A1) llega en la etapa 4.
+**Implementación (H2, etapa 2):** pantalla `/ventas/nueva/`, solo para la cajera (con o sin permiso de alta); el Administrador y los dueños reciben 403. Sin caja abierta, o con la caja abierta de otro día, la pantalla avisa y enlaza a Caja. La búsqueda trae productos activos por nombre o plus; un código exacto agrega el producto. La lista de la venta vive en el navegador y, al confirmar, el servidor recalcula precios, subtotales y total, guarda la venta, sus detalles, el ingreso de caja (SC-02) y el descuento de stock en una sola transacción. Una venta con total 0 se rechaza, porque el ingreso de caja tiene que ser mayor a 0. Los avisos de stock insuficiente no muestran cantidades (la cajera no consulta stock). Después de confirmar se ve el ticket.
+
+**Implementación (H2, etapa 4):** spec `docs/specs/SPEC-CU-01-etapa4.md`.
+- **Alta durante la venta (A1):** si la búsqueda no trae resultados, la cajera con permiso de alta ve "Crear producto", que abre un diálogo con los mismos campos que `/productos/nuevo/` y precarga lo buscado (solo dígitos, en el plus; si no, en el nombre). El alta usa el servicio de CU-11 (`/ventas/producto/`); con éxito, el producto se agrega a la venta en curso, que no se pierde, y los errores se muestran junto a cada campo. La cajera sin permiso no ve la opción y el alta le da 403 (RN-05).
+- **Lector y cantidades (DF-01):** después de cargar un peso, Enter vuelve al buscador; si el lector escribe en el campo de cantidad, el código se busca como producto y la cantidad no cambia (DEC-75). El servidor rechaza una línea con más de 100 kg o 100 unidades (DEC-76, supuesto pendiente de PR-36). En el celular, la tabla de la venta se desplaza dentro de su recuadro (DF-02).
+- **Anulación (DEC-45):** el Administrador tiene "Ventas del turno" (`/ventas/`), con las ventas de la caja abierta, aunque sea de otro día, y su detalle. Desde el detalle anula con un motivo obligatorio y una confirmación: en una sola operación la venta pasa a `ANULADA` con fecha, usuario y motivo, se registra un egreso `ANULACION` por su total y su medio de pago, y vuelve el stock de los productos que lo controlan. La venta, sus detalles y su ingreso no se modifican. Se rechaza si la venta ya está anulada, si su caja está cerrada o si la reversa en efectivo deja el efectivo esperado por debajo de 0. El cierre de caja descuenta la reversa y, junto con su reporte, lista las ventas anuladas (DEC-77). El motivo admite hasta 255 caracteres. El ticket y el detalle muestran la anulación; el resumen del día no cuenta las anuladas y las últimas ventas las marcan (DEC-66 a DEC-73).
 
 ### CU-02 Abrir caja por turno
 
@@ -477,7 +482,7 @@ flowchart LR
 | A1 | El plus interno ya existe | El sistema avisa junto al campo y no guarda. El nombre repetido no se bloquea: era una propuesta y no está confirmada (PR-22) |
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
 
-**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL) y la reactivación se hace desde el panel de administración. La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (PR-03). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) llega con H2 (DEC-33).
+**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL) y la reactivación se hace desde el panel de administración. La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (PR-03). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
 
 ### CU-12 Gestionar clientes
 
@@ -525,7 +530,9 @@ Incluido en CU-04, CU-08 y SC-03. El usuario busca o selecciona al cliente. Si n
 
 Incluido en CU-01, CU-04 y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa.
 
-**Implementación (H2, etapas 2 y 3):** el ingreso de cada venta se registra junto con la venta. Los egresos "otros" se cargan desde la pantalla de Caja: monto mayor a 0, descripción obligatoria, en el medio marcado como efectivo (DEC-55) y sin superar el efectivo esperado (DEC-57). La pantalla lista los egresos del turno, que no se editan ni se borran (DEC-58). La cajera también registra desde la pantalla de Caja los egresos "otros" (gastos y retiros en efectivo) con descripción obligatoria, concepto `OTRO` (DEC-43).
+**Implementación (H2, etapas 2 y 3):** el ingreso de cada venta se registra junto con la venta. Los egresos "otros" se cargan desde la pantalla de Caja: monto mayor a 0, descripción obligatoria, en el medio marcado como efectivo (DEC-55) y sin superar el efectivo esperado (DEC-57). Los egresos "otros" (gastos y retiros en efectivo) llevan el concepto `OTRO` (DEC-43). La pantalla lista los egresos del turno, que no se editan ni se borran (DEC-58).
+
+**Implementación (H2, etapa 4):** la anulación de una venta registra un egreso con concepto `ANULACION`, que referencia la venta, por su total y con su medio de pago (DEC-68). La pantalla de cierre y su reporte listan las ventas anuladas (DEC-77).
 
 ### SC-03 Vender a cuenta corriente (a confirmar: PR-12, PR-13)
 
@@ -533,7 +540,7 @@ Extiende CU-01 cuando el medio de pago es cuenta corriente. Selecciona el client
 
 ### SC-04 Avisar stock insuficiente (DEC-46)
 
-Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera y la venta se permite; el `stock_actual` puede quedar negativo. No se registra un faltante aparte (DEC-46).
+Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera y la venta se permite; el `stock_actual` puede quedar negativo. Por ahora no se registra un faltante aparte: es un supuesto (DEC-46) y el registro del faltante, que figura en el relevamiento base (RF-27), queda pendiente de PR-37.
 
 ## 7. Prototipos
 
