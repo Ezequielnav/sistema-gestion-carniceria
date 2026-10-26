@@ -59,6 +59,25 @@
         linea.cantidad = entrada.value;
         dibujarTotales();
       });
+      // DEC-75: Enter vuelve al buscador; una lectura del lector acá no se suma a la cantidad,
+      // se busca como producto (DF-01).
+      const detector = crearDetectorLector();
+      entrada.addEventListener("keydown", (evento) => {
+        if (evento.key === "Enter") {
+          evento.preventDefault();
+          const lectura = detector.enter(evento.timeStamp);
+          if (lectura) {
+            entrada.value = lectura.valorPrevio;
+            linea.cantidad = lectura.valorPrevio;
+            dibujarTotales();
+            buscarTexto(lectura.texto);
+          } else {
+            buscar.focus();
+          }
+        } else if (evento.key.length === 1 && !evento.ctrlKey && !evento.metaKey && !evento.altKey) {
+          detector.tecla(evento.key, evento.timeStamp, entrada.value);
+        }
+      });
       const etiqueta = document.createElement("span");
       etiqueta.className = "flex items-center gap-2";
       etiqueta.append(entrada, porKg ? "kg" : "u.");
@@ -117,12 +136,21 @@
     if (producto.unidad !== "KG") buscar.focus();
   }
 
-  function mostrarResultados(lista) {
+  function mostrarResultados(lista, texto) {
     resultados.replaceChildren();
     if (lista.length === 0) {
       const li = document.createElement("li");
-      li.className = "px-3 py-2.5 text-sm text-gray-500";
+      li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
       li.textContent = "No se encontraron productos.";
+      // A1: solo con permiso de alta (DEC-63).
+      if (alta) {
+        const crear = document.createElement("button");
+        crear.type = "button";
+        crear.textContent = "Crear producto";
+        crear.className = "rounded-md border border-gray-300 px-3 py-1.5 font-medium text-gray-800 hover:bg-gray-50";
+        crear.addEventListener("click", () => abrirAlta(texto));
+        li.append(crear);
+      }
       resultados.append(li);
     }
     for (const producto of lista) {
@@ -150,15 +178,77 @@
     return respuesta.json();
   }
 
-  buscar.addEventListener("keydown", async (evento) => {
+  async function buscarTexto(texto) {
+    const datos = await consultar(texto);
+    if (datos.exacto) agregar(datos.exacto);
+    else {
+      buscar.value = texto;
+      mostrarResultados(datos.resultados, texto);
+      buscar.focus();
+    }
+  }
+
+  buscar.addEventListener("keydown", (evento) => {
     if (evento.key !== "Enter") return;
     evento.preventDefault();
     const texto = buscar.value.trim();
-    if (!texto) return;
-    const datos = await consultar(texto);
-    if (datos.exacto) agregar(datos.exacto);
-    else mostrarResultados(datos.resultados);
+    if (texto) buscarTexto(texto);
   });
+
+  // CU-01 A1: alta de producto en un diálogo, sin perder la venta en curso (DEC-62).
+  const alta = raiz.dataset.producto ? document.getElementById("alta-producto") : null;
+  let abrirAlta;
+  if (alta) {
+    const formAlta = document.getElementById("form-producto");
+    const guardar = document.getElementById("alta-guardar");
+
+    function erroresDelAlta(porCampo) {
+      for (const lugar of formAlta.querySelectorAll("[data-error-de]")) {
+        const lista = porCampo[lugar.dataset.errorDe] || [];
+        lugar.textContent = lista.join(" ");
+        lugar.classList.toggle("hidden", lista.length === 0);
+      }
+    }
+
+    abrirAlta = (texto) => {
+      formAlta.reset();
+      erroresDelAlta({});
+      // DEC-64: solo dígitos es un código del lector; si no, es el nombre.
+      const campo = /^\d+$/.test(texto) ? "plus_interno" : "nombre";
+      formAlta.elements[`producto-${campo}`].value = texto;
+      alta.showModal();
+      formAlta.elements[campo === "nombre" ? "producto-categoria" : "producto-nombre"].focus();
+    };
+
+    document.getElementById("alta-cancelar").addEventListener("click", () => {
+      alta.close();
+      buscar.focus();
+    });
+
+    formAlta.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const cuerpoPedido = new FormData(formAlta);
+      cuerpoPedido.append("csrfmiddlewaretoken", csrf);
+      guardar.disabled = true;
+      try {
+        const respuesta = await fetch(raiz.dataset.producto, {
+          method: "POST",
+          body: cuerpoPedido,
+          headers: { "X-CSRFToken": csrf, Accept: "application/json" },
+        });
+        const datos = await respuesta.json();
+        if (datos.producto) {
+          alta.close();
+          agregar(datos.producto); // DEC-65
+        } else {
+          erroresDelAlta(datos.errores || { __all__: ["No se pudo dar de alta el producto."] });
+        }
+      } catch {
+        erroresDelAlta({ __all__: ["No se pudo dar de alta el producto. Revisá la conexión e intentá de nuevo."] });
+      }
+      guardar.disabled = false;
+    });
+  }
 
   document.getElementById("cancelar").addEventListener("click", () => {
     // A5: no se registra nada.

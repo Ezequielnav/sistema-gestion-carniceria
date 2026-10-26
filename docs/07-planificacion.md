@@ -30,7 +30,7 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 | Hito | Contenido | Casos de uso | Requisitos principales | Se apoya en estas brechas | Tamaño relativo |
 |---|---|---|---|---|---|
 | H1 | Base funcionando en local: Django con PostgreSQL, las 17 entidades migradas, datos de ejemplo, Tailwind con plantilla responsive, inicio de sesión con roles, CU-11 de punta a punta y primeras pruebas (detalle en [06-arquitectura.md](06-arquitectura.md), sección 6) | CU-10, CU-11 | RF-01, RF-02, RF-21, RNF-01, RNF-02, RNF-03, RNF-13 | PR-04 | Mediano |
-| H2 | Caja y ventas | CU-02, CU-03, CU-01, SC-02 | RF-04 a RF-17 | Ninguna: PR-01, PR-04 a PR-10, PR-24 y PR-30 cerradas por DEC-36 a DEC-46 (DEC-35) | Grande |
+| H2 | Caja y ventas | CU-02, CU-03, CU-01, SC-02 | RF-04 a RF-17, RF-48 | PR-01, PR-04 a PR-10, PR-24 y PR-30 cerradas por DEC-36 a DEC-46 (DEC-35). Quedan abiertas con un supuesto vigente: PR-36 (DEC-76) y PR-37 (DEC-46) | Grande |
 | H3 | Stock y proveedores | CU-06, CU-13, CU-05, CU-07 | RF-22 a RF-26, RF-29 a RF-33 | PR-03, PR-17, PR-18, PR-20 | Grande |
 | H4 | Clientes y cuentas corrientes | CU-12, CU-04, CU-08, SC-01, SC-03 | RF-18, RF-35 a RF-41 | PR-12, PR-13, PR-14, PR-15, PR-16 | Grande |
 | H5 | Reportes y usuarios | CU-09, CU-14 | RF-03, RF-42 a RF-46 | PR-25, PR-26, PR-27 | Mediano |
@@ -38,7 +38,7 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
 
-**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso: etapas 1 a 3 implementadas (las dos primeras entraron con el PR #11); falta la etapa 4. H3 a H6 pendientes.
+**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso: etapas 1 a 3 implementadas (las dos primeras entraron con el PR #11, la tercera con el PR #12); de la etapa 4 están implementados el alta durante la venta y la anulación (spec `docs/specs/SPEC-CU-01-etapa4.md`), y RM-03 y RM-04 están registrados en 08. Los defectos DF-01 y DF-02 que encontró RM-04 están corregidos (DEC-75 y DEC-76, este último un supuesto pendiente de PR-36) y la prueba de venta y cierre al mismo tiempo está automatizada (CP-88). La revisión de H2 está hecha y sus hallazgos bloqueantes y menores, corregidos (DEC-77, PR-37). **H2 está lista para el Pull Request de cierre.** H3 a H6 pendientes.
 
 ### Etapas de H2
 
@@ -47,7 +47,23 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 | 1. Abrir caja | CU-02: pantalla de Caja con estado y apertura, servicio de caja y cambio del índice de RI-01 | DEC-38, DEC-39 |
 | 2. Registrar venta | CU-01: venta con búsqueda o lector, un medio de pago, A4 y A5, ticket; SC-02 para el ingreso a caja | DEC-36, DEC-37, DEC-41, DEC-42, DEC-44, DEC-46 |
 | 3. Cerrar caja | CU-03: resumen por medio de pago, montos contados, diferencias con motivo y bloqueo; egresos "otros" de caja | DEC-40, DEC-43 |
-| 4. Cierre de H2 | Alta de producto durante la venta (CU-01 A1), anulación de ventas (requiere un estado en `venta`), recorridos RM-03 y RM-04, docs, revisión y Pull Request | DEC-45 |
+| 4. Cierre de H2 | Alta de producto durante la venta (CU-01 A1), anulación de ventas (requiere un estado en `venta`), recorridos RM-03 y RM-04, docs, revisión y Pull Request | DEC-45, DEC-62 a DEC-77 |
+
+### Pendientes que deja H2
+
+Surgieron en la revisión de H2. No bloquean el cierre del hito; se retoman en el hito indicado.
+
+| ID | Pendiente | Cuándo |
+|---|---|---|
+| L1 | Anular una venta a cuenta corriente no debe crear un egreso de caja, sino revertir el movimiento de la cuenta corriente. Hoy esa venta no existe (DEC-41 no ofrece el medio cuenta corriente), así que no hace falta un rechazo; se resuelve al construir SC-03 | H4 |
+| L2 | La unión de `venta.js` y `lector.js` no tiene prueba de navegador automatizada (08, sección 9) | A decidir: requiere una dependencia nueva |
+| L3 | Archivos estáticos versionados al publicar (06, sección 9) | Con el despliegue |
+| L4 | Cualquier cajera abre el ticket de cualquier venta por su número | Al responder PR-25 y PR-26 |
+| L5 | El formulario de la venta no limita la cantidad de líneas | H6 o antes, si hace falta |
+| L6 | "Ventas del turno" no tiene paginación | Si un turno tiene muchas ventas |
+| L7 | `catalogo/productos.html` a 375 px, por el mismo patrón que DF-02 (08, sección 9) | RM-09 (H6) o antes |
+| L8 | DEC-70 usa el control de stock actual del producto; con un registro de movimientos de stock, guardar en el detalle si controlaba stock al vender | Si se agrega `movimiento_stock` |
+| L9 | Qué ve la cajera en el inicio (PR-35) | Al responder PR-35 |
 
 El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo.
 

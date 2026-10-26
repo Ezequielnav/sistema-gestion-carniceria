@@ -45,8 +45,10 @@ def _describir(caja):
 
 
 def _ya_abierta(caja):
+    # Sin caja: la que chocó al abrir ya se cerró entre medio (carrera entre dos cajeras).
+    cual = f": {_describir(caja)}" if caja is not None else ""
     return ValidationError(
-        f"Ya hay una caja abierta: {_describir(caja)}. Hay que cerrarla antes de abrir otra.",
+        f"Ya hay una caja abierta{cual}. Hay que cerrarla antes de abrir otra.",
         code="caja_abierta",
     )
 
@@ -110,6 +112,36 @@ def registrar_ingreso_venta(venta):
     )
 
 
+def registrar_reversa_venta(venta, usuario, motivo):
+    """SC-02: el egreso que revierte el ingreso de una venta anulada (DEC-45, DEC-68).
+
+    Se llama dentro de la transacción de la anulación, con la caja ya bloqueada. Si la venta
+    fue en efectivo, no puede dejar el efectivo esperado por debajo de 0 (DEC-69).
+    """
+    caja = venta.caja
+    if caja.estado != EstadoCaja.ABIERTA:
+        raise ValidationError("La caja está cerrada: no recibe movimientos.", code="caja_cerrada")
+    medio = venta.medio_pago
+    if medio.es_efectivo:
+        disponible = _esperado(caja, medio)
+        if venta.monto_total > disponible:
+            raise ValidationError(
+                f"En la caja hay $ {disponible:.2f} en efectivo: no alcanza para devolver "
+                f"$ {venta.monto_total:.2f}.",
+                code="sin_efectivo_suficiente",
+            )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        tipo=TipoMovimientoCaja.EGRESO,
+        monto=venta.monto_total,
+        medio_pago=medio,
+        concepto=ConceptoMovimientoCaja.ANULACION,
+        venta=venta,
+        usuario=usuario,
+        descripcion=motivo,
+    )
+
+
 # Egresos "otros" (DEC-43, DEC-57, DEC-58)
 
 
@@ -130,6 +162,15 @@ def _caja_abierta_bloqueada():
     if caja is None:
         raise ValidationError("No hay una caja abierta.", code="sin_caja")
     return caja
+
+
+def anulaciones(caja):
+    """Reversas de ventas anuladas de la caja, con su venta (DEC-77)."""
+    return list(
+        MovimientoCaja.objects.filter(caja=caja, concepto=ConceptoMovimientoCaja.ANULACION)
+        .select_related("venta", "medio_pago")
+        .order_by("fecha_hora", "pk")
+    )
 
 
 def egresos_otros(caja):

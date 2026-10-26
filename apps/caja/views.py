@@ -9,6 +9,7 @@ from apps.caja.forms import AbrirCajaForm, CierreForm, EgresoForm
 from apps.caja.models import Caja, EstadoCaja
 from apps.caja.services import (
     abrir_caja,
+    anulaciones,
     caja_abierta,
     cerrar_caja,
     detalle_de_cierre,
@@ -102,7 +103,11 @@ def cerrar(request):
         else:
             messages.success(request, "Se cerró la caja.")
             return redirect("caja:cierre", pk=cerrada.pk)
-    return render(request, "caja/cerrar.html", {"caja": abierta, "form": form})
+    return render(
+        request,
+        "caja/cerrar.html",
+        {"caja": abierta, "form": form, "anulaciones": anulaciones(abierta)},
+    )
 
 
 @login_required
@@ -123,6 +128,7 @@ def cierre(request, pk):
             "caja": caja,
             "detalle": detalle_de_cierre(caja),
             "egresos": egresos_otros(caja),
+            "anulaciones": anulaciones(caja),
             "es_cajera": puede_abrir(request.user),
         },
     )

@@ -23,6 +23,11 @@
         <p class="mt-1">Venta N.º {{ venta.pk }}</p>
         <p>{{ venta.fecha_hora|date:"d/m/Y H:i" }}</p>
         <p>Atendió: {{ venta.usuario.get_full_name }}</p>
+        {% if venta.estado == "ANULADA" %}
+          {# DEC-73 #}
+          <p class="mt-2 border border-gray-900 py-1 font-semibold">ANULADA el {{ venta.anulada_en|date:"d/m/Y H:i" }}</p>
+          <p>Motivo: {{ venta.motivo_anulacion }}</p>
+        {% endif %}
       </header>
 
       <table class="mt-4 w-full border-y border-dashed border-gray-400">

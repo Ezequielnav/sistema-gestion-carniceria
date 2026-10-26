@@ -14,6 +14,7 @@ Python + Django, PostgreSQL, Tailwind CSS + HTML + JavaScript, arquitectura por 
 - Todo cambio de código actualiza los archivos afectados de `/docs`.
 - No inventar reglas del negocio: si falta un dato, se anota como pregunta pendiente (PR-xx / PA-xx) y se cierra con una decisión de diseño (DEC-35) registrada en `docs/09-decisiones.md`. Esas decisiones nunca se presentan como datos confirmados por el negocio.
 - Dinero con `DecimalField`; nunca `float`.
+- No se suben al repositorio archivos de trabajo del agente (planes, tareas, capturas, registros, borradores): se guardan en carpetas ignoradas por git (`tasks/`, `.playwright-mcp/`). Lo que deba perdurar va a `/docs`.
 
 ## Commits, Pull Requests y textos
 - Nunca agregar líneas de atribución a la IA: ni `Co-Authored-By`, ni "Generated with Claude Code", ni enlaces a sesiones de Claude, en commits, Pull Requests, comentarios ni documentos.

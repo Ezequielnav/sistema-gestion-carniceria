@@ -6,20 +6,59 @@ from django.utils import timezone
 from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_monto, validar_positivo
 
 
+class EstadoVenta(models.TextChoices):
+    CONFIRMADA = "CONFIRMADA", "Confirmada"
+    ANULADA = "ANULADA", "Anulada"
+
+
 class Venta(ModeloBase):
     fecha_hora = models.DateTimeField(default=timezone.now)
     caja = models.ForeignKey("caja.Caja", on_delete=models.PROTECT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     # Obligatorio si el medio de pago es cuenta corriente (a confirmar: PR-12).
     cliente = models.ForeignKey("clientes.Cliente", on_delete=models.PROTECT, null=True, blank=True)
-    # Un solo medio por venta (pago mixto a confirmar: PR-09).
+    # Un solo medio por venta (DEC-42).
     medio_pago = models.ForeignKey("caja.MedioPago", on_delete=models.PROTECT)
     # Suma de los subtotales de sus detalles (RI-03).
     monto_total = campo_monto(validators=[NO_NEGATIVO])
+    # Una venta no se edita: el Administrador la anula con reversa (DEC-45, DEC-67).
+    estado = models.CharField(
+        max_length=10, choices=EstadoVenta.choices, default=EstadoVenta.CONFIRMADA
+    )
+    anulada_en = models.DateTimeField(null=True, blank=True)
+    anulada_por_usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ventas_anuladas",
+    )
+    motivo_anulacion = models.TextField(blank=True)
 
     class Meta:
         db_table = "venta"
         constraints = [
+            models.CheckConstraint(
+                condition=Q(estado__in=EstadoVenta.values), name="venta_estado_valido"
+            ),
+            # Los datos de la anulación están si y solo si la venta está anulada (DEC-67).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        estado=EstadoVenta.ANULADA,
+                        anulada_en__isnull=False,
+                        anulada_por_usuario__isnull=False,
+                    )
+                    & ~Q(motivo_anulacion="")
+                )
+                | Q(
+                    estado=EstadoVenta.CONFIRMADA,
+                    anulada_en__isnull=True,
+                    anulada_por_usuario__isnull=True,
+                    motivo_anulacion="",
+                ),
+                name="venta_datos_de_anulacion_segun_estado",
+            ),
             models.CheckConstraint(
                 condition=Q(monto_total__gte=0), name="venta_monto_total_no_negativo"
             ),

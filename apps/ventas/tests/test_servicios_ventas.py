@@ -162,6 +162,39 @@ def test_dec48_por_kg_hasta_tres_decimales(usuario, caja_hoy, efectivo, asado):
         registrar_venta(usuario, [(asado.pk, Decimal("1.2505"))], efectivo)
 
 
+def test_dec76_hasta_el_maximo_por_linea_se_acepta(usuario, caja_hoy, efectivo, aceite, asado):
+    venta, _ = registrar_venta(
+        usuario, [(aceite.pk, Decimal("100")), (asado.pk, Decimal("100.000"))], efectivo
+    )
+
+    assert venta.detalleventa_set.count() == 2
+
+
+@pytest.mark.parametrize(
+    ("nombre", "cantidad", "unidad"),
+    [
+        ("asado", Decimal("1601"), "kg"),
+        ("asado", Decimal("100.001"), "kg"),
+        ("aceite", Decimal("101"), "unidades"),
+    ],
+)
+def test_df01_dec76_cantidad_sobre_el_maximo_se_rechaza(
+    request, usuario, caja_hoy, efectivo, nombre, cantidad, unidad
+):
+    producto = request.getfixturevalue(nombre)
+
+    with pytest.raises(ValidationError, match=f"supera el máximo de 100 {unidad} por línea"):
+        registrar_venta(usuario, [(producto.pk, cantidad)], efectivo)
+    assert _nada_guardado()
+
+
+def test_dec76_el_maximo_se_aplica_a_la_linea_agrupada(usuario, caja_hoy, efectivo, aceite):
+    # DEC-53: un producto repetido es una sola línea.
+    with pytest.raises(ValidationError, match="supera el máximo"):
+        registrar_venta(usuario, [(aceite.pk, Decimal("60")), (aceite.pk, Decimal("41"))], efectivo)
+    assert _nada_guardado()
+
+
 def test_producto_inactivo_o_inexistente_se_rechaza(usuario, caja_hoy, efectivo, aceite):
     aceite.activo = False
     aceite.save()

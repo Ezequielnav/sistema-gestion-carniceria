@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ventas del turno{% endblock %}
+{% block encabezado %}Ventas del turno{% endblock %}
+
+{% block contenido %}
+  {# DEC-71: ventas de la caja abierta, para revisarlas y anularlas (DEC-45). #}
+  <h2 class="text-2xl font-semibold tracking-tight">Ventas del turno</h2>
+
+  {% if caja is None %}
+    <div role="status" class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-700 shadow-xs">
+      <p>No hay una caja abierta. Solo se anulan ventas de la caja abierta; las de cajas cerradas ya no se modifican.</p>
+    </div>
+  {% else %}
+    <p class="mt-1 text-sm text-gray-500">Caja del turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}, abierta por {{ caja.usuario.get_full_name }}.</p>
+
+    <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
+      {% if ventas %}
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">N.º</th>
+              <th scope="col" class="px-5 py-3 font-medium">Hora</th>
+              <th scope="col" class="px-5 py-3 font-medium">Cajera</th>
+              <th scope="col" class="px-5 py-3 font-medium">Medio de pago</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+              <th scope="col" class="px-5 py-3 font-medium">Estado</th>
+              <th scope="col" class="px-5 py-3"><span class="sr-only">Ver</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for venta in ventas %}
+              <tr class="{% if venta.estado == 'ANULADA' %}text-gray-500{% endif %}">
+                <td class="cifras px-5 py-3">{{ venta.pk }}</td>
+                <td class="cifras px-5 py-3 whitespace-nowrap">{{ venta.fecha_hora|date:"H:i" }}</td>
+                <td class="px-5 py-3">{{ venta.usuario.get_full_name }}</td>
+                <td class="px-5 py-3">{{ venta.medio_pago }}</td>
+                <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap {% if venta.estado == 'ANULADA' %}line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
+                <td class="px-5 py-3">
+                  {% if venta.estado == "ANULADA" %}
+                    <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Anulada</span>
+                  {% else %}
+                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Confirmada</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3 text-right"><a href="{% url 'ventas:detalle' venta.pk %}" class="font-medium text-red-700 hover:underline">Ver<span class="sr-only"> la venta {{ venta.pk }}</span></a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="px-5 py-12 text-center text-sm text-gray-500">Todavía no hay ventas en esta caja.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

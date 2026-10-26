@@ -28,7 +28,7 @@ El modelo se organiza en cuatro áreas.
 | Catálogo, stock y proveedores | `categoria`, `producto`, `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` |
 | Clientes y cuentas corrientes | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` |
 
-Hay además tres entidades **condicionales** que solo se agregan si el negocio lo confirma o si el desarrollo lo muestra necesario: `pedido_proveedor` (PR-19), `faltante_stock` (descartada: DEC-46) y `movimiento_stock` (diferida por ahora). Se describen en la sección 6.
+Hay además tres entidades **condicionales** que solo se agregan si el negocio lo confirma o si el desarrollo lo muestra necesario: `pedido_proveedor` (PR-19), `faltante_stock` (diferida hasta responder PR-37; mientras tanto, DEC-46) y `movimiento_stock` (diferida por ahora). Se describen en la sección 6.
 
 ## 3. Diagramas
 
@@ -115,6 +115,9 @@ classDiagram
         +int id
         +datetime fecha_hora
         +decimal monto_total
+        +enum estado
+        +datetime anulada_en
+        +string motivo_anulacion
     }
     class detalle_venta {
         +int id
@@ -125,6 +128,7 @@ classDiagram
 
     usuario "1" --> "0..*" caja : abre
     usuario "1" --> "0..*" venta : registra
+    usuario "0..1" --> "0..*" venta : anula
     caja "1" --> "0..*" venta : contiene
     caja "1" --> "0..*" movimiento_caja : registra
     caja "1" --> "0..*" cierre_caja_detalle : resumen al cerrar
@@ -319,8 +323,8 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | tipo | enum | S | `INGRESO`, `EGRESO` |
 | monto | decimal | S | Siempre positivo; el signo lo da `tipo` |
 | medio_pago_id | FK medio_pago | S | |
-| concepto | enum | S | `VENTA`, `PAGO_CLIENTE`, `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43) |
-| venta_id | FK venta | N | Si `concepto = VENTA` |
+| concepto | enum | S | `VENTA`, `PAGO_CLIENTE`, `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43), `ANULACION` (egreso que revierte una venta anulada: DEC-68) |
+| venta_id | FK venta | N | Si `concepto = VENTA` o `ANULACION`; a lo sumo una `ANULACION` por venta |
 | pago_cliente_id | FK pago_cliente | N | Si `concepto = PAGO_CLIENTE` |
 | pago_proveedor_id | FK pago_proveedor | N | Si `concepto = PAGO_PROVEEDOR` |
 | usuario_id | FK usuario | S | |
@@ -337,6 +341,10 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | cliente_id | FK cliente | N | Obligatorio si el medio de pago es cuenta corriente (a confirmar: PR-12) |
 | medio_pago_id | FK medio_pago | S | Un solo medio por venta (DEC-42) |
 | monto_total | decimal | S | Igual a la suma de `subtotal` de sus detalles |
+| estado | enum | S | `CONFIRMADA` (por defecto) o `ANULADA`. Una venta no se edita: se anula con reversa (DEC-45, DEC-67) |
+| anulada_en | datetime | N | Solo si `estado = ANULADA` |
+| anulada_por_usuario_id | FK usuario | N | Quien anuló (el Administrador). Solo si `estado = ANULADA` |
+| motivo_anulacion | string | N | Obligatorio si `estado = ANULADA` (DEC-66); vacío si no |
 
 **detalle_venta**
 
@@ -497,7 +505,7 @@ Solo se incorporan si el negocio lo confirma.
 
 **movimiento_stock** (diferida por decisión del proyecto; se reevalúa si aparecen diferencias de stock o si se confirma PR-32). Sería un libro de entradas y salidas de stock con campos tentativos: `id`, `producto_id`, `fecha_hora`, `tipo` (`INGRESO`, `VENTA`, `AJUSTE`), `cantidad` con signo, referencias al detalle de venta o de ingreso, `usuario_id` y `motivo`. Permitiría verificar que `stock_actual` coincide con lo registrado.
 
-**faltante_stock** (descartada: DEC-46; el stock puede quedar negativo). Campos tentativos: `id`, `fecha_hora`, `producto_id`, `venta_id` (opcional), `cantidad_faltante`, `usuario_id`.
+**faltante_stock** (diferida hasta responder PR-37; mientras tanto rige DEC-46 y el stock puede quedar negativo). Campos tentativos: `id`, `fecha_hora`, `producto_id`, `venta_id` (opcional), `cantidad_faltante`, `usuario_id`.
 
 ## 7. Normalización y buenas prácticas
 
@@ -546,8 +554,8 @@ Solo se incorporan si el negocio lo confirma.
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
 | `caja` | `UNIQUE (fecha, turno)` y un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01, DEC-39: `caja_unica_por_fecha_turno` y `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
-| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto` |
-| `venta` y `detalle_venta` | `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
+| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto`; `CHECK (concepto <> 'ANULACION' OR tipo = 'EGRESO')` y `UNIQUE (venta_id)` si `concepto = 'ANULACION'` (DEC-68) |
+| `venta` y `detalle_venta` | `CHECK` de `estado`; `CHECK` de que `anulada_en`, `anulada_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADA'` (DEC-67); `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
 | `movimiento_cuenta_corriente` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `tipo` y referencias; `CHECK` de `tipo`; `UNIQUE (venta_id)` si no es nulo (una venta genera como mucho un movimiento, diagrama 3.1) |
 | `pago_cliente`, `pago_proveedor` | `CHECK (monto > 0)`, coherente con `movimiento_caja` y `movimiento_cuenta_corriente`, que exigen monto positivo (más estricto que RI-16) |
 | `producto_proveedor` | `UNIQUE (producto_id, proveedor_id)`; `CHECK (precio_compra >= 0)` |
@@ -591,7 +599,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | RI-10 | La diferencia de caja se calcula siempre como `monto_contado - monto_sistema`; no se guarda | CU-03 |
 | RI-11 | Las claves foráneas no permiten borrar registros referenciados; se usa baja lógica | RNF-09 |
 | RI-12 | Los precios de venta y compra se copian en el detalle al momento de la operación; cambiar el precio de un producto no altera ventas pasadas | CU-01, CU-05 |
-| RI-13 | En `movimiento_caja`, según el `concepto`, exactamente una de las referencias (`venta_id`, `pago_cliente_id`, `pago_proveedor_id`) está informada y las otras son nulas; `OTRO` no lleva ninguna | Normalización |
+| RI-13 | En `movimiento_caja`, según el `concepto`, exactamente una de las referencias (`venta_id`, `pago_cliente_id`, `pago_proveedor_id`) está informada y las otras son nulas; `VENTA` y `ANULACION` llevan `venta_id` y `OTRO` no lleva ninguna | Normalización |
 | RI-14 | Si `pago_proveedor.ingreso_id` está informado, su `proveedor_id` coincide con el del ingreso | Normalización |
 | RI-15 | El `cliente_id` de un `movimiento_cuenta_corriente` coincide con el de la venta o el pago que lo origina | Normalización |
 | RI-16 | Los montos y precios son mayores o iguales a cero y las cantidades de venta, ingreso y detalle son mayores a cero | RNF-10 |
@@ -644,9 +652,9 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | PR-20, PR-21 | Definen `stock_minimo` y `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes |
 | PR-31 (datos de contacto) | Define si hacen falta más campos (dirección, identificación fiscal) en cliente y proveedor |
 | PR-32 (ajustes de stock) | Define si hace falta un caso de uso de ajuste de stock (conteo de inventario). Hoy un ajuste modificaría `stock_actual` directamente; conviene evaluar entonces el libro de movimientos |
-| DEC-45 (anulaciones, ex PR-30) | Agrega un `estado` en `venta` y un egreso de reversa en `movimiento_caja` (se diseña al implementarlo) |
+| DEC-45 (anulaciones, ex PR-30) | `venta.estado` y los datos de la anulación (DEC-67) y el concepto `ANULACION` en `movimiento_caja` (DEC-68). Aplicado en las migraciones `caja/0006` y `ventas/0003` (H2, etapa 4) |
 | DEC-39 (una caja abierta a la vez, ex PR-06) | RI-01 pasa a: una caja por (`fecha`, `turno`) y una sola caja `ABIERTA` en total. Aplicado en la migración `caja/0004` (H2, etapa 1) |
-| DEC-46 (stock insuficiente) | Se acepta `stock_actual` negativo en productos con control de stock |
+| DEC-46 (stock insuficiente) y PR-37 | Se acepta `stock_actual` negativo en productos con control de stock. Si PR-37 confirma que los faltantes se registran, se agrega `faltante_stock` (sección 6) |
 
 ## 12. Mantenimiento
 

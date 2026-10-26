@@ -37,6 +37,14 @@ FUNCIONES = [
         url="ventas:nueva",
     ),
     Funcion(
+        "Ventas del turno",
+        "Revisar y anular ventas de la caja abierta",
+        "CU-01 (DEC-45)",
+        frozenset({ADMIN}),
+        "carrito",
+        url="ventas:lista",
+    ),
+    Funcion(
         "Caja",
         "Abrir y cerrar el turno",
         "CU-02, CU-03",

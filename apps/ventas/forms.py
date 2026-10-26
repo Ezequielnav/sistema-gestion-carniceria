@@ -37,3 +37,14 @@ class ConfirmarVentaForm(forms.Form):
         if not all(cantidad.is_finite() for _, cantidad in lineas):
             raise forms.ValidationError("La lista de productos no es válida.")
         return lineas
+
+
+class AnularVentaForm(forms.Form):
+    """Motivo de la anulación (DEC-66). Las reglas las aplica el servicio."""
+
+    motivo = forms.CharField(
+        label="Motivo de la anulación",
+        max_length=255,
+        widget=forms.Textarea(attrs={"rows": 3, "class": "campo"}),
+        error_messages={"required": "Escribí por qué se anula la venta."},
+    )

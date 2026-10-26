@@ -45,8 +45,13 @@ CHECKS = {
         "movimiento_caja_tipo_valido",
         "movimiento_caja_concepto_valido",
         "movimiento_caja_referencia_segun_concepto",
+        "movimiento_caja_anulacion_es_egreso",
     ],
-    "venta": ["venta_monto_total_no_negativo"],
+    "venta": [
+        "venta_monto_total_no_negativo",
+        "venta_estado_valido",
+        "venta_datos_de_anulacion_segun_estado",
+    ],
     "detalle_venta": [
         "detalle_venta_cantidad_positiva",
         "detalle_venta_precio_no_negativo",
@@ -85,6 +90,7 @@ UNICOS = [
         ["caja_id", "medio_pago_id"],
         False,
     ),
+    ("movimiento_caja", "movimiento_caja_una_anulacion_por_venta", ["venta_id"], True),
     ("producto", "producto_plus_interno_unico", ["plus_interno"], True),
     ("producto_proveedor", "producto_proveedor_unico", ["producto_id", "proveedor_id"], False),
     ("movimiento_cuenta_corriente", "movimiento_cuenta_corriente_venta_unica", ["venta_id"], True),

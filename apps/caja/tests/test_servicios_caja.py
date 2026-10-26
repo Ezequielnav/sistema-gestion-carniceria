@@ -141,6 +141,20 @@ def test_dos_cajeras_a_la_vez_la_segunda_recibe_el_mensaje_claro(usuario):
     assert Caja.objects.count() == 1
 
 
+def test_si_la_caja_que_choco_ya_no_esta_abierta_el_mensaje_no_falla(usuario):
+    abrir_caja(usuario, Turno.MANANA)
+
+    # La segunda consulta ya no encuentra la caja con la que chocó (se cerró entre medio).
+    with (
+        mock.patch("apps.caja.services.caja_abierta", side_effect=[None, None]),
+        pytest.raises(ValidationError) as error,
+    ):
+        abrir_caja(usuario, Turno.TARDE)
+
+    assert _mensajes(error) == "Ya hay una caja abierta. Hay que cerrarla antes de abrir otra."
+    assert Caja.objects.count() == 1
+
+
 def test_turno_usado_a_la_vez_recibe_el_mensaje_claro(usuario):
     _cerrar(abrir_caja(usuario, Turno.MANANA))
 

@@ -32,6 +32,7 @@ def _nombres(usuario):
 
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     assert _nombres(_usuario(Rol.ADMINISTRADOR)) == [
+        "Ventas del turno",  # DEC-71: solo para anular (DEC-45)
         "Productos",
         "Stock",
         "Clientes",
