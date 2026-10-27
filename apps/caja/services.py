@@ -29,6 +29,11 @@ def caja_abierta():
     return Caja.objects.filter(estado=EstadoCaja.ABIERTA).select_related("usuario").first()
 
 
+def es_de_otro_dia(caja):
+    """La caja es de una fecha anterior a hoy: no recibe ventas (DEC-50)."""
+    return caja.fecha != timezone.localdate()
+
+
 def puede_abrir(usuario):
     """CU-02: solo la cajera (matriz de actores de 04)."""
     return usuario.rol == Rol.CAJERA
@@ -289,6 +294,13 @@ def cerrar_caja(usuario, contados, observacion=""):
 def puede_ver_cierre(usuario):
     """DEC-59: cajera, Administrador y Dueños."""
     return usuario.is_authenticated and usuario.rol in (Rol.CAJERA, Rol.ADMINISTRADOR, Rol.DUENIO)
+
+
+def caja_cerrada(pk):
+    """La caja cerrada para su reporte; Caja.DoesNotExist si no existe o sigue abierta."""
+    return Caja.objects.select_related("usuario", "cerrada_por_usuario").get(
+        pk=pk, estado=EstadoCaja.CERRADA
+    )
 
 
 def detalle_de_cierre(caja):

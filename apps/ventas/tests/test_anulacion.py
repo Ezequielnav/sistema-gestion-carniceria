@@ -27,7 +27,14 @@ from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import crear_producto
 from apps.usuarios.models import Rol, Usuario
 from apps.ventas.models import EstadoVenta, Venta
-from apps.ventas.services import anular_venta, registrar_venta, resumen_del_dia
+from apps.ventas.services import (
+    anular_venta,
+    detalles_de_venta,
+    obtener_venta,
+    registrar_venta,
+    resumen_del_dia,
+    se_puede_anular,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -529,3 +536,28 @@ def test_dec73_las_ultimas_ventas_del_inicio_marcan_la_anulada(client, admin, ve
 
     assert "Anulada</span>" in contenido
     assert "line-through" in contenido
+
+
+# Capas (06): consultas y reglas que antes estaban en la vista o el template
+
+
+def test_obtener_venta_y_sus_detalles(venta_efectivo):
+    venta = obtener_venta(venta_efectivo.pk)
+
+    assert venta == venta_efectivo
+    assert [d.producto.nombre for d in detalles_de_venta(venta)] == ["Aceite 1 l", "Asado"]
+    with pytest.raises(Venta.DoesNotExist):
+        obtener_venta(999999)
+
+
+def test_dec45_se_puede_anular_solo_confirmada_y_con_la_caja_abierta(
+    usuario, admin, caja_hoy, venta_efectivo, efectivo, aceite
+):
+    otra, _ = registrar_venta(usuario, [(aceite.pk, Decimal("1"))], efectivo)
+    assert se_puede_anular(obtener_venta(venta_efectivo.pk)) is True
+
+    anular_venta(admin, venta_efectivo, "Error de carga")
+    assert se_puede_anular(obtener_venta(venta_efectivo.pk)) is False
+
+    cerrar_caja(usuario, {m.pk: e for m, e in resumen_de_cierre(caja_hoy)})
+    assert se_puede_anular(obtener_venta(otra.pk)) is False

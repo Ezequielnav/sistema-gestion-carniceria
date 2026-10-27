@@ -1,7 +1,7 @@
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.http import Http404, JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
@@ -9,13 +9,15 @@ from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import crear_producto, puede_crear
 from apps.comun.permisos import requiere_funcion
 from apps.ventas.forms import AnularVentaForm, ConfirmarVentaForm
-from apps.ventas.models import Venta
 from apps.ventas.services import (
     anular_venta,
     buscar_para_venta,
+    detalles_de_venta,
+    obtener_venta,
     problema_para_vender,
     puede_vender,
     registrar_venta,
+    se_puede_anular,
     ventas_de_la_caja_abierta,
 )
 
@@ -23,6 +25,13 @@ from apps.ventas.services import (
 def _solo_cajera(request):
     if not puede_vender(request.user):
         raise PermissionDenied
+
+
+def _venta(pk):
+    try:
+        return obtener_venta(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
 
 
 def _producto(producto):
@@ -111,9 +120,10 @@ def confirmar(request):
 def ticket(request, pk):
     """Comprobante no fiscal para imprimir desde el navegador (DEC-44, DEC-54)."""
     _solo_cajera(request)
-    venta = get_object_or_404(Venta.objects.select_related("usuario", "medio_pago"), pk=pk)
-    detalles = venta.detalleventa_set.select_related("producto").order_by("pk")
-    return render(request, "ventas/ticket.html", {"venta": venta, "detalles": detalles})
+    venta = _venta(pk)
+    return render(
+        request, "ventas/ticket.html", {"venta": venta, "detalles": detalles_de_venta(venta)}
+    )
 
 
 # Anulación: pantallas del Administrador (DEC-45, DEC-71)
@@ -128,19 +138,16 @@ def lista(request):
 
 
 def _detalle(request, venta, form, status=200):
-    detalles = venta.detalleventa_set.select_related("producto").order_by("pk")
     return render(
         request,
         "ventas/detalle.html",
-        {"venta": venta, "detalles": detalles, "form": form},
+        {
+            "venta": venta,
+            "detalles": detalles_de_venta(venta),
+            "form": form,
+            "puede_anularse": se_puede_anular(venta),
+        },
         status=status,
-    )
-
-
-def _venta(pk):
-    return get_object_or_404(
-        Venta.objects.select_related("caja", "usuario", "medio_pago", "anulada_por_usuario"),
-        pk=pk,
     )
 
 

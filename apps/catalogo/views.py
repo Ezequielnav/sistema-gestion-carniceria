@@ -1,18 +1,19 @@
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from apps.catalogo.forms import ProductoForm
-from apps.catalogo.models import Producto
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
-    buscar_productos,
     crear_producto,
     dar_de_baja,
+    listar_productos,
     modificar_producto,
+    producto_editable,
     puede_crear,
     puede_modificar,
 )
@@ -21,15 +22,20 @@ from apps.comun.permisos import requiere_funcion
 POR_PAGINA = 25
 
 
+def _producto_editable(pk):
+    try:
+        return producto_editable(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+
+
 @requiere_funcion("Productos")
 def productos(request):
-    es_admin = puede_modificar(request.user)
     texto = request.GET.get("q", "").strip()
-    # Solo el Administrador puede ver los dados de baja.
-    incluir_inactivos = es_admin and request.GET.get("inactivos") == "1"
-    pagina = Paginator(buscar_productos(texto, incluir_inactivos), POR_PAGINA).get_page(
-        request.GET.get("pagina")
+    productos, incluir_inactivos = listar_productos(
+        request.user, texto, pedir_inactivos=request.GET.get("inactivos") == "1"
     )
+    pagina = Paginator(productos, POR_PAGINA).get_page(request.GET.get("pagina"))
     return render(
         request,
         "catalogo/productos.html",
@@ -38,7 +44,7 @@ def productos(request):
             "texto": texto,
             "incluir_inactivos": incluir_inactivos,
             "puede_crear": puede_crear(request.user),
-            "puede_modificar": es_admin,
+            "puede_modificar": puede_modificar(request.user),
         },
     )
 
@@ -77,7 +83,7 @@ def editar(request, pk):
     if not puede_modificar(request.user):
         raise PermissionDenied
     # Un producto dado de baja se reactiva solo desde el panel (DEC-33).
-    producto = get_object_or_404(Producto, pk=pk, activo=True)
+    producto = _producto_editable(pk)
     form = ProductoForm(request.POST or None, initial=model_to_dict(producto, CAMPOS_EDITABLES))
     respuesta = _guardar_con(
         request,
@@ -98,7 +104,7 @@ def editar(request, pk):
 def baja(request, pk):
     if not puede_modificar(request.user):
         raise PermissionDenied
-    producto = get_object_or_404(Producto, pk=pk, activo=True)
+    producto = _producto_editable(pk)
     if request.method == "POST":
         dar_de_baja(request.user, producto)
         messages.success(request, f"Se dio de baja «{producto}».")

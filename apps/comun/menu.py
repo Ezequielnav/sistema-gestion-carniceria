@@ -6,6 +6,7 @@ marcados "a confirmar" (PR-14, PR-25) se agregan cuando el negocio los confirme.
 
 from dataclasses import dataclass
 
+from apps.catalogo.services import puede_crear
 from apps.usuarios.models import Rol
 
 
@@ -86,7 +87,7 @@ def puede_usar(usuario, funcion):
     if not usuario.is_authenticated or usuario.rol not in funcion.roles:
         return False
     if funcion.requiere_alta_productos and usuario.rol == CAJERA:
-        return usuario.puede_crear_productos
+        return puede_crear(usuario)  # RN-05, misma regla que el servicio de CU-11
     return True
 
 
