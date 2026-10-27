@@ -7,7 +7,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.comun.menu import funciones_para
+from apps.catalogo.services import puede_crear
+from apps.comun.menu import FUNCIONES, funciones_para, puede_usar
 from apps.usuarios.models import Rol, Usuario
 
 pytestmark = pytest.mark.django_db
@@ -28,6 +29,14 @@ def _nombres(usuario):
 
 
 # CP-74
+
+
+@pytest.mark.parametrize("con_permiso", [True, False])
+def test_rn05_el_menu_usa_la_misma_regla_que_el_alta_de_productos(con_permiso):
+    cajera = _usuario(Rol.CAJERA, puede_crear_productos=con_permiso)
+    productos = next(f for f in FUNCIONES if f.nombre == "Productos")
+
+    assert puede_usar(cajera, productos) is puede_crear(cajera) is con_permiso
 
 
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():

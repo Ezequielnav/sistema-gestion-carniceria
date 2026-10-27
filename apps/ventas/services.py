@@ -8,7 +8,12 @@ from django.db.models import Count, F, Sum
 from django.utils import timezone
 
 from apps.caja.models import Caja, EstadoCaja, MedioPago
-from apps.caja.services import caja_abierta, registrar_ingreso_venta, registrar_reversa_venta
+from apps.caja.services import (
+    caja_abierta,
+    es_de_otro_dia,
+    registrar_ingreso_venta,
+    registrar_reversa_venta,
+)
 from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import buscar_productos
 from apps.usuarios.models import Rol
@@ -81,7 +86,7 @@ def _verificar_caja(caja):
     """Se vende en la única caja abierta (DEC-39), que tiene que ser de hoy (DEC-50)."""
     if caja is None:
         raise ValidationError("No hay una caja abierta. Abrí la caja para vender.", code="sin_caja")
-    if caja.fecha != timezone.localdate():
+    if es_de_otro_dia(caja):
         raise ValidationError(
             "La caja abierta es de otro día. Hay que cerrarla y abrir la de hoy para vender.",
             code="caja_de_otro_dia",
@@ -177,6 +182,32 @@ def registrar_venta(usuario, lineas, medio_pago):
 # Anulación (DEC-45, DEC-66 a DEC-73)
 
 
+def obtener_venta(pk):
+    """La venta con lo que muestran el ticket y el detalle; Venta.DoesNotExist si no existe."""
+    return Venta.objects.select_related("caja", "usuario", "medio_pago", "anulada_por_usuario").get(
+        pk=pk
+    )
+
+
+def detalles_de_venta(venta):
+    return list(venta.detalleventa_set.select_related("producto").order_by("pk"))
+
+
+def _impedimento_para_anular(venta):
+    """Por qué la venta no se puede anular (ValidationError), o None (DEC-45, DEC-72)."""
+    if venta.estado == EstadoVenta.ANULADA:
+        return ValidationError("La venta ya está anulada.", code="ya_anulada")
+    if venta.caja.estado != EstadoCaja.ABIERTA:
+        return ValidationError(
+            "La caja de esta venta está cerrada: ya no se puede anular.", code="caja_cerrada"
+        )
+    return None
+
+
+def se_puede_anular(venta):
+    return _impedimento_para_anular(venta) is None
+
+
 def puede_anular(usuario):
     """DEC-45: solo el Administrador."""
     return usuario.rol == Rol.ADMINISTRADOR
@@ -215,13 +246,10 @@ def anular_venta(usuario, venta, motivo):
         # Mismo orden de bloqueo que la venta y el cierre: primero la caja (RNF-10).
         caja = Caja.objects.select_for_update().get(pk=venta.caja_id)
         venta = Venta.objects.select_for_update().select_related("medio_pago").get(pk=venta.pk)
-        if venta.estado == EstadoVenta.ANULADA:
-            raise ValidationError("La venta ya está anulada.", code="ya_anulada")
-        if caja.estado != EstadoCaja.ABIERTA:
-            raise ValidationError(
-                "La caja de esta venta está cerrada: ya no se puede anular.", code="caja_cerrada"
-            )
         venta.caja = caja
+        impedimento = _impedimento_para_anular(venta)
+        if impedimento is not None:
+            raise impedimento
         registrar_reversa_venta(venta, usuario, motivo)
         venta.estado = EstadoVenta.ANULADA
         venta.anulada_en = timezone.now()

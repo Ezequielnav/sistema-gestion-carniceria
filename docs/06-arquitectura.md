@@ -120,7 +120,30 @@ flowchart TB
 | Servicios | Reglas de negocio y casos de uso (por ejemplo, abrir caja, registrar venta, registrar pago). Cada operación que toca varias tablas corre en una transacción | Detalles de pantalla (HTML, formularios) |
 | Acceso a datos | Modelos, restricciones, migraciones y consultas | Reglas que dependen del caso de uso |
 
-**Regla de dependencia:** cada capa solo llama a la inmediatamente inferior. Con esto las reglas del negocio (RN-xx y RI-xx) se prueban sin abrir el navegador y cada pantalla las reutiliza.
+**Regla de dependencia:** cada capa solo llama a la inmediatamente inferior. Con esto las reglas del negocio (RN-xx y RI-xx) se prueban sin abrir el navegador y cada pantalla las reutiliza. En la práctica:
+
+- Las vistas no consultan los modelos: piden los datos a un servicio (por ejemplo, `obtener_venta`, `caja_cerrada`, `producto_editable`) y solo convierten "no existe" en una respuesta 404.
+- Las plantillas no deciden reglas: reciben el resultado ya calculado (por ejemplo, `puede_anularse` o `de_otro_dia`).
+- Los formularios validan el formato de los datos; las reglas las aplica el servicio.
+
+**Permisos en dos lugares:** la vista verifica que el rol tenga la función del menú (`requiere_funcion`, en `apps/comun/permisos.py`) y el servicio vuelve a verificar el permiso antes de operar (`PermissionDenied`). La segunda verificación protege la regla aunque el servicio se llame desde otra pantalla, el panel o una prueba. Cuando el menú depende de una regla de negocio (por ejemplo, RN-05 para la cajera con permiso de alta), usa la función del servicio en lugar de repetirla.
+
+**Dependencias entre módulos:** un servicio puede usar los servicios de otro módulo solo en un sentido, sin ciclos:
+
+```mermaid
+flowchart LR
+    ventas --> caja
+    ventas --> catalogo
+    caja --> usuarios
+    catalogo --> usuarios
+    ventas --> usuarios
+    comun --> caja
+    comun --> catalogo
+    comun --> ventas
+    comun --> usuarios
+```
+
+`caja` y `catalogo` nunca importan servicios de `ventas`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
 
 ## 4. Módulos y su relación con el modelo
 
@@ -135,7 +158,7 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
 | `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |
-| `comun` | Ninguna: solo el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades | — |
+| `comun` | Ninguna propia: el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades. Además reúne la navegación: menú y permisos por rol (`menu.py`, `permisos.py` y el procesador de contexto del menú), la pantalla de inicio y los datos de ejemplo con el comando `cargar_datos_ejemplo` | CU-10 (inicio después de ingresar) |
 
 ### Estructura propuesta del repositorio
 
@@ -143,28 +166,38 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 sistema-gestion-carniceria/
 ├── README.md
 ├── docs/                      documentación (fuente de verdad)
+│   └── specs/                 specs de cada caso de uso o etapa (SPEC-CU-xx)
 ├── config/                    configuración del proyecto
+├── .github/workflows/         GitHub Actions: ruff y pytest en cada Pull Request
 ├── apps/
-│   ├── comun/                 modelo base de auditoría
-│   └── <módulo>/              usuarios, caja, ventas, catalogo, proveedores, clientes, reportes
+│   ├── comun/                 modelo base, menú y permisos por rol, inicio, datos de ejemplo
+│   │   └── management/commands/   cargar_datos_ejemplo
+│   └── <módulo>/              usuarios, caja, ventas, catalogo, proveedores, clientes
 │       ├── models.py          capa de acceso a datos
+│       ├── migrations/
 │       ├── services.py        capa de servicios (reglas de negocio)
 │       ├── views.py           capa de vistas
 │       ├── forms.py
 │       ├── urls.py
 │       ├── admin.py           registro en el panel de administración
-│       └── tests/
-├── templates/                 plantillas HTML
-├── static/                    JavaScript, estilos compilados y recursos
+│       └── tests/             pruebas de pytest; tests/js/ para las de JavaScript (node --test)
+├── templates/                 plantillas HTML, una carpeta por módulo
+├── static/
+│   ├── src/                   estilos de entrada de Tailwind
+│   ├── css/                   estilos compilados
+│   └── js/                    JavaScript de las pantallas
+├── locale/                    traducciones al español
+├── manage.py
 ├── conftest.py                datos ficticios compartidos por las pruebas
 ├── pyproject.toml             configuración de ruff y pytest
 ├── requirements.txt           dependencias con versión fija
+├── package.json               Tailwind CLI (npm run estilos)
 ├── .env.example               plantilla: solo nombres y valores de ejemplo
 ├── CLAUDE.md                  instrucciones para Claude Code
 └── .claude/settings.json      permisos de Claude Code
 ```
 
-La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
+Hoy `proveedores` y `clientes` solo tienen modelos (sus servicios y pantallas llegan en H3 y H4), y `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
 
 ## 5. Entorno local
 

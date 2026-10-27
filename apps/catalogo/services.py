@@ -47,6 +47,23 @@ def buscar_productos(texto="", incluir_inactivos=False):
     return productos
 
 
+def listar_productos(usuario, texto="", pedir_inactivos=False):
+    """Productos de la pantalla; solo el Administrador puede incluir los dados de baja.
+
+    Devuelve los productos y si se incluyeron los dados de baja.
+    """
+    incluir_inactivos = pedir_inactivos and puede_modificar(usuario)
+    return buscar_productos(texto, incluir_inactivos), incluir_inactivos
+
+
+def producto_editable(pk):
+    """Producto activo; uno dado de baja no se edita ni se da de baja otra vez (DEC-33).
+
+    Producto.DoesNotExist si no existe o está dado de baja.
+    """
+    return Producto.objects.get(pk=pk, activo=True)
+
+
 def _guardar(producto):
     """Valida y guarda; un plus interno repetido sale como mensaje claro (CU-11, A1)."""
     if producto.plus_interno is not None:

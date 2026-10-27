@@ -12,7 +12,9 @@ from apps.catalogo.services import (
     buscar_productos,
     crear_producto,
     dar_de_baja,
+    listar_productos,
     modificar_producto,
+    producto_editable,
 )
 from apps.ventas.models import DetalleVenta
 
@@ -184,3 +186,26 @@ def test_busca_por_nombre_o_plus_y_solo_activos_por_defecto(admin):
     assert list(buscar_productos("700")) == [yerba]
     assert list(buscar_productos("yerb", incluir_inactivos=True)) == [yerba, baja]
     assert len(buscar_productos()) == 2
+
+
+# Capas (06): reglas de la pantalla de productos en el servicio
+
+
+def test_solo_el_administrador_incluye_los_dados_de_baja(admin, cajera_alta, producto):
+    dar_de_baja(admin, producto)
+
+    productos, incluidos = listar_productos(admin, pedir_inactivos=True)
+    assert incluidos is True
+    assert producto in productos
+    productos, incluidos = listar_productos(cajera_alta, pedir_inactivos=True)
+    assert incluidos is False
+    assert producto not in productos
+
+
+def test_dec33_un_producto_dado_de_baja_no_es_editable(admin, producto):
+    assert producto_editable(producto.pk) == producto
+
+    dar_de_baja(admin, producto)
+
+    with pytest.raises(Producto.DoesNotExist):
+        producto_editable(producto.pk)

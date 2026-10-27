@@ -8,7 +8,13 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils import timezone
 
 from apps.caja.models import Caja, EstadoCaja, Turno
-from apps.caja.services import abrir_caja, caja_abierta, turnos_libres
+from apps.caja.services import (
+    abrir_caja,
+    caja_abierta,
+    caja_cerrada,
+    es_de_otro_dia,
+    turnos_libres,
+)
 from apps.usuarios.models import Rol, Usuario
 
 pytestmark = pytest.mark.django_db
@@ -181,3 +187,25 @@ def test_solo_la_cajera_abre_la_caja(rol):
 
     with pytest.raises(PermissionDenied):
         abrir_caja(otro, Turno.MANANA)
+
+
+# Capas (06): consultas y reglas que antes estaban en la vista
+
+
+def test_caja_cerrada_solo_devuelve_cajas_cerradas(usuario):
+    caja = abrir_caja(usuario, Turno.MANANA)
+    with pytest.raises(Caja.DoesNotExist):
+        caja_cerrada(caja.pk)
+
+    _cerrar(caja)
+
+    assert caja_cerrada(caja.pk) == caja
+    with pytest.raises(Caja.DoesNotExist):
+        caja_cerrada(999999)
+
+
+def test_dec50_es_de_otro_dia(usuario, caja):
+    assert es_de_otro_dia(caja) is True  # la caja del conftest es del 15/01/2026
+    _cerrar(caja)
+
+    assert es_de_otro_dia(abrir_caja(usuario, Turno.MANANA)) is False
