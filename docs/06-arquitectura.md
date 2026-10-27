@@ -137,13 +137,16 @@ flowchart LR
     caja --> usuarios
     catalogo --> usuarios
     ventas --> usuarios
+    proveedores --> catalogo
+    proveedores --> caja
+    proveedores --> usuarios
     comun --> caja
     comun --> catalogo
     comun --> ventas
     comun --> usuarios
 ```
 
-`caja` y `catalogo` nunca importan servicios de `ventas`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
+`caja` y `catalogo` nunca importan servicios de `ventas` ni de `proveedores` (DEC-96). El stock y las cantidades se cambian y validan solo en `catalogo` (`mover_stock`, `validar_cantidad`), y la consulta de stock (CU-06) filtra por proveedor por la relación inversa de `producto_proveedor`, sin usar servicios de `proveedores`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
 
 ## 4. Módulos y su relación con el modelo
 
@@ -166,7 +169,7 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 sistema-gestion-carniceria/
 ├── README.md
 ├── docs/                      documentación (fuente de verdad)
-│   └── specs/                 specs de cada caso de uso o etapa (SPEC-CU-xx)
+│   └── specs/                 specs de cada caso de uso, etapa o hito (SPEC-CU-xx, SPEC-H3)
 ├── config/                    configuración del proyecto
 ├── .github/workflows/         GitHub Actions: ruff y pytest en cada Pull Request
 ├── apps/

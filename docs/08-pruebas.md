@@ -106,6 +106,9 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-92 | Ingreso al contado | RN-08, RF-30, RNF-10 | Se guardan juntos el ingreso, el stock, el pago por el total y, si es en efectivo, el egreso; si el pago se rechaza (por ejemplo, por falta de efectivo), no se guarda nada | Decidido (DEC-81, supuesto) |
 | CP-93 | Cantidades del ingreso | RF-22, RI-16 | Por `UNIDAD` se rechaza una cantidad con decimales; por `KG` se aceptan hasta 3 decimales; más de 100 kg o 100 unidades se acepta (no rige DEC-76) | Decidido (DEC-79, DEC-81, supuesto) |
 | CP-37 | Stock en o por debajo del mínimo | RN-10, RF-26 | La consulta muestra la alerta si `stock_actual <= stock_minimo` y si el stock es negativo, aunque no haya mínimo; sin mínimo y con stock no negativo, o en carne, no hay alerta. La tarjeta "stock bajo" del inicio la ve solo el Administrador | Decidido (DEC-82, supuesto) |
+| CP-100 | Precio de compra sugerido y actualizado | DEC-90, RI-12 | El ingreso precarga el último precio de compra del producto con ese proveedor y, al confirmar, lo crea o actualiza; anular el ingreso no lo revierte | Decidido (DEC-90); a automatizar (H3, etapa 3) |
+| CP-101 | Anular un ingreso | DEC-92, RI-07 | Solo el Administrador, con motivo y sin pagos vigentes: el ingreso queda anulado, el stock vuelve (aunque quede negativo) y el saldo del proveedor baja; con un pago vigente, se rechaza | Decidido (DEC-92); a automatizar (H3, etapa 3) |
+| CP-102 | Anular un pago a proveedor | DEC-92, RI-13 | Solo el Administrador, con motivo: por transferencia, sin movimiento de caja; en efectivo con su caja abierta, una reversa `INGRESO` `ANULACION_PAGO` vinculada al pago, sin tocar el egreso; con la caja cerrada, se rechaza; un pago tiene a lo sumo una reversa. El saldo vuelve a subir | Decidido (DEC-92); a automatizar (H3, etapa 4) |
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08)
 
@@ -132,6 +135,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-97 | Reactivar un producto dado de baja | DEC-85, CU-11 | El Administrador lo reactiva con "Reactivar" en el listado de dados de baja (POST), sin condición de stock; la cajera y los dueños reciben 403 y un producto activo da 404 | Decidido (DEC-85); automatizado (etapa 0b de H3) |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
 | CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-22; el plus, DEC-37) |
+| CP-99 | Gestionar proveedores | RF-29, DEC-87, DEC-88 | El Administrador da de alta, modifica, da de baja (con confirmación) y reactiva un proveedor; un proveedor dado de baja no se lista salvo con el filtro; la cajera y los dueños reciben 403 | Decidido (DEC-87); a automatizar (H3, etapa 2) |
 
 ### 4.6 Reportes (CU-09)
 

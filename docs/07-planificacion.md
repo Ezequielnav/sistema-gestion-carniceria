@@ -65,6 +65,21 @@ Surgieron en la revisión de H2. No bloquean el cierre del hito; se retoman en e
 | L8 | DEC-70 usa el control de stock actual del producto; con un registro de movimientos de stock, guardar en el detalle si controlaba stock al vender | Si se agrega `movimiento_stock` |
 | L9 | Qué ve la cajera en el inicio (PR-35) | Al responder PR-35 |
 
+### Etapas de H3
+
+Spec: `docs/specs/SPEC-H3.md` (aprobado). Las decisiones de H3 son supuestos del proyecto, no datos confirmados por el negocio (DEC-78). Las etapas 0 y 0b ya están hechas (DEC-78 a DEC-86). R-1 a R-9 son los ajustes del refactor de capas (DEC-96) y S-1 a S-9 las decisiones del spec (DEC-87 a DEC-95).
+
+| Etapa | Alcance | CU / RF / DEC | CP |
+|---|---|---|---|
+| 1. Catálogo y refactor | Servicio único de stock (`mover_stock`) y de cantidades (`validar_cantidad`) en catálogo; la venta y la anulación de ventas los usan sin cambiar su comportamiento; el tope de DEC-76 queda solo en la venta. Docstrings de PR-03 y PR-18 citan DEC-79 y DEC-81 | CU-01 (sin cambios); RF-16; RI-07, RI-16; DEC-46, DEC-48, DEC-70, DEC-76, DEC-79, DEC-81; R-1, R-2, R-5 | CP-12, CP-13, CP-83, CP-85, CP-87 |
+| 2. Proveedores | CU-13: listado, alta, modificación, baja lógica y reactivación; menú "Proveedores" para el Administrador; prueba de estructura de dependencias (`catalogo` y `caja` no importan `proveedores`) | CU-13; RF-29; RI-11; DEC-85 (mismo patrón); R-6, R-9; S-1, S-2, S-9 | CP-99 (nuevo) |
+| 3. Ingreso de mercadería | CU-05 a crédito: fecha de hoy, líneas, cantidades (DEC-79), stock con `mover_stock`, precio en el detalle y en `producto_proveedor`, remito en `observacion`, alta de producto (A1); saldo derivado en el servicio. Anulación del ingreso sin pagos vigentes, con motivo y reversa de stock (migración: estado del ingreso) | CU-05; RF-22 a RF-24, RF-30; RN-08; RI-07, RI-12, RI-16; DEC-46, DEC-79, DEC-81; R-4; S-3 a S-8 | CP-30, CP-31, CP-32, CP-93, CP-100 y CP-101 (nuevos) |
+| 4. Pago a proveedor | CU-07: ingreso con saldo, efectivo o transferencia (también en el contado), egreso `PAGO_PROVEEDOR` y su reversa con funciones públicas de caja; ingreso al contado con el pago en la misma operación. Anulación del pago: por transferencia siempre, en efectivo con la caja de su egreso abierta (migración: estado del pago y una reversa por pago) | CU-07, CU-05 (contado); RF-31 a RF-33; RN-09; RI-08, RI-09, RI-13, RI-14; DEC-80, DEC-81; R-3, R-4; S-6 | CP-33 a CP-36, CP-90, CP-91, CP-92 y CP-102 (nuevo) |
+| 5. Consulta de stock | CU-06 en catálogo: productos con control de stock, filtros por categoría y proveedor (relación inversa, sin servicios de `proveedores`), alertas calculadas en el servicio; tarjeta "stock bajo" del inicio solo para el Administrador; menú "Stock" | CU-06; RF-25, RF-26; RN-10; DEC-30, DEC-82; R-7, R-8, R-9; S-2, S-9 | CP-37 |
+| 6. Cierre de H3 | Pruebas integrales (pago en efectivo o su anulación y cierre de caja al mismo tiempo, como CP-88), recorrido manual en localhost, revisión, 07 y 08 al día y Pull Request | Todos los de H3 | Todos los de H3; RM nuevo |
+
+El ingreso al contado pasa a la etapa 4 porque registra su pago con el servicio de CU-07 (DEC-81). Un contado se anula anulando primero su pago (etapa 4) y después el ingreso (etapa 3).
+
 El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo.
 
 ### Criterio de aceptación de cada hito
