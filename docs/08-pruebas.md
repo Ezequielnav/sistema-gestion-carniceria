@@ -92,12 +92,16 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 |---|---|---|---|---|
 | CP-30 | Ingreso de mercadería | RN-08, RF-23, RI-07 | El stock sube la cantidad ingresada | Confirmado |
 | CP-31 | Ingreso con precio de compra | RI-12 | Se guarda el precio en el detalle del ingreso | Confirmado |
-| CP-32 | Ingreso que genera deuda con el proveedor | RN-08, RF-30 | El saldo del proveedor aumenta (calculado, no guardado) | Confirmado (modalidad: PR-18) |
+| CP-32 | Ingreso que genera deuda con el proveedor | RN-08, RF-30 | Un ingreso `A_CREDITO` aumenta el saldo del proveedor (calculado como ingresos menos pagos, no guardado); uno `CONTADO` no deja saldo | Decidido (DEC-81, supuesto) |
 | CP-33 | Pago a proveedor menor o igual a la deuda | RF-31, RF-32 | El saldo baja | Confirmado |
 | CP-34 | Pagos de un ingreso que superan su total | RI-08 | Se rechaza | Confirmado |
 | CP-35 | Pago a proveedor con `ingreso_id` de otro proveedor | RI-14 | Se rechaza | Confirmado |
-| CP-36 | Pago a proveedor desde caja sin disponibilidad | RN-09, RI-09, RF-33 | Advierte el máximo disponible | A confirmar (PR-17, H-06) |
-| CP-37 | Stock por debajo del mínimo | RN-10, RF-26 | La consulta muestra la alerta | Confirmado (umbral: PR-20) |
+| CP-36 | Pago a proveedor en efectivo sin disponibilidad | RN-09, RI-09, RF-33 | Si supera el efectivo esperado de la caja, se rechaza mostrando el máximo disponible; con un monto igual se acepta y genera el egreso `PAGO_PROVEEDOR` a nombre de quien registra, aunque la caja la haya abierto otro usuario | Decidido (DEC-80, supuesto) |
+| CP-90 | Medio del pago a proveedor | RF-33, RI-13 | Por transferencia se registra sin movimiento de caja y sin validar disponibilidad; con cuenta corriente u otro medio se rechaza | Decidido (DEC-80, supuesto) |
+| CP-91 | Pago a proveedor en efectivo sin caja abierta del día | RN-09 | Se rechaza si no hay caja abierta o si la abierta es de otro día | Decidido (DEC-80, supuesto) |
+| CP-92 | Ingreso al contado | RN-08, RF-30, RNF-10 | Se guardan juntos el ingreso, el stock, el pago por el total y, si es en efectivo, el egreso; si el pago se rechaza (por ejemplo, por falta de efectivo), no se guarda nada | Decidido (DEC-81, supuesto) |
+| CP-93 | Cantidades del ingreso | RF-22, RI-16 | Por `UNIDAD` se rechaza una cantidad con decimales; por `KG` se aceptan hasta 3 decimales; más de 100 kg o 100 unidades se acepta (no rige DEC-76) | Decidido (DEC-79, DEC-81, supuesto) |
+| CP-37 | Stock en o por debajo del mínimo | RN-10, RF-26 | La consulta muestra la alerta si `stock_actual <= stock_minimo` y si el stock es negativo, aunque no haya mínimo; sin mínimo y con stock no negativo, o en carne, no hay alerta. La tarjeta "stock bajo" del inicio la ve solo el Administrador | Decidido (DEC-82, supuesto) |
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08)
 
@@ -122,7 +126,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; desde la venta (`/ventas/producto/`), en H2: el producto se agrega a la venta en curso, y sin permiso la opción no aparece y el alta da 403. La cajera con permiso no modifica ni da de baja | Confirmado; automatizado (H1 y H2, etapa 4) |
 | CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador y no se edita desde la pantalla ni por su URL (DEC-33) | Confirmado |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
-| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-03, PR-22; el plus, DEC-37) |
+| CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-22; el plus, DEC-37) |
 
 ### 4.6 Reportes (CU-09)
 
@@ -161,8 +165,8 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19 |
 | RN-06 | CP-53 | RI-06 | CP-41 |
 | RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85 |
-| RN-08 | CP-30, CP-32 | RI-08 | CP-34 |
-| RN-09 | CP-36 | RI-09 | CP-36 |
+| RN-08 | CP-30, CP-32, CP-92 | RI-08 | CP-34 |
+| RN-09 | CP-36, CP-91 | RI-09 | CP-36 |
 | RN-10 | CP-37 | RI-10 | CP-04 |
 | RN-11 | CP-44 | RI-11 | CP-57, CP-58 |
 | RNF-07 | CP-51 | RI-12 | CP-15, CP-31 |
@@ -225,8 +229,7 @@ Para un proyecto individual alcanza con **GitHub Issues**, con las etiquetas `bu
 |---|---|
 | PR-12, PR-13 (crédito y vencimiento) | CP-18, CP-19, CP-44 |
 | PR-15 (excedente de pago) | CP-41 |
-| PR-17, PR-18 (pagos y deuda a proveedores) | CP-32, CP-36 |
-| PR-03, PR-22 (códigos y unicidad de productos) | CP-59 |
+| PR-22 (unicidad de productos) | CP-59 |
 | PR-37 (registro de faltantes de stock) | RF-27 no tiene prueba: mientras tanto se prueba el supuesto DEC-46 (CP-83) |
 | PR-36 (máximo por línea) | CP-87 prueba el supuesto DEC-76 (100 kg o unidades); se ajusta al responder |
 | Unión de `venta.js` y `lector.js` | No hay prueba de navegador automatizada: se verifica en los recorridos con Playwright. Agregarla implica una dependencia nueva (por ejemplo, pytest-playwright) y se decide aparte |

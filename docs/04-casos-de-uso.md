@@ -157,9 +157,9 @@ flowchart LR
 | RN-05 | La cajera solo puede crear productos si tiene permiso | CU-01, 2.2 (PDF) | Confirmado |
 | RN-06 | Los dueños solo consultan, sin modificar datos operativos | 2.2 (PDF) | Confirmado |
 | RN-07 | Si un pago de cliente supera la deuda, se sugiere registrar el excedente como anticipo | CU-04 (PDF) | Confirmado; tratamiento posterior a confirmar (PR-15) |
-| RN-08 | El ingreso de mercadería actualiza el stock y genera deuda o pago al proveedor | CU-05 (PDF) | Confirmado; modalidad a confirmar (PR-18) |
-| RN-09 | El pago a proveedor valida la disponibilidad en caja | CU-07 (PDF) | Aplicabilidad a confirmar (PR-17, H-06) |
-| RN-10 | La consulta de stock muestra alertas de stock mínimo | CU-06 (PDF) | Umbral y responsable a confirmar (PR-20) |
+| RN-08 | El ingreso de mercadería actualiza el stock y genera deuda o pago al proveedor | CU-05 (PDF) | Confirmado; modalidad decidida (DEC-81, supuesto) |
+| RN-09 | El pago a proveedor valida la disponibilidad en caja | CU-07 (PDF) | Decidido (DEC-80, supuesto): solo para pagos en efectivo |
+| RN-10 | La consulta de stock muestra alertas de stock mínimo | CU-06 (PDF) | Decidido (DEC-82, supuesto): mínimo por producto cargado por el Administrador |
 | RN-11 | Se alerta cuando un cliente tiene deuda vencida | CU-08 (PDF) | Plazo a confirmar (PR-13) |
 
 ## 5. Catálogo de casos de uso
@@ -316,8 +316,13 @@ flowchart LR
 |---|---|---|---|
 | A1 | Producto nuevo | Se crea el producto (CU-11) | PDF |
 
-**Observación del prototipo:** muestra un campo "Método de pago", que sugiere que el ingreso puede registrarse como pagado; el texto solo habla de "deuda o pago" (PR-18).
-**Pendientes:** PR-17, PR-18.
+**Observación del prototipo:** muestra un campo "Método de pago", que sugiere que el ingreso puede registrarse como pagado; el texto solo habla de "deuda o pago". Se resolvió con DEC-81.
+
+**Decisiones de diseño (DEC-78, supuestos del proyecto):**
+
+- **Condición de pago (DEC-81):** `A_CREDITO` deja como deuda el total del ingreso. `CONTADO` pide el medio de pago (efectivo o transferencia) y registra el pago por el total con las reglas de CU-07 (DEC-80), en una sola operación atómica con el ingreso: si el pago se rechaza (por ejemplo, por falta de efectivo en la caja), no se guarda el ingreso.
+- **Remito (DEC-81):** el número de remito o de factura se anota como texto libre en `observacion`.
+- **Cantidades (DEC-79):** por `UNIDAD`, enteras; por `KG`, hasta 3 decimales (DEC-48). El tope por línea de la venta (DEC-76) no se aplica al ingreso.
 
 ### CU-06 Consultar stock
 
@@ -344,7 +349,8 @@ flowchart LR
 | A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta, a confirmar: PR-25 |
 
 **Alcance:** solo productos no cárnicos.
-**Pendientes:** PR-20 (stock mínimo), PR-21 (vencimientos).
+**Stock mínimo (DEC-82, supuesto del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; un stock negativo (DEC-46) también alerta, aunque no tenga mínimo. Sin mínimo y con stock no negativo no hay alerta. La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; para la cajera queda pendiente (L9, PR-35).
+**Pendientes:** PR-21 (vencimientos), PR-25 (quién más consulta el stock).
 
 ### CU-07 Registrar pago a proveedor
 
@@ -352,7 +358,7 @@ flowchart LR
 |---|---|
 | Actor principal | Administrador |
 | Requisitos | RF-06, RF-31 a RF-33 |
-| Precondiciones | El proveedor existe y hay una deuda pendiente (o factura, a confirmar: PR-18) |
+| Precondiciones | El proveedor existe y tiene un ingreso con saldo pendiente (DEC-81) |
 | Poscondiciones | Se actualiza el estado de la deuda; si el pago sale de caja, se registra el egreso |
 | Prototipo (referencia v0, a rediseñar) | ![Registrar pago a proveedor](prototipos/CU-07-registrar-pago-proveedor.png) |
 
@@ -369,10 +375,15 @@ flowchart LR
 
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
-| A1 | El monto supera el saldo de caja | El sistema advierte el saldo máximo disponible y sugiere un monto menor | PDF; aplicable solo si el pago sale de caja (H-06) |
+| A1 | El monto de un pago en efectivo supera el efectivo esperado de la caja | El sistema rechaza el pago y muestra el máximo disponible | PDF; ajustado por DEC-80: solo en efectivo |
 | A2 | El monto supera la deuda | El sistema advierte y pide corregir | Propuesta |
 
-**Pendientes:** PR-17 (forma de pago a proveedores), PR-18 (facturas).
+**Decisiones de diseño (DEC-78, supuestos del proyecto):**
+
+- **Medios (DEC-80):** efectivo o transferencia; no se ofrece cuenta corriente (DEC-41).
+- **Efectivo (DEC-80):** exige la caja abierta del día; sin caja abierta, o si la abierta es de otro día, se rechaza. Genera en la misma operación un egreso `PAGO_PROVEEDOR` (SC-02). El Administrador puede registrarlo en la caja abierta por otro usuario; el movimiento queda a nombre de quien lo registra.
+- **Transferencia (DEC-80):** no genera movimiento de caja ni valida disponibilidad.
+- **Deuda (DEC-81):** se elige un ingreso del proveedor con saldo pendiente; el saldo del proveedor es la suma de los totales de sus ingresos menos la suma de sus pagos.
 
 ### CU-08 Gestionar cuentas corrientes
 
@@ -470,7 +481,7 @@ flowchart LR
 **Flujo normal (alta)**
 
 1. El usuario selecciona "Gestionar productos" y elige "Nuevo producto".
-2. Completa los datos del producto (nombre, categoría, precio, unidad de medida, plus interno, stock mínimo; los datos finales dependen de PR-03, PR-20, PR-21, PR-22; el plus, de DEC-37).
+2. Completa los datos del producto (nombre, categoría, precio, unidad de medida, plus interno, stock mínimo; la unidad es `UNIDAD` o `KG` (DEC-79) y el stock mínimo es opcional y por producto (DEC-82); quedan pendientes PR-21 y PR-22; el plus, de DEC-37).
 3. El sistema valida los datos y guarda el producto.
 
 **Otras operaciones:** modificar datos y dar de baja (baja lógica, para conservar el historial de ventas; propuesta).
@@ -482,7 +493,7 @@ flowchart LR
 | A1 | El plus interno ya existe | El sistema avisa junto al campo y no guarda. El nombre repetido no se bloquea: era una propuesta y no está confirmada (PR-22) |
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
 
-**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL) y la reactivación se hace desde el panel de administración. La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (PR-03). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
+**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL) y la reactivación se hace desde el panel de administración. La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
 
 ### CU-12 Gestionar clientes
 
@@ -506,7 +517,7 @@ flowchart LR
 | Poscondiciones | Proveedores actualizados |
 
 **Flujo normal (alta):** el Administrador ingresa nombre y contacto del proveedor (según el modelo del documento base) y el sistema lo guarda. También permite modificar y dar de baja.
-**Pendientes:** PR-17.
+**Pendientes:** ninguno para el pago (PR-17 cerrada por DEC-80); los datos de contacto dependen de PR-31.
 
 ### CU-14 Gestionar usuarios
 

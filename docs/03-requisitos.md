@@ -56,12 +56,12 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | A confirmar (PR-03, PR-22); plus decidido (DEC-37) |
+| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | Unidad decidida (DEC-79, supuesto): `UNIDAD` o `KG` por producto; plus decidido (DEC-37); a confirmar (PR-22) |
 | RF-22 | El Administrador debe poder registrar el ingreso de mercadería seleccionando proveedor, productos, cantidades y precio unitario | Base (CU-05) | Alta | Confirmado |
 | RF-23 | Al confirmar un ingreso de mercadería, el sistema debe actualizar el stock | Base (CU-05) | Alta | Confirmado |
 | RF-24 | Si un producto del ingreso no existe, el sistema debe permitir crearlo | Base (CU-05, A1) | Media | Confirmado |
 | RF-25 | El Administrador debe poder consultar el stock de todos los productos y filtrar por categoría y proveedor | Base (CU-06) | Alta | Confirmado |
-| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado (umbrales: PR-20) |
+| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado; umbral decidido (DEC-82, supuesto): mínimo por producto, alerta con `stock_actual <= stock_minimo` o stock negativo |
 | RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte |
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
 
@@ -70,10 +70,10 @@
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
 | RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar |
-| RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado (modalidad: PR-18) |
+| RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado; modalidad decidida (DEC-81, supuesto): `A_CREDITO` deja la deuda y `CONTADO` registra el pago en la misma operación |
 | RF-31 | El Administrador debe poder registrar pagos a proveedores con proveedor, monto, fecha, medio de pago y productos asociados | Base (2.1, CU-07) | Alta | Confirmado |
 | RF-32 | El sistema debe listar los proveedores con deudas pendientes y actualizar su saldo al registrar un pago | Base (CU-07) | Alta | Confirmado |
-| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | A confirmar (PR-17, H-06) |
+| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | Decidido (DEC-80, supuesto): solo el pago en efectivo sale de la caja abierta del día; por transferencia no toca la caja |
 | RF-34 | El sistema debe permitir gestionar pedidos a proveedores | Propuesta (H-07) | Baja | A confirmar (PR-19) |
 
 ### 2.6 Clientes y cuentas corrientes
@@ -152,7 +152,7 @@ Los requisitos "A confirmar" dependen de las brechas de [01-relevamiento.md](01-
 | Requisito | Brecha | Qué se necesita saber |
 |---|---|---|
 | RF-18, RF-40, RF-41 | PR-12, PR-13 | Límites de crédito y plazo de vencimiento |
-| RF-33, RF-34 | PR-17, PR-19 | Cómo se paga a proveedores y si los pedidos se gestionan en el sistema |
+| RF-34 | PR-19 | Si los pedidos a proveedores se gestionan en el sistema |
 | RF-03, RF-45 | PR-25 | Quién es el Administrador y qué ven los dueños |
 | RF-46 | PR-27 | Reportes automáticos o a pedido |
 

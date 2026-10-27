@@ -50,7 +50,7 @@ Estas preguntas **no repiten el relevamiento**: cubren lo que el alcance ampliad
 | Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32, PR-37 |
 | Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35, PR-36 |
 
-Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 en [09-decisiones.md](09-decisiones.md)). La columna "Documentos afectados" indica qué actualizar al responder.
+Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 para H2 y DEC-78 para H3 en [09-decisiones.md](09-decisiones.md); son supuestos del proyecto, no datos confirmados por el negocio). La columna "Documentos afectados" indica qué actualizar al responder.
 
 ### 3.1 Ventas y carne
 
@@ -58,7 +58,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 |---|---|---|---|---|
 | PR-01 | ¿Cómo se registran hoy las ventas de carne y qué se quiere registrar en el sistema (total por turno, por producto, nada)? | Define si "100% de ventas en el sistema" es posible con Kendra fuera del alcance | 02, 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-36 (DEC-35) |
 | PR-02 | ¿Qué reportes genera Kendra y se pueden exportar (formato, frecuencia)? | Posible carga manual o importación de totales | 02, 03, 06 | Pendiente |
-| PR-03 | ¿Qué productos no cárnicos se venden por peso y cuáles por unidad? | Unidad de medida en producto y stock | 05 | Pendiente |
+| PR-03 | ¿Qué productos no cárnicos se venden por peso y cuáles por unidad? | Unidad de medida en producto y stock | 05 | **Cerrada por decisión de diseño:** DEC-79 (DEC-78) |
 | PR-04 | ¿Cómo es el plus interno (formato) y cuántos productos hay aproximadamente? | Catálogo y búsqueda en la venta | 03, 05 | **Cerrada por decisión de diseño:** DEC-37 (DEC-35) |
 | PR-36 | ¿Cuál es la mayor cantidad que se vende en una sola operación de mostrador (kg de un corte, unidades de un producto)? ¿Hay ventas grandes, por ejemplo a comercios? | Límite por línea que frena errores de carga en la venta | 04, 08, 09 | Pendiente; mientras tanto rige el supuesto DEC-76 (100 kg o 100 unidades por línea) |
 
@@ -92,10 +92,10 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 
 | ID | Pregunta | Por qué importa | Documentos afectados | Estado |
 |---|---|---|---|---|
-| PR-17 | ¿Cuántos proveedores hay y cómo se les paga (efectivo, transferencia, cheque)? | Pago a proveedores y su relación con la caja | 03, 04, 05 | Pendiente |
-| PR-18 | ¿Se registran facturas o remitos de proveedores? ¿Hay pago contra entrega o a plazo? | Deuda con proveedores | 04, 05 | Pendiente |
+| PR-17 | ¿Cuántos proveedores hay y cómo se les paga (efectivo, transferencia, cheque)? | Pago a proveedores y su relación con la caja | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-80 (DEC-78) |
+| PR-18 | ¿Se registran facturas o remitos de proveedores? ¿Hay pago contra entrega o a plazo? | Deuda con proveedores | 04, 05 | **Cerrada por decisión de diseño:** DEC-81 (DEC-78) |
 | PR-19 | ¿Los pedidos a proveedores deben gestionarse en el sistema o quedan fuera? | El modelo actual tiene pedidos, los casos de uso no | 02, 04, 05 | Pendiente |
-| PR-20 | ¿Quién define el stock mínimo y es por producto? | Alertas de stock | 03, 05 | Pendiente |
+| PR-20 | ¿Quién define el stock mínimo y es por producto? | Alertas de stock | 03, 05 | **Cerrada por decisión de diseño:** DEC-82 (DEC-78) |
 | PR-21 | ¿Qué productos tienen vencimiento y se controla por lote? | Control de vencimientos (objetivo del documento) | 03, 05 | Pendiente |
 | PR-22 | ¿Quién actualiza los precios y con qué frecuencia? ¿Se guarda historial de precios? | Producto y precio | 03, 05 | Pendiente |
 | PR-37 | Cuando se vende un producto y no hay stock registrado, ¿lo anotan hoy como faltante? ¿Quieren que el sistema registre esos faltantes? | El diagrama de CU-01 del relevamiento base incluye "Detectar y registrar stock faltante" (RF-27); define si hace falta la entidad `faltante_stock` | 03, 04, 05, 08, 09 | Pendiente; mientras tanto rige el supuesto DEC-46 (aviso y stock negativo, sin registro aparte) |
@@ -138,8 +138,8 @@ Inconsistencias detectadas al revisar el documento de trabajo. Cada una indica q
 | H-03 | Los dueños son un rol pero no aparecen en el diagrama; los reportes figuran solo para el Administrador | Agregar el actor y ajustar permisos | 03, 04 |
 | H-04 | Falta un caso de uso de alta/baja/modificación de productos, clientes, proveedores y usuarios (inicio de sesión), aunque la cajera puede crear productos | Agregar casos de uso | 04 |
 | H-05 | Medios de pago: se listan cinco, el caso de uso dice "efectivo, débito, etc." y la caja solo totaliza efectivo, tarjeta y transferencia | Resuelto por DEC-41 (ex PR-08) | 03, 04, 05 |
-| H-06 | Pago a proveedor valida "disponibilidad en caja", pero un pago por transferencia no sale de la caja del turno | Definir tras PR-17 | 04 |
-| H-07 | El modelo incluye pedidos a proveedor, sin caso de uso asociado; "factura" aparece en un caso de uso sin estar modelada | Definir tras PR-18 y PR-19 | 04, 05 |
+| H-06 | Pago a proveedor valida "disponibilidad en caja", pero un pago por transferencia no sale de la caja del turno | Resuelto por DEC-80 (ex PR-17) | 04 |
+| H-07 | El modelo incluye pedidos a proveedor, sin caso de uso asociado; "factura" aparece en un caso de uso sin estar modelada | Facturas: resuelto por DEC-81 (ex PR-18), el remito o la factura se anota en `observacion`. Pedidos: definir tras PR-19 | 04, 05 |
 | H-08 | Anticipo, deuda vencida, límites y condiciones están en los casos de uso pero no en el modelo | Agregar entidades de cuenta corriente y movimientos | 04, 05 |
 | H-09 | Modelo de clases: turno duplicado en venta y caja, un único medio de pago por venta, saldo de cliente derivable, falta plus interno, categoría y unidad de medida, rol repetido en empleado y usuario, multiplicidades mal escritas | Rediseñar el modelo | 05 |
 | H-10 | Diagrama de casos de uso: flechas de extend invertidas; se escribe "include", no "includes"; "Stock actualizado" no es un caso de uso; "Crear cliente" no tiene sentido en el pago de cuenta corriente; el texto de los casos no menciona los include/extend | Rehacer el diagrama en Mermaid | 04 |

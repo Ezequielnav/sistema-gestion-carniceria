@@ -353,7 +353,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | id | int | S | |
 | venta_id | FK venta | S | |
 | producto_id | FK producto | S | |
-| cantidad | decimal | S | Decimal para productos por peso (a confirmar: PR-03) |
+| cantidad | decimal | S | Entera por `UNIDAD`, hasta 3 decimales por `KG` (DEC-48, DEC-79) |
 | precio_unitario | decimal | S | Precio al momento de la venta. PDF: `precioUnitarioVenta` |
 | subtotal | decimal | S | `cantidad * precio_unitario` |
 
@@ -375,10 +375,10 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | categoria_id | FK categoria | N | |
 | plus_interno | string | N | Código interno de la carnicería, único si existe; en envasados, su código de barras (DEC-37) |
 | precio_venta | decimal | S | PDF: `precioUnitario` |
-| unidad_medida | enum | S | `UNIDAD`, `KG` (a confirmar: PR-03) |
+| unidad_medida | enum | S | `UNIDAD`, `KG`; la elige el Administrador por producto (DEC-79, supuesto) |
 | controla_stock | boolean | S | `false` para los productos cárnicos (DEC-36) |
 | stock_actual | decimal | S | Dato guardado: se actualiza en la misma operación que la venta o el ingreso (RI-07). Solo aplica si `controla_stock = true`; puede quedar negativo si se vende sin stock suficiente (DEC-46). PDF: `StockActual` |
-| stock_minimo | decimal | N | Umbral de alerta (a confirmar: PR-20) |
+| stock_minimo | decimal | N | Umbral de alerta por producto; vacío, sin alerta. Alerta si `stock_actual <= stock_minimo` o si el stock es negativo (DEC-82, supuesto) |
 | activo | boolean | S | |
 
 El campo `fechaIngreso` del modelo base se elimina de `producto`: la fecha de cada entrada queda en `ingreso_mercaderia`.
@@ -415,8 +415,8 @@ Restricción: único (`producto_id`, `proveedor_id`).
 | proveedor_id | FK proveedor | S | |
 | usuario_id | FK usuario | S | |
 | total | decimal | S | Suma de los detalles |
-| condicion_pago | enum | S | `CONTADO`, `A_CREDITO` (a confirmar: PR-18) |
-| observacion | string | N | Por ejemplo, número de remito (a confirmar: PR-18) |
+| condicion_pago | enum | S | `CONTADO` (registra el pago por el total en la misma operación) o `A_CREDITO` (deja la deuda) (DEC-81, supuesto) |
+| observacion | string | N | Número de remito o de factura, texto libre (DEC-81) |
 
 **detalle_ingreso** (propuesta)
 
@@ -425,7 +425,7 @@ Restricción: único (`producto_id`, `proveedor_id`).
 | id | int | S | |
 | ingreso_id | FK ingreso_mercaderia | S | |
 | producto_id | FK producto | S | |
-| cantidad | decimal | S | |
+| cantidad | decimal | S | Entera por `UNIDAD`, hasta 3 decimales por `KG` (DEC-79); sin el tope de la venta (DEC-76) |
 | precio_unitario | decimal | S | |
 | fecha_vencimiento | date | N | Solo para productos con vencimiento (a confirmar: PR-21) |
 
@@ -441,7 +441,7 @@ Restricción: único (`producto_id`, `proveedor_id`).
 | medio_pago_id | FK medio_pago | S | |
 | usuario_id | FK usuario | S | |
 
-Si el pago sale de la caja, se crea además un `movimiento_caja` de tipo `EGRESO` (a confirmar: PR-17).
+Los medios válidos son efectivo y transferencia. Un pago en efectivo crea además, en la misma operación, un `movimiento_caja` `EGRESO` con concepto `PAGO_PROVEEDOR` en la caja abierta del día, a nombre de quien registra el pago; por transferencia no hay movimiento de caja (DEC-80, supuesto). CU-07 exige `ingreso_id` aunque el campo admita nulos (DEC-81).
 
 ### 4.4 Clientes y cuentas corrientes
 
@@ -595,7 +595,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | RI-06 | Un `pago_cliente` genera su `movimiento_cuenta_corriente`; si excede la deuda, el excedente se registra como `ANTICIPO` (a confirmar: PR-15) | CU-04, RN-07 |
 | RI-07 | Las ventas y los ingresos actualizan `stock_actual` solo si `producto.controla_stock = true`, dentro de la misma operación | CU-01, CU-05, RNF-10 |
 | RI-08 | La suma de pagos de un ingreso no puede superar su `total` | CU-07 (A2) |
-| RI-09 | Un pago a proveedor que sale de caja no puede superar la disponibilidad de caja (a confirmar: PR-17) | RN-09 |
+| RI-09 | Un pago a proveedor en efectivo no puede superar el efectivo esperado de la caja abierta del día (DEC-80) | RN-09 |
 | RI-10 | La diferencia de caja se calcula siempre como `monto_contado - monto_sistema`; no se guarda | CU-03 |
 | RI-11 | Las claves foráneas no permiten borrar registros referenciados; se usa baja lógica | RNF-09 |
 | RI-12 | Los precios de venta y compra se copian en el detalle al momento de la operación; cambiar el precio de un producto no altera ventas pasadas | CU-01, CU-05 |
@@ -648,8 +648,8 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 |---|---|
 | PR-02 (reportes de Kendra) | Define si se importan totales; la venta de carne ya está decidida (DEC-36) |
 | PR-12, PR-13, PR-15, PR-16 | Definen `limite_credito`, `fecha_vencimiento`, `ANTICIPO` y posibles recargos |
-| PR-18, PR-19 | Definen `condicion_pago`, remitos y si existe `pedido_proveedor` |
-| PR-20, PR-21 | Definen `stock_minimo` y `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes |
+| PR-19 | Define si existe `pedido_proveedor`. `condicion_pago` y el remito se decidieron en DEC-81 (supuesto) |
+| PR-21 | Define `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes. `stock_minimo` se decidió en DEC-82 (supuesto) |
 | PR-31 (datos de contacto) | Define si hacen falta más campos (dirección, identificación fiscal) en cliente y proveedor |
 | PR-32 (ajustes de stock) | Define si hace falta un caso de uso de ajuste de stock (conteo de inventario). Hoy un ajuste modificaría `stock_actual` directamente; conviene evaluar entonces el libro de movimientos |
 | DEC-45 (anulaciones, ex PR-30) | `venta.estado` y los datos de la anulación (DEC-67) y el concepto `ANULACION` en `movimiento_caja` (DEC-68). Aplicado en las migraciones `caja/0006` y `ventas/0003` (H2, etapa 4) |
