@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
 from django.http import Http404
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import (
@@ -13,9 +13,11 @@ from apps.catalogo.services import (
     dar_de_baja,
     listar_productos,
     modificar_producto,
+    producto_dado_de_baja,
     producto_editable,
     puede_crear,
     puede_modificar,
+    reactivar,
 )
 from apps.comun.permisos import requiere_funcion
 
@@ -82,7 +84,7 @@ def nuevo(request):
 def editar(request, pk):
     if not puede_modificar(request.user):
         raise PermissionDenied
-    # Un producto dado de baja se reactiva solo desde el panel (DEC-33).
+    # Un producto dado de baja no se edita: primero se reactiva (DEC-33, DEC-85).
     producto = _producto_editable(pk)
     form = ProductoForm(request.POST or None, initial=model_to_dict(producto, CAMPOS_EDITABLES))
     respuesta = _guardar_con(
@@ -110,3 +112,18 @@ def baja(request, pk):
         messages.success(request, f"Se dio de baja «{producto}».")
         return redirect("catalogo:productos")
     return render(request, "catalogo/producto_baja.html", {"producto": producto})
+
+
+@requiere_funcion("Productos")
+@require_POST
+def reactivar_producto(request, pk):
+    """Reactiva un producto dado de baja desde el listado de inactivos (DEC-85)."""
+    if not puede_modificar(request.user):
+        raise PermissionDenied
+    try:
+        producto = producto_dado_de_baja(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+    reactivar(request.user, producto)
+    messages.success(request, f"Se reactivó «{producto}».")
+    return redirect("catalogo:productos")

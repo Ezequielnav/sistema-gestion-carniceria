@@ -213,6 +213,13 @@ def puede_anular(usuario):
     return usuario.rol == Rol.ADMINISTRADOR
 
 
+def puede_ver_venta(usuario, venta):
+    """Detalle y ticket: el Administrador, siempre; la cajera, si la caja está abierta (DEC-84)."""
+    if usuario.rol == Rol.ADMINISTRADOR:
+        return True
+    return usuario.rol == Rol.CAJERA and venta.caja.estado == EstadoCaja.ABIERTA
+
+
 def ventas_de_la_caja_abierta():
     """Las ventas de la caja abierta, de la última a la primera (DEC-71)."""
     caja = caja_abierta()
@@ -224,6 +231,37 @@ def ventas_de_la_caja_abierta():
         .order_by("-fecha_hora", "-pk")
     )
     return caja, list(ventas)
+
+
+def cajas_para_filtrar():
+    """Cajas del filtro del historial, de la más nueva a la más vieja (DEC-86)."""
+    return Caja.objects.order_by("-fecha", "-abierta_en", "-pk")
+
+
+def historial_de_ventas(desde=None, hasta=None, turno="", caja=None, todas=False):
+    """Ventas del historial del Administrador, de la última a la primera (DEC-86).
+
+    Sin filtros ni "todas", trae las de la caja abierta si hay una; si no, todas. Las fechas
+    y el turno son los de la caja. No reemplaza a los reportes de CU-09.
+    Devuelve las ventas y la caja abierta cuando se usó como valor por defecto.
+    """
+    ventas = Venta.objects.select_related("caja", "usuario", "medio_pago").order_by(
+        "-fecha_hora", "-pk"
+    )
+    if not (desde or hasta or turno or caja or todas):
+        abierta = caja_abierta()
+        if abierta is not None:
+            return ventas.filter(caja=abierta), abierta
+        return ventas, None
+    if desde:
+        ventas = ventas.filter(caja__fecha__gte=desde)
+    if hasta:
+        ventas = ventas.filter(caja__fecha__lte=hasta)
+    if turno:
+        ventas = ventas.filter(caja__turno=turno)
+    if caja:
+        ventas = ventas.filter(caja=caja)
+    return ventas, None
 
 
 def anular_venta(usuario, venta, motivo):

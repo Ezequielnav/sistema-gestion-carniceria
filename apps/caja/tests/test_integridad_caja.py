@@ -23,7 +23,7 @@ def _rechaza(crear):
         crear()
 
 
-# CP-02, CP-79, CP-80 y CP-03 a nivel base (RN-01, RN-02, RI-01, DEC-39)
+# CP-02, CP-79, CP-80 y CP-03 a nivel base (RN-01, RN-02, RI-01, DEC-83)
 
 
 def _cerrar(caja):
@@ -36,10 +36,10 @@ def test_cp02_segunda_caja_abierta_mismo_turno_y_fecha_se_rechaza(caja, usuario)
     _rechaza(lambda: Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario))
 
 
-def test_cp80_un_turno_cerrado_no_se_reabre_el_mismo_dia(caja, usuario):
+def test_cp80_con_la_caja_cerrada_se_crea_otra_en_la_misma_fecha_y_turno(caja, usuario):
     _cerrar(caja)
 
-    _rechaza(lambda: Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario))
+    Caja.objects.create(fecha=caja.fecha, turno=caja.turno, usuario=usuario)
 
 
 def test_cp79_con_una_caja_abierta_no_se_abre_otra_de_otro_turno_ni_fecha(caja, usuario):

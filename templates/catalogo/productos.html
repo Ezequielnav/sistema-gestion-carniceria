@@ -75,6 +75,12 @@
                     {% if producto.activo %}
                       <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>
                       <a href="{% url 'catalogo:baja' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja</a>
+                    {% else %}
+                      {# DEC-85: reactivar, solo el Administrador. #}
+                      <form method="post" action="{% url 'catalogo:reactivar' producto.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Reactivar<span class="sr-only"> «{{ producto }}»</span></button>
+                      </form>
                     {% endif %}
                   </td>
                 {% endif %}

@@ -100,30 +100,30 @@ def test_sin_turno_no_se_abre(client, usuario):
     assert not Caja.objects.exists()
 
 
-# Turnos que se pueden abrir (DEC-39)
+# Turnos que se pueden abrir (DEC-83)
 
 
-def test_cp80_con_la_manana_cerrada_solo_se_ofrece_la_tarde(client, usuario):
+def test_cp80_con_la_manana_cerrada_se_ofrecen_los_dos_turnos(client, usuario):
     _cerrar(abrir_caja(usuario, Turno.MANANA))
     client.force_login(usuario)
 
     respuesta = client.get(CAJA)
-    assert _turnos(respuesta) == ["", Turno.TARDE]
+    assert _turnos(respuesta) == ["", Turno.MANANA, Turno.TARDE]
 
     respuesta = client.post(CAJA, {"turno": Turno.MANANA})
-    assert "turno" in respuesta.context["form"].errors
-    assert Caja.objects.count() == 1
+    assert respuesta.status_code == 302
+    assert Caja.objects.filter(turno=Turno.MANANA).count() == 2
 
 
-def test_con_los_dos_turnos_usados_no_se_muestra_el_formulario(client, usuario):
+def test_con_los_dos_turnos_cerrados_se_puede_abrir_otra_caja(client, usuario):
     _cerrar(abrir_caja(usuario, Turno.MANANA))
     _cerrar(abrir_caja(usuario, Turno.TARDE))
     client.force_login(usuario)
 
     respuesta = client.get(CAJA)
 
-    assert respuesta.context["form"] is None
-    assert "Ya se usaron los dos turnos de hoy." in respuesta.content.decode()
+    assert _turnos(respuesta) == ["", Turno.MANANA, Turno.TARDE]
+    assert "Ya se usaron los dos turnos de hoy." not in respuesta.content.decode()
 
 
 # Una sola caja abierta (CP-02, CP-79, DEC-39)

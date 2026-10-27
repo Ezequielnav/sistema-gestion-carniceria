@@ -29,7 +29,7 @@
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
 | RF-04 | La cajera debe poder abrir la caja de un turno (mañana o tarde); se registra fecha, turno, empleado y estado "Abierta" | Base (CU-02) | Alta | Confirmado |
-| RF-05 | El sistema no debe permitir abrir una segunda caja para un turno que ya tiene una caja abierta | Base (CU-02, A1) | Alta | Confirmado |
+| RF-05 | El sistema no debe permitir abrir una segunda caja para un turno que ya tiene una caja abierta | Base (CU-02, A1) | Alta | Confirmado; se aplica como una sola caja abierta a la vez (DEC-83) |
 | RF-06 | El sistema debe registrar los ingresos y egresos de caja diferenciados por medio de pago | Base (2.1) | Alta | Confirmado |
 | RF-07 | Al cerrar la caja, el sistema debe mostrar el resumen por medio de pago, permitir ingresar los montos contados y calcular las diferencias | Base (CU-03) | Alta | Confirmado |
 | RF-08 | Al cerrar la caja, el sistema debe generar el reporte de cierre y bloquear la caja para edición | Base (CU-03) | Alta | Confirmado |
@@ -43,20 +43,21 @@
 | RF-11 | La cajera debe poder registrar una venta buscando o escaneando productos e indicando cantidades; el sistema muestra descripción, precio unitario y subtotal acumulado | Base (CU-01) | Alta | Confirmado |
 | RF-12 | El sistema debe calcular el total de la venta | Base (CU-01) | Alta | Confirmado |
 | RF-13 | La cajera debe poder seleccionar el medio de pago de la venta. Medios mencionados: efectivo, tarjeta, transferencia, QR y cuenta corriente | Base (2.1, CU-01) | Alta | Confirmado; lista decidida (DEC-41) |
-| RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44) |
+| RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44); lo ven la cajera, si la venta es de la caja abierta, y el Administrador (DEC-84) |
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
 | RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | A confirmar (PR-12, PR-13) |
 | RF-19 | El sistema debe permitir pagar una venta con más de un medio de pago | Propuesta (H-09) | Baja | Descartado (DEC-42): un solo medio por venta |
 | RF-20 | El sistema debe registrar la venta de carne con el nivel de detalle que defina el negocio | Propuesta (H-01) | Alta | Decidido (DEC-36): por producto y por kg |
-| RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77) |
+| RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77); la cajera ve las ventas de la caja sin anular (DEC-84) |
+| RF-49 | El Administrador debe poder consultar el historial de ventas filtrando por fecha, turno y caja, y abrir el detalle y el ticket de cualquier venta | Propuesta (etapa 0b de H3) | Media | Decidido (DEC-86); no reemplaza a los reportes de CU-09 |
 
 ### 2.4 Productos y stock
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | Unidad decidida (DEC-79, supuesto): `UNIDAD` o `KG` por producto; plus decidido (DEC-37); a confirmar (PR-22) |
+| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | Unidad decidida (DEC-79, supuesto): `UNIDAD` o `KG` por producto; plus decidido (DEC-37); a confirmar (PR-22); reactivación desde `/productos/` (DEC-85) |
 | RF-22 | El Administrador debe poder registrar el ingreso de mercadería seleccionando proveedor, productos, cantidades y precio unitario | Base (CU-05) | Alta | Confirmado |
 | RF-23 | Al confirmar un ingreso de mercadería, el sistema debe actualizar el stock | Base (CU-05) | Alta | Confirmado |
 | RF-24 | Si un producto del ingreso no existe, el sistema debe permitir crearlo | Base (CU-05, A1) | Media | Confirmado |
@@ -129,7 +130,7 @@
 
 | Caso de uso | Requisitos relacionados |
 |---|---|
-| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48 |
+| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48, RF-49 |
 | CU-02 Abrir caja por turno | RF-04, RF-05, RF-10 |
 | CU-03 Cerrar caja por turno | RF-06, RF-07, RF-08, RF-09 |
 | CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38 |

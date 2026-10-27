@@ -31,6 +31,7 @@ from apps.ventas.services import (
     anular_venta,
     detalles_de_venta,
     obtener_venta,
+    puede_ver_venta,
     registrar_venta,
     resumen_del_dia,
     se_puede_anular,
@@ -39,6 +40,7 @@ from apps.ventas.services import (
 pytestmark = pytest.mark.django_db
 
 LISTA = reverse("ventas:lista")
+HISTORIAL = reverse("ventas:historial")
 
 
 def _crear(username, rol):
@@ -375,18 +377,19 @@ def test_dec68_la_anulacion_es_un_egreso_con_su_venta_y_una_sola(venta):
 # Pantallas (DEC-71, DEC-73)
 
 
-def test_dec71_el_administrador_ve_las_ventas_de_la_caja_abierta(client, admin, venta_efectivo):
+def test_dec86_el_historial_muestra_por_defecto_la_caja_abierta(client, admin, venta_efectivo):
     client.force_login(admin)
 
-    respuesta = client.get(LISTA)
+    respuesta = client.get(HISTORIAL)
 
     assert respuesta.status_code == 200
-    assert respuesta.context["ventas"] == [venta_efectivo]
+    assert list(respuesta.context["pagina"].object_list) == [venta_efectivo]
+    assert respuesta.context["caja_por_defecto"] == venta_efectivo.caja
     assert reverse("ventas:detalle", args=[venta_efectivo.pk]) in respuesta.content.decode()
 
 
-def test_sin_caja_abierta_la_lista_lo_dice(client, admin):
-    client.force_login(admin)
+def test_sin_caja_abierta_la_lista_lo_dice(client, usuario):
+    client.force_login(usuario)
 
     assert "No hay una caja abierta." in client.get(LISTA).content.decode()
 
@@ -431,18 +434,95 @@ def test_un_error_del_servicio_se_muestra_en_el_detalle(client, usuario, admin, 
     assert "no alcanza" in respuesta.content.decode()
 
 
-@pytest.mark.parametrize("quien", ["cajera", "duenio"])
-def test_cajera_y_duenios_no_entran_a_la_anulacion(client, quien, usuario, duenio, venta_efectivo):
-    client.force_login(usuario if quien == "cajera" else duenio)
+def test_los_duenios_no_entran_a_las_ventas(client, duenio, venta_efectivo):
+    client.force_login(duenio)
 
     assert client.get(LISTA).status_code == 403
+    assert client.get(HISTORIAL).status_code == 403
     assert client.get(reverse("ventas:detalle", args=[venta_efectivo.pk])).status_code == 403
+    assert client.get(reverse("ventas:ticket", args=[venta_efectivo.pk])).status_code == 403
     respuesta = client.post(
         reverse("ventas:anular", args=[venta_efectivo.pk]), {"motivo": "Error de carga"}
     )
     assert respuesta.status_code == 403
     venta_efectivo.refresh_from_db()
     assert venta_efectivo.estado == EstadoVenta.CONFIRMADA
+
+
+# CP-95: la cajera ve las ventas de la caja sin anular (DEC-84)
+
+
+def test_cp95_la_cajera_ve_lista_detalle_y_ticket_sin_anular(client, usuario, venta_efectivo):
+    client.force_login(usuario)
+    detalle = reverse("ventas:detalle", args=[venta_efectivo.pk])
+
+    lista = client.get(LISTA)
+    assert lista.status_code == 200
+    assert lista.context["ventas"] == [venta_efectivo]
+    contenido = client.get(detalle).content.decode()
+    assert "Ver ticket" in contenido
+    assert "Anular venta" not in contenido
+    assert client.get(reverse("ventas:ticket", args=[venta_efectivo.pk])).status_code == 200
+
+
+def test_cp95_la_cajera_no_anula_aunque_mande_el_formulario(client, usuario, venta_efectivo):
+    client.force_login(usuario)
+
+    respuesta = client.post(
+        reverse("ventas:anular", args=[venta_efectivo.pk]), {"motivo": "Error de carga"}
+    )
+
+    assert respuesta.status_code == 403
+    venta_efectivo.refresh_from_db()
+    assert venta_efectivo.estado == EstadoVenta.CONFIRMADA
+
+
+def test_cp95_el_menu_muestra_ventas_de_la_caja_a_la_cajera(client, usuario):
+    client.force_login(usuario)
+
+    contenido = client.get(reverse("inicio")).content.decode()
+    assert "Ventas de la caja" in contenido
+    assert HISTORIAL not in contenido
+    assert client.get(HISTORIAL).status_code == 403
+
+
+# CP-96: ticket y detalle de una caja cerrada, solo el Administrador (DEC-84, L4)
+
+
+def test_cp96_con_la_caja_cerrada_la_cajera_no_ve_ticket_ni_detalle(
+    client, usuario, caja_hoy, venta_efectivo
+):
+    cerrar_caja(usuario, {m.pk: e for m, e in resumen_de_cierre(caja_hoy)})
+    client.force_login(usuario)
+
+    assert client.get(reverse("ventas:ticket", args=[venta_efectivo.pk])).status_code == 403
+    assert client.get(reverse("ventas:detalle", args=[venta_efectivo.pk])).status_code == 403
+
+
+def test_cp96_el_administrador_ve_el_ticket_de_una_caja_cerrada(
+    client, usuario, admin, caja_hoy, venta_efectivo
+):
+    cerrar_caja(usuario, {m.pk: e for m, e in resumen_de_cierre(caja_hoy)})
+    client.force_login(admin)
+
+    respuesta = client.get(reverse("ventas:ticket", args=[venta_efectivo.pk]))
+
+    assert respuesta.status_code == 200
+    contenido = respuesta.content.decode()
+    assert "Volver a la venta" in contenido
+    assert reverse("ventas:nueva") not in contenido
+
+
+def test_cp96_puede_ver_venta_por_rol(usuario, admin, duenio, caja_hoy, venta_efectivo):
+    assert puede_ver_venta(usuario, venta_efectivo)
+    assert puede_ver_venta(admin, venta_efectivo)
+    assert not puede_ver_venta(duenio, venta_efectivo)
+
+    cerrar_caja(usuario, {m.pk: e for m, e in resumen_de_cierre(caja_hoy)})
+    venta_efectivo.refresh_from_db()
+
+    assert not puede_ver_venta(usuario, venta_efectivo)
+    assert puede_ver_venta(admin, venta_efectivo)
 
 
 def test_sin_sesion_la_anulacion_lleva_al_ingreso(client, venta_efectivo):

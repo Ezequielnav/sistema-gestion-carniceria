@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.http import Http404
 from django.shortcuts import redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.caja.forms import AbrirCajaForm, CierreForm, EgresoForm
@@ -45,9 +44,9 @@ def caja(request):
     """CU-02: estado de la caja y, si no hay ninguna abierta, el formulario de apertura."""
     _solo_cajera(request)
     abierta = caja_abierta()
-    libres = turnos_libres(timezone.localdate())
+    libres = turnos_libres()
     form = None
-    if abierta is None and libres:
+    if abierta is None:
         form = AbrirCajaForm(request.POST or None, turnos=libres)
         if request.method == "POST" and form.is_valid():
             try:

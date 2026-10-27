@@ -118,3 +118,17 @@ def dar_de_baja(usuario, producto):
     producto.activo = False
     producto.save(update_fields=["activo", "actualizado_en"])
     return producto
+
+
+def producto_dado_de_baja(pk):
+    """Producto inactivo, para reactivarlo (DEC-85). Producto.DoesNotExist si no lo es."""
+    return Producto.objects.get(pk=pk, activo=False)
+
+
+def reactivar(usuario, producto):
+    """Vuelve a activar un producto dado de baja, sin condición de stock (DEC-85)."""
+    if not puede_modificar(usuario):
+        raise PermissionDenied("Solo el administrador puede reactivar productos.")
+    producto.activo = True
+    producto.save(update_fields=["activo", "actualizado_en"])
+    return producto

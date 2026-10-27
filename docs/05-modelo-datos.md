@@ -552,7 +552,7 @@ Solo se incorporan si el negocio lo confirma.
 | `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
 | `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`) |
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
-| `caja` | `UNIQUE (fecha, turno)` y un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01, DEC-39: `caja_unica_por_fecha_turno` y `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
+| `caja` | Un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01: `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02). `UNIQUE (fecha, turno)` (`caja_unica_por_fecha_turno`) se quitó en la migración `caja/0007` (DEC-83); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
 | `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto`; `CHECK (concepto <> 'ANULACION' OR tipo = 'EGRESO')` y `UNIQUE (venta_id)` si `concepto = 'ANULACION'` (DEC-68) |
 | `venta` y `detalle_venta` | `CHECK` de `estado`; `CHECK` de que `anulada_en`, `anulada_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADA'` (DEC-67); `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
@@ -587,7 +587,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 
 | ID | Regla | Origen |
 |---|---|---|
-| RI-01 | Una sola caja por fecha y turno, y una sola caja `ABIERTA` a la vez (RN-01, DEC-39) | CU-02 |
+| RI-01 | Una sola caja `ABIERTA` a la vez; puede haber varias cajas por fecha y turno, y una cerrada no se reabre (RN-01, DEC-83) | CU-02 |
 | RI-02 | No se pueden agregar ni modificar ventas ni movimientos de una caja `CERRADA` (RN-03) | CU-03, RNF-09 |
 | RI-03 | `venta.monto_total` es igual a la suma de los `subtotal` de sus detalles | CU-01 |
 | RI-04 | Toda venta con un medio de pago que ingresa a caja genera un `movimiento_caja` de tipo `INGRESO` en la misma operación | RN-04, RNF-10 |
@@ -653,7 +653,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | PR-31 (datos de contacto) | Define si hacen falta más campos (dirección, identificación fiscal) en cliente y proveedor |
 | PR-32 (ajustes de stock) | Define si hace falta un caso de uso de ajuste de stock (conteo de inventario). Hoy un ajuste modificaría `stock_actual` directamente; conviene evaluar entonces el libro de movimientos |
 | DEC-45 (anulaciones, ex PR-30) | `venta.estado` y los datos de la anulación (DEC-67) y el concepto `ANULACION` en `movimiento_caja` (DEC-68). Aplicado en las migraciones `caja/0006` y `ventas/0003` (H2, etapa 4) |
-| DEC-39 (una caja abierta a la vez, ex PR-06) | RI-01 pasa a: una caja por (`fecha`, `turno`) y una sola caja `ABIERTA` en total. Aplicado en la migración `caja/0004` (H2, etapa 1) |
+| DEC-39 (una caja abierta a la vez, ex PR-06), reemplazada por DEC-83 | RI-01 pasó a: una caja por (`fecha`, `turno`) y una sola caja `ABIERTA` en total (migración `caja/0004`, H2, etapa 1). Con DEC-83 queda solo una caja `ABIERTA` en total: `caja/0007` quita `UNIQUE (fecha, turno)` |
 | DEC-46 (stock insuficiente) y PR-37 | Se acepta `stock_actual` negativo en productos con control de stock. Si PR-37 confirma que los faltantes se registran, se agrega `faltante_stock` (sección 6) |
 
 ## 12. Mantenimiento

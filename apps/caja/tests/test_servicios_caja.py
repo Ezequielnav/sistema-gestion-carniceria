@@ -99,18 +99,19 @@ def test_una_caja_abierta_de_otro_dia_impide_abrir_hoy(caja, usuario):
     assert caja.fecha.strftime("%d/%m/%Y") in _mensajes(error)
 
 
-# CP-80 (DEC-39)
+# CP-80 (DEC-83)
 
 
-def test_cp80_un_turno_cerrado_no_se_reabre_el_mismo_dia(usuario):
-    _cerrar(abrir_caja(usuario, Turno.MANANA))
+def test_cp80_con_la_caja_del_turno_cerrada_se_abre_otra_en_el_mismo_turno(usuario):
+    primera = abrir_caja(usuario, Turno.MANANA)
+    _cerrar(primera)
 
-    with pytest.raises(ValidationError) as error:
-        abrir_caja(usuario, Turno.MANANA)
+    segunda = abrir_caja(usuario, Turno.MANANA)
 
-    assert error.value.message_dict == {
-        "turno": ["El turno mañana ya tuvo una caja hoy y no se reabre."]
-    }
+    assert segunda.pk != primera.pk
+    primera.refresh_from_db()
+    assert primera.estado == EstadoCaja.CERRADA  # la cerrada no se reabre
+    assert Caja.objects.filter(fecha=segunda.fecha, turno=Turno.MANANA).count() == 2
 
 
 def test_cp80_con_la_manana_cerrada_se_abre_la_tarde(usuario):
@@ -119,15 +120,15 @@ def test_cp80_con_la_manana_cerrada_se_abre_la_tarde(usuario):
     assert abrir_caja(usuario, Turno.TARDE).turno == Turno.TARDE
 
 
-def test_turnos_libres_del_dia(usuario):
-    hoy = timezone.localdate()
-    assert turnos_libres(hoy) == [Turno.MANANA, Turno.TARDE]
+def test_turnos_libres_los_dos_si_no_hay_caja_abierta(usuario):
+    assert turnos_libres() == [Turno.MANANA, Turno.TARDE]
 
-    _cerrar(abrir_caja(usuario, Turno.MANANA))
-    assert turnos_libres(hoy) == [Turno.TARDE]
+    caja = abrir_caja(usuario, Turno.MANANA)
+    assert turnos_libres() == []
 
+    _cerrar(caja)
     _cerrar(abrir_caja(usuario, Turno.TARDE))
-    assert turnos_libres(hoy) == []
+    assert turnos_libres() == [Turno.MANANA, Turno.TARDE]
 
 
 # Apertura simultánea (RI-01): la base decide y el mensaje es el mismo
@@ -158,21 +159,6 @@ def test_si_la_caja_que_choco_ya_no_esta_abierta_el_mensaje_no_falla(usuario):
         abrir_caja(usuario, Turno.TARDE)
 
     assert _mensajes(error) == "Ya hay una caja abierta. Hay que cerrarla antes de abrir otra."
-    assert Caja.objects.count() == 1
-
-
-def test_turno_usado_a_la_vez_recibe_el_mensaje_claro(usuario):
-    _cerrar(abrir_caja(usuario, Turno.MANANA))
-
-    with (
-        mock.patch("apps.caja.services.turnos_libres", return_value=list(Turno)),
-        pytest.raises(ValidationError) as error,
-    ):
-        abrir_caja(usuario, Turno.MANANA)
-
-    assert error.value.message_dict == {
-        "turno": ["El turno mañana ya tuvo una caja hoy y no se reabre."]
-    }
     assert Caja.objects.count() == 1
 
 

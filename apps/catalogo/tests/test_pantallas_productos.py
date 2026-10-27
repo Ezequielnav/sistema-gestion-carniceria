@@ -230,3 +230,44 @@ def test_el_formulario_no_tiene_stock_actual(client, admin):
 
     assert "stock_actual" not in client.get(NUEVO).context["form"].fields
     assert Producto.objects.get(plus_interno="700").stock_actual == 0
+
+
+# CP-97: reactivar un producto dado de baja (DEC-85)
+
+
+def test_cp97_el_admin_reactiva_desde_el_listado_de_inactivos(client, admin, producto):
+    producto.activo = False
+    producto.stock_actual = Decimal("-3")  # sin condición de stock
+    producto.save()
+    client.force_login(admin)
+
+    listado = client.get(reverse("catalogo:productos"), {"inactivos": "1"}).content.decode()
+    assert reverse("catalogo:reactivar", args=[producto.pk]) in listado
+
+    respuesta = client.post(reverse("catalogo:reactivar", args=[producto.pk]))
+
+    assert respuesta.status_code == 302
+    producto.refresh_from_db()
+    assert producto.activo
+    assert producto.stock_actual == Decimal("-3")
+
+
+def test_cp97_reactivar_solo_por_post_y_solo_dados_de_baja(client, admin, producto):
+    client.force_login(admin)
+    url = reverse("catalogo:reactivar", args=[producto.pk])
+
+    assert client.get(url).status_code == 405
+    assert client.post(url).status_code == 404  # el producto está activo
+
+
+@pytest.mark.parametrize("quien", ["cajera_alta", "cajera", "duenio"])
+def test_cp97_solo_el_administrador_reactiva(client, request, quien, producto):
+    producto.activo = False
+    producto.save()
+    client.force_login(request.getfixturevalue(quien))
+
+    respuesta = client.post(reverse("catalogo:reactivar", args=[producto.pk]))
+
+    assert respuesta.status_code == 403
+    producto.refresh_from_db()
+    assert not producto.activo

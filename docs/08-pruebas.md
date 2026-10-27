@@ -59,7 +59,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-06 | Cierre con diferencia distinta de cero | RF-09 | El sistema avisa y no cierra sin un motivo; con motivo, cierra sin autorización | Decidido (DEC-40); automatizado (H2, etapa 3) |
 | CP-07 | Abrir caja con fondo de cambio | RF-10 | Se registra el monto inicial (opcional, en efectivo; vacío se guarda 0) y se suma al efectivo esperado del cierre | Decidido (DEC-38); apertura automatizada (H2, etapa 1) y suma en el cierre (H2, etapa 3) |
 | CP-79 | Abrir la caja de la tarde con la de la mañana abierta | RI-01, CU-02 A3 | Se rechaza y pide cerrar la caja abierta | Decidido (DEC-39); automatizado (H2, etapa 1) |
-| CP-80 | Reabrir un turno ya cerrado el mismo día | RI-01, CU-02 A4 | Se rechaza; el formulario solo ofrece los turnos que se pueden abrir | Decidido (DEC-39); automatizado (H2, etapa 1) |
+| CP-80 | Abrir otra caja en un turno que ya tuvo una caja cerrada el mismo día | RI-01, CU-02 A4 | Se abre una caja nueva en ese turno y la cerrada sigue cerrada; sin caja abierta, el formulario ofrece los dos turnos | Decidido (DEC-83, reemplaza a DEC-39); automatizado (etapa 0b de H3) |
 | CP-81 | Egreso "otro" (gasto o retiro en efectivo) | SC-02, RI-13 | Se registra con concepto `OTRO` y descripción obligatoria, y se resta del efectivo esperado; sin descripción se rechaza | Decidido (DEC-43); automatizado (H2, etapa 3) |
 
 ### 4.2 Ventas (CU-01)
@@ -73,7 +73,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-14 | Falla a mitad de la venta (error forzado al registrar el movimiento de caja) | RNF-10 | No quedan venta, detalle, movimiento ni cambio de stock | Confirmado; automatizado (H2, etapa 2) |
 | CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado; automatizado (H2, etapa 2) |
 | CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado; automatizado (H2, etapa 2) |
-| CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro; también si la caja abierta es de otro día | Decidido (DEC-39, DEC-50); automatizado (H2, etapa 2) |
+| CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro; también si la caja abierta es de otro día | Decidido (DEC-83, DEC-50); automatizado (H2, etapa 2) |
 | CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | A confirmar (PR-12, PR-13) |
 | CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | A confirmar (PR-12) |
 | CP-20 | Venta de carne | RF-20, RF-16 | Se registra por producto y por kg con su precio; el stock no cambia | Decidido (DEC-36); automatizado (H2, etapa 2) |
@@ -85,6 +85,10 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-87 | Cantidad por línea sobre el máximo | DEC-76 (supuesto, PR-36), DF-01 | Más de 100 kg o 100 unidades en una línea (ya agrupada) se rechaza; 100 se acepta. En la pantalla, Enter en el peso vuelve al buscador y una lectura del lector en el peso se busca como producto sin tocar la cantidad (DEC-75, prueba de `static/js/lector.js` con `node --test`) | Supuesto (DEC-76); automatizado (H2, etapa 4) |
 | CP-88 | Venta o anulación y cierre de caja al mismo tiempo | RNF-10, RI-02 | Si el cierre toma la caja primero, la venta o la anulación espera y se rechaza (no queda venta en la caja cerrada ni se anula); si la venta va primero, el cierre espera y la incluye en lo esperado | Automatizado (H2, etapa 4; transacciones reales con dos hilos) |
 | CP-89 | Cierre con ventas anuladas | DEC-77 | La pantalla de cierre y el reporte listan cada venta anulada con hora, número, motivo, monto y medio; sin anulaciones no aparece la lista | Automatizado (H2, etapa 4) |
+| CP-94 | Venta en curso guardada en la pestaña | DEC-47 | Las líneas y el medio se guardan en `sessionStorage` por usuario y se recuperan al volver; una venta vacía, confirmada o vaciada no deja nada; datos dañados se ignoran y, sin almacenamiento, la venta funciona igual. Al salir con productos cargados el navegador avisa (se verifica en los recorridos) | Decidido (DEC-47); automatizado con `node --test` (etapa 0b de H3) |
+| CP-95 | Ventas de la caja para la cajera | DEC-84, DEC-45 | La cajera ve la lista, el detalle y el ticket de las ventas de la caja abierta, sin "Anular venta" ni acceso al historial; si manda la anulación igual, recibe 403 y la venta no cambia. Los dueños reciben 403 | Decidido (DEC-84); automatizado (etapa 0b de H3) |
+| CP-96 | Ticket y detalle de una venta de caja cerrada | DEC-84, L4 | La cajera recibe 403; el Administrador lo ve, sin "Nueva venta" | Decidido (DEC-84); automatizado (etapa 0b de H3) |
+| CP-98 | Historial de ventas del Administrador | DEC-86, RF-49 | Por defecto trae la caja abierta (sin caja abierta, todas); filtra por fecha desde y hasta, turno y caja (también varias cajas del mismo turno); "Todas las ventas" ignora la caja abierta; desde posterior a hasta muestra el error; pagina de a 25 y conserva los filtros; abre detalle y ticket de cajas cerradas, pero no anula sus ventas. La cajera y los dueños reciben 403 | Decidido (DEC-86); automatizado (etapa 0b de H3) |
 
 ### 4.3 Stock, ingresos y proveedores (CU-05, CU-06, CU-07)
 
@@ -125,6 +129,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-55 | Cajera sin permiso crea un producto | RN-05 | Se rechaza en el servicio, en la pantalla y por URL directa (403) | Confirmado |
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; desde la venta (`/ventas/producto/`), en H2: el producto se agrega a la venta en curso, y sin permiso la opción no aparece y el alta da 403. La cajera con permiso no modifica ni da de baja | Confirmado; automatizado (H1 y H2, etapa 4) |
 | CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador y no se edita desde la pantalla ni por su URL (DEC-33) | Confirmado |
+| CP-97 | Reactivar un producto dado de baja | DEC-85, CU-11 | El Administrador lo reactiva con "Reactivar" en el listado de dados de baja (POST), sin condición de stock; la cajera y los dueños reciben 403 y un producto activo da 404 | Decidido (DEC-85); automatizado (etapa 0b de H3) |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
 | CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-22; el plus, DEC-37) |
 
@@ -146,7 +151,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-71 | Montos negativos y cantidades menores o iguales a cero en la base | RI-16 | La base los rechaza (restricción `CHECK`, no solo validación de formulario) |
 | CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores, no quedan migraciones sin aplicar y los modelos no tienen cambios sin migrar |
 | CP-73 | Las 17 entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo: las 17 tablas (y ninguna condicional), auditoría en todas, cada `CHECK` y `UNIQUE` de la sección 7.4 (los parciales, con su condición), los índices de la sección 7.5 y toda clave foránea con `PROTECT` |
-| CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: ventas del turno (solo para anular, DEC-71), productos, stock, clientes, proveedores, reportes y usuarios; cajera: ventas y caja, y productos solo con permiso de alta; dueños: solo reportes |
+| CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: historial de ventas (con anulación, DEC-71, DEC-86), productos, stock, clientes, proveedores, reportes y usuarios; cajera: ventas, ventas de la caja (sin anular, DEC-84) y caja, y productos solo con permiso de alta; dueños: solo reportes |
 | CP-75 | Abrir el inicio sin sesión | RF-01, RNF-06 (H1.4) | Redirige al ingreso |
 | CP-76 | Resumen del día en el inicio | H1.4 (DEC-30) | Ventas de hoy (cantidad y monto, sin las de otros días ni las anuladas, DEC-73), cajas abiertas, productos activos y últimas ventas salen de la base |
 | CP-77 | Cargar los datos de ejemplo dos veces | H1.3 | No se duplica nada; hay un usuario por rol, una cajera con permiso de alta y otra sin él, y cada uno entra con la contraseña de `DEMO_PASSWORD`; fuera de desarrollo o sin esa variable el comando no corre |

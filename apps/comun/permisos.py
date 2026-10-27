@@ -12,17 +12,22 @@ from django.core.exceptions import PermissionDenied
 from apps.comun.menu import FUNCIONES, puede_usar
 
 
-def requiere_funcion(nombre):
-    """Vista solo para usuarios con sesión cuyo rol tiene la función `nombre` (403 si no)."""
-    funcion = next((f for f in FUNCIONES if f.nombre == nombre), None)
-    if funcion is None:
-        raise ValueError(f"requiere_funcion: no existe la función {nombre!r} en apps/comun/menu.py")
+def requiere_funcion(*nombres):
+    """Vista solo para usuarios con sesión cuyo rol tiene alguna de las funciones (403 si no)."""
+    funciones = []
+    for nombre in nombres:
+        funcion = next((f for f in FUNCIONES if f.nombre == nombre), None)
+        if funcion is None:
+            raise ValueError(
+                f"requiere_funcion: no existe la función {nombre!r} en apps/comun/menu.py"
+            )
+        funciones.append(funcion)
 
     def decorador(vista):
         @wraps(vista)
         @login_required
         def envoltura(request, *args, **kwargs):
-            if not puede_usar(request.user, funcion):
+            if not any(puede_usar(request.user, funcion) for funcion in funciones):
                 raise PermissionDenied
             return vista(request, *args, **kwargs)
 

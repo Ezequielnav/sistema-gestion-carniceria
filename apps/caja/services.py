@@ -39,10 +39,9 @@ def puede_abrir(usuario):
     return usuario.rol == Rol.CAJERA
 
 
-def turnos_libres(fecha):
-    """Turnos que todavía no tuvieron caja en la fecha: un turno no se reabre (DEC-39)."""
-    usados = set(Caja.objects.filter(fecha=fecha).values_list("turno", flat=True))
-    return [turno for turno in Turno if turno not in usados]
+def turnos_libres():
+    """Turnos que se pueden abrir: los dos si no hay caja abierta (DEC-83)."""
+    return list(Turno) if caja_abierta() is None else []
 
 
 def _describir(caja):
@@ -58,15 +57,8 @@ def _ya_abierta(caja):
     )
 
 
-def _turno_usado(turno):
-    return ValidationError(
-        {"turno": f"El turno {Turno(turno).label.lower()} ya tuvo una caja hoy y no se reabre."},
-        code="turno_usado",
-    )
-
-
 def abrir_caja(usuario, turno, monto_inicial=None):
-    """Abre la caja de hoy en el turno elegido (RF-04, RF-05, RN-01, DEC-38, DEC-39).
+    """Abre la caja de hoy en el turno elegido (RF-04, RF-05, RN-01, DEC-38, DEC-83).
 
     El fondo de cambio vacío se guarda 0 (DEC-38).
     """
@@ -83,8 +75,6 @@ def abrir_caja(usuario, turno, monto_inicial=None):
     abierta = caja_abierta()
     if abierta is not None:
         raise _ya_abierta(abierta)
-    if turno not in turnos_libres(caja.fecha):
-        raise _turno_usado(turno)
     try:
         # Savepoint: si otra cajera abrió a la vez, la base lo rechaza (RI-01).
         with transaction.atomic():
@@ -92,8 +82,6 @@ def abrir_caja(usuario, turno, monto_inicial=None):
     except IntegrityError as error:
         if "caja_una_sola_abierta" in str(error):
             raise _ya_abierta(caja_abierta()) from error
-        if "caja_unica_por_fecha_turno" in str(error):
-            raise _turno_usado(turno) from error
         raise
     return caja
 

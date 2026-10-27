@@ -20,6 +20,21 @@
   // producto id -> { producto, cantidad (texto) }
   const lineas = new Map();
 
+  // La venta en curso se guarda en la pestaña, por usuario, hasta confirmarla o vaciarla.
+  let almacen = null;
+  try {
+    almacen = window.sessionStorage;
+  } catch {
+    // Sin almacenamiento: la venta no se guarda.
+  }
+  const guardada = almacen
+    ? crearVentaGuardada(almacen, `venta-en-curso-${raiz.dataset.usuario}`)
+    : { guardar() {}, leer: () => null, borrar() {} };
+
+  function persistir() {
+    guardada.guardar([...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })), medio.value);
+  }
+
   function subtotal(linea) {
     const cantidad = Number(linea.cantidad.replace(",", "."));
     if (!(cantidad > 0)) return 0;
@@ -117,6 +132,7 @@
       fila.querySelector(".subtotal").textContent = `$ ${pesos.format(valor)}`;
     }
     total.textContent = `$ ${pesos.format(suma)}`;
+    persistir();
   }
 
   // DEC-52 y DEC-53: por unidad suma 1 (o entra con 1); por kg deja el cursor en el peso.
@@ -250,9 +266,19 @@
     });
   }
 
+  medio.addEventListener("change", persistir);
+
+  // Avisa antes de salir de la pantalla con productos cargados.
+  window.addEventListener("beforeunload", (evento) => {
+    if (lineas.size === 0) return;
+    evento.preventDefault();
+    evento.returnValue = "";
+  });
+
   document.getElementById("cancelar").addEventListener("click", () => {
     // A5: no se registra nada.
     lineas.clear();
+    guardada.borrar();
     medio.value = "";
     resultados.classList.add("hidden");
     mostrarErrores([]);
@@ -279,6 +305,8 @@
       });
       const datos = await respuesta.json();
       if (datos.ticket) {
+        lineas.clear();
+        guardada.borrar();
         window.location.assign(datos.ticket);
         return;
       }
@@ -289,5 +317,10 @@
     confirmar.disabled = false;
   });
 
+  const previa = guardada.leer();
+  if (previa) {
+    for (const linea of previa.lineas) lineas.set(linea.producto.id, linea);
+    if ([...medio.options].some((opcion) => opcion.value === previa.medio)) medio.value = previa.medio;
+  }
   dibujar();
 })();

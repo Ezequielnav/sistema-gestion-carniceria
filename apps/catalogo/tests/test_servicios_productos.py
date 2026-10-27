@@ -14,7 +14,9 @@ from apps.catalogo.services import (
     dar_de_baja,
     listar_productos,
     modificar_producto,
+    producto_dado_de_baja,
     producto_editable,
+    reactivar,
 )
 from apps.ventas.models import DetalleVenta
 
@@ -209,3 +211,34 @@ def test_dec33_un_producto_dado_de_baja_no_es_editable(admin, producto):
 
     with pytest.raises(Producto.DoesNotExist):
         producto_editable(producto.pk)
+
+
+# CP-97 (DEC-85)
+
+
+def test_cp97_reactivar_vuelve_a_activar_sin_condicion_de_stock(admin, producto):
+    dar_de_baja(admin, producto)
+    producto.stock_actual = Decimal("0")
+    producto.save()
+
+    reactivar(admin, producto_dado_de_baja(producto.pk))
+
+    producto.refresh_from_db()
+    assert producto.activo
+    assert producto_editable(producto.pk) == producto
+
+
+@pytest.mark.parametrize("quien", ["cajera_alta", "duenio"])
+def test_cp97_solo_el_administrador_reactiva(request, quien, admin, producto):
+    dar_de_baja(admin, producto)
+
+    with pytest.raises(PermissionDenied):
+        reactivar(request.getfixturevalue(quien), producto)
+
+    producto.refresh_from_db()
+    assert not producto.activo
+
+
+def test_producto_dado_de_baja_no_encuentra_uno_activo(producto):
+    with pytest.raises(Producto.DoesNotExist):
+        producto_dado_de_baja(producto.pk)

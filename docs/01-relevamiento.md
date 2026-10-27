@@ -67,7 +67,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | ID | Pregunta | Por qué importa | Documentos afectados | Estado |
 |---|---|---|---|---|
 | PR-05 | ¿Se abre la caja con un monto inicial (fondo de cambio)? | Apertura de caja (CU de abrir caja) | 04, 05 | **Cerrada por decisión de diseño:** DEC-38 (DEC-35) |
-| PR-06 | ¿Cuántas cajas y turnos hay, y en qué horarios? | Modelo de turno y caja | 04, 05 | **Cerrada por decisión de diseño:** DEC-39 (DEC-35) |
+| PR-06 | ¿Cuántas cajas y turnos hay, y en qué horarios? | Modelo de turno y caja | 04, 05 | **Cerrada por decisión de diseño:** DEC-39 (DEC-35), reemplazada por DEC-83 |
 | PR-07 | Si al cerrar hay diferencia entre lo contado y lo registrado, ¿qué se hace y quién lo autoriza? | Cierre de caja | 03, 04 | **Cerrada por decisión de diseño:** DEC-40 (DEC-35) |
 | PR-08 | ¿Qué medios de pago se aceptan exactamente (débito, crédito, QR, de qué billeteras, transferencia)? | Documento actual lista cinco medios pero no distingue débito/crédito | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-41 (DEC-35) |
 | PR-09 | ¿Se necesita pagar una misma venta con más de un medio? | Una venta con un solo medio de pago o varios | 04, 05 | **Cerrada por decisión de diseño:** DEC-42 (DEC-35) |

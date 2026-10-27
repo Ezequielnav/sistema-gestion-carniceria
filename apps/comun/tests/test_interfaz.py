@@ -41,7 +41,7 @@ def test_rn05_el_menu_usa_la_misma_regla_que_el_alta_de_productos(con_permiso):
 
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     assert _nombres(_usuario(Rol.ADMINISTRADOR)) == [
-        "Ventas del turno",  # DEC-71: solo para anular (DEC-45)
+        "Historial de ventas",  # DEC-86; anular, DEC-45
         "Productos",
         "Stock",
         "Clientes",
@@ -51,13 +51,15 @@ def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     ]
 
 
-def test_cp74_cajera_ve_ventas_y_caja():
-    assert _nombres(_usuario(Rol.CAJERA)) == ["Ventas", "Caja"]
+def test_cp74_cajera_ve_ventas_ventas_de_la_caja_y_caja():
+    # DEC-84: "Ventas de la caja" sin anular.
+    assert _nombres(_usuario(Rol.CAJERA)) == ["Ventas", "Ventas de la caja", "Caja"]
 
 
 def test_cp74_cajera_con_permiso_ve_productos():
     assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=True)) == [
         "Ventas",
+        "Ventas de la caja",
         "Caja",
         "Productos",
     ]

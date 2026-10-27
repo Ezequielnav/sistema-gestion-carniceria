@@ -33,12 +33,12 @@ En paralelo a la etapa A corre la **validación puntual con el responsable del n
 | H2 | Caja y ventas | CU-02, CU-03, CU-01, SC-02 | RF-04 a RF-17, RF-48 | PR-01, PR-04 a PR-10, PR-24 y PR-30 cerradas por DEC-36 a DEC-46 (DEC-35). Quedan abiertas con un supuesto vigente: PR-36 (DEC-76) y PR-37 (DEC-46) | Grande |
 | H3 | Stock y proveedores | CU-06, CU-13, CU-05, CU-07 | RF-22 a RF-26, RF-29 a RF-33 | PR-03, PR-17, PR-18 y PR-20 cerradas por DEC-79 a DEC-82 (DEC-78), como supuestos del proyecto | Grande |
 | H4 | Clientes y cuentas corrientes | CU-12, CU-04, CU-08, SC-01, SC-03 | RF-18, RF-35 a RF-41 | PR-12, PR-13, PR-14, PR-15, PR-16 | Grande |
-| H5 | Reportes y usuarios | CU-09, CU-14 | RF-03, RF-42 a RF-46 | PR-25, PR-26, PR-27 | Mediano |
+| H5 | Reportes y usuarios | CU-09, CU-14 | RF-03, RF-42 a RF-46 | PR-25, PR-26, PR-27. CU-09 agrupa por fecha y turno varias cajas del mismo turno (DEC-83). El "Historial de ventas" (DEC-86) no lo reemplaza: CU-09 son los reportes con totales | Mediano |
 | H6 | Integración, pruebas integrales, correcciones, manual de usuario y capacitación breve (RNF-04) | Todos | Todos | PR-23, PR-29 | Mediano |
 
 **Prototipo funcional (M-01):** H1 más H2. Es el primer punto de entrega que muestra un sistema usable (caja y ventas).
 
-**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso: etapas 1 a 3 implementadas (las dos primeras entraron con el PR #11, la tercera con el PR #12); de la etapa 4 están implementados el alta durante la venta y la anulación (spec `docs/specs/SPEC-CU-01-etapa4.md`), y RM-03 y RM-04 están registrados en 08. Los defectos DF-01 y DF-02 que encontró RM-04 están corregidos (DEC-75 y DEC-76, este último un supuesto pendiente de PR-36) y la prueba de venta y cierre al mismo tiempo está automatizada (CP-88). La revisión de H2 está hecha y sus hallazgos bloqueantes y menores, corregidos (DEC-77, PR-37). **H2 está lista para el Pull Request de cierre.** H3 a H6 pendientes; en la etapa 0 de H3 se cerraron sus preguntas como supuestos del proyecto (DEC-78 a DEC-82).
+**Estado:** H1 terminado y mergeado en `main` (PR #6) con sus tres etapas (modelo y pruebas; datos de ejemplo, interfaz e inicio de sesión; CU-11 y GitHub Actions). H2 en curso: etapas 1 a 3 implementadas (las dos primeras entraron con el PR #11, la tercera con el PR #12); de la etapa 4 están implementados el alta durante la venta y la anulación (spec `docs/specs/SPEC-CU-01-etapa4.md`), y RM-03 y RM-04 están registrados en 08. Los defectos DF-01 y DF-02 que encontró RM-04 están corregidos (DEC-75 y DEC-76, este último un supuesto pendiente de PR-36) y la prueba de venta y cierre al mismo tiempo está automatizada (CP-88). La revisión de H2 está hecha y sus hallazgos bloqueantes y menores, corregidos (DEC-77, PR-37). **H2 está lista para el Pull Request de cierre.** H3 a H6 pendientes; en la etapa 0 de H3 se cerraron sus preguntas como supuestos del proyecto (DEC-78 a DEC-82) y en la etapa 0b se ajustaron caja, venta, ventas de la caja, historial de ventas y reactivación de productos (DEC-83 a DEC-86). El historial de ventas del Administrador es una consulta operativa y no reemplaza a CU-09 (H5).
 
 ### Etapas de H2
 
@@ -58,9 +58,9 @@ Surgieron en la revisión de H2. No bloquean el cierre del hito; se retoman en e
 | L1 | Anular una venta a cuenta corriente no debe crear un egreso de caja, sino revertir el movimiento de la cuenta corriente. Hoy esa venta no existe (DEC-41 no ofrece el medio cuenta corriente), así que no hace falta un rechazo; se resuelve al construir SC-03 | H4 |
 | L2 | La unión de `venta.js` y `lector.js` no tiene prueba de navegador automatizada (08, sección 9) | A decidir: requiere una dependencia nueva |
 | L3 | Archivos estáticos versionados al publicar (06, sección 9) | Con el despliegue |
-| L4 | Cualquier cajera abre el ticket de cualquier venta por su número | Al responder PR-25 y PR-26 |
+| L4 | Cualquier cajera abre el ticket de cualquier venta por su número | Resuelto en la etapa 0b de H3 (DEC-84): la cajera solo ve ventas de la caja abierta |
 | L5 | El formulario de la venta no limita la cantidad de líneas | H6 o antes, si hace falta |
-| L6 | "Ventas del turno" no tiene paginación | Si un turno tiene muchas ventas |
+| L6 | "Ventas de la caja" (cajera) no tiene paginación; el "Historial de ventas" del Administrador sí (DEC-86) | Si una caja tiene muchas ventas |
 | L7 | `catalogo/productos.html` a 375 px, por el mismo patrón que DF-02 (08, sección 9) | RM-09 (H6) o antes |
 | L8 | DEC-70 usa el control de stock actual del producto; con un registro de movimientos de stock, guardar en el detalle si controlaba stock al vender | Si se agrega `movimiento_stock` |
 | L9 | Qué ve la cajera en el inicio (PR-35) | Al responder PR-35 |
