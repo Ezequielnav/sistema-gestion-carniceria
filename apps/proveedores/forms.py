@@ -1,8 +1,11 @@
+import json
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 from django.forms.models import fields_for_model
 
 from apps.proveedores.models import Proveedor
-from apps.proveedores.services import CAMPOS_EDITABLES
+from apps.proveedores.services import CAMPOS_EDITABLES, proveedores_para_ingreso
 
 ETIQUETAS = {"nombre": "Nombre", "telefono": "Teléfono", "email": "Email"}
 AYUDAS = {
@@ -23,3 +26,50 @@ class ProveedorForm(forms.Form):
         )
         for campo in self.fields.values():
             campo.widget.attrs["class"] = "campo"
+
+
+class ConfirmarIngresoForm(forms.Form):
+    """Proveedor, remito y líneas del ingreso (CU-05). Las reglas las aplica el servicio."""
+
+    proveedor = forms.ModelChoiceField(
+        queryset=Proveedor.objects.none(),
+        label="Proveedor",
+        empty_label="Elegí un proveedor",
+        error_messages={
+            "required": "Elegí un proveedor.",
+            "invalid_choice": "Ese proveedor no está activo.",
+        },
+    )
+    observacion = forms.CharField(label="Remito u observación", max_length=255, required=False)
+    # Lista en JSON: [{"producto": id, "cantidad": "1.250", "precio": "1800.00"}].
+    lineas = forms.CharField(widget=forms.HiddenInput, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["proveedor"].queryset = proveedores_para_ingreso()
+        for campo in self.fields.values():
+            campo.widget.attrs["class"] = "campo"
+
+    def clean_lineas(self):
+        try:
+            datos = json.loads(self.cleaned_data["lineas"] or "[]")
+            lineas = [
+                (int(d["producto"]), Decimal(str(d["cantidad"])), Decimal(str(d["precio"])))
+                for d in datos
+            ]
+        except (ValueError, TypeError, KeyError, InvalidOperation) as error:
+            raise forms.ValidationError("La lista de productos no es válida.") from error
+        if not all(c.is_finite() and p.is_finite() for _, c, p in lineas):
+            raise forms.ValidationError("La lista de productos no es válida.")
+        return lineas
+
+
+class AnularIngresoForm(forms.Form):
+    """Motivo de la anulación (DEC-92). Las reglas las aplica el servicio."""
+
+    motivo = forms.CharField(
+        label="Motivo de la anulación",
+        max_length=255,
+        widget=forms.Textarea(attrs={"rows": 3, "class": "campo"}),
+        error_messages={"required": "Escribí por qué se anula el ingreso."},
+    )

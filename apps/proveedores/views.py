@@ -2,21 +2,34 @@ from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.urls import reverse
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from apps.catalogo.forms import ProductoForm
+from apps.catalogo.services import crear_producto
+from apps.comun.models import subtotal
 from apps.comun.permisos import requiere_funcion
-from apps.proveedores.forms import ProveedorForm
+from apps.proveedores.forms import AnularIngresoForm, ConfirmarIngresoForm, ProveedorForm
 from apps.proveedores.services import (
     CAMPOS_EDITABLES,
+    anular_ingreso,
+    buscar_para_ingreso,
     crear_proveedor,
     dar_de_baja,
+    impedimento_para_anular,
+    ingreso_con_detalles,
+    listar_ingresos,
     listar_proveedores,
     modificar_proveedor,
+    precios_sugeridos,
     proveedor_dado_de_baja,
     proveedor_editable,
     reactivar,
+    registrar_ingreso,
+    saldo_de_ingreso,
+    saldos_de_proveedores,
 )
 
 # DEC-95: de a 25, como productos y el historial de ventas.
@@ -37,6 +50,10 @@ def proveedores(request):
     incluir_inactivos = request.GET.get("inactivos") == "1"
     lista = listar_proveedores(request.user, texto, incluir_inactivos)
     pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
+    # Saldo derivado: ingresos vigentes menos pagos (DEC-81), no se guarda.
+    saldos = saldos_de_proveedores(pagina.object_list)
+    for proveedor in pagina.object_list:
+        proveedor.saldo = saldos[proveedor.pk]
     return render(
         request,
         "proveedores/proveedores.html",
@@ -111,3 +128,133 @@ def reactivar_proveedor(request, pk):
     reactivar(request.user, proveedor)
     messages.success(request, f"Se reactivó «{proveedor}».")
     return redirect("proveedores:proveedores")
+
+
+# CU-05 Registrar ingreso de mercadería, a crédito (DEC-81, DEC-89 a DEC-94)
+
+
+def _producto(producto, precio):
+    return {
+        "id": producto.pk,
+        "nombre": producto.nombre,
+        "plus": producto.plus_interno or "",
+        "unidad": producto.unidad_medida,
+        "controla_stock": producto.controla_stock,
+        # DEC-90: último precio de compra con ese proveedor, si hay.
+        "precio": "" if precio is None else str(precio),
+    }
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def ingresos(request):
+    lista = listar_ingresos(request.user)
+    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
+    for ingreso in pagina.object_list:
+        ingreso.saldo = saldo_de_ingreso(ingreso)
+    return render(request, "proveedores/ingresos.html", {"pagina": pagina})
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def ingreso_nuevo(request):
+    return render(
+        request,
+        "proveedores/ingreso_nuevo.html",
+        {"form": ConfirmarIngresoForm(), "form_producto": ProductoForm(prefix="producto")},
+    )
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def ingreso_buscar(request):
+    """Productos activos con el precio sugerido para el proveedor elegido (DEC-90).
+
+    Con `ids`, solo los precios de esos productos: al cambiar de proveedor se completan otra vez.
+    """
+    proveedor = request.GET.get("proveedor", "")
+    proveedor = int(proveedor) if proveedor.isdigit() else None
+    if "ids" in request.GET:
+        ids = [int(i) for i in request.GET["ids"].split(",") if i.isdigit()]
+        precios = precios_sugeridos(request.user, proveedor, ids)
+        return JsonResponse({"precios": {str(k): str(v) for k, v in precios.items()}})
+    resultados, hay_mas = buscar_para_ingreso(request.user, request.GET.get("q", ""), proveedor)
+    return JsonResponse(
+        {"resultados": [_producto(p, precio) for p, precio in resultados], "hay_mas": hay_mas}
+    )
+
+
+@requiere_funcion("Proveedores")
+@require_POST
+def ingreso_producto(request):
+    """CU-05 A1: alta de producto desde el ingreso con el servicio de CU-11 (DEC-91)."""
+    form = ProductoForm(request.POST, prefix="producto")
+    if form.is_valid():
+        try:
+            producto = crear_producto(request.user, form.cleaned_data)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            return JsonResponse({"producto": _producto(producto, None)})
+    errores = {campo: list(lista) for campo, lista in form.errors.items()}
+    return JsonResponse({"errores": errores}, status=400)
+
+
+@requiere_funcion("Proveedores")
+@require_POST
+def ingreso_confirmar(request):
+    form = ConfirmarIngresoForm(request.POST)
+    if not form.is_valid():
+        errores = [e for lista in form.errors.values() for e in lista]
+        return JsonResponse({"errores": errores}, status=400)
+    datos = form.cleaned_data
+    try:
+        ingreso = registrar_ingreso(
+            request.user, datos["proveedor"], datos["lineas"], datos["observacion"]
+        )
+    except ValidationError as error:
+        return JsonResponse({"errores": error.messages}, status=400)
+    messages.success(request, f"Se registró el ingreso N.º {ingreso.pk}.")
+    return JsonResponse({"detalle": reverse("proveedores:ingreso", args=[ingreso.pk])})
+
+
+def _detalle_ingreso(request, ingreso, form, status=200):
+    detalles = list(ingreso.detalleingreso_set.select_related("producto").order_by("pk"))
+    for detalle in detalles:
+        detalle.subtotal = subtotal(detalle.cantidad, detalle.precio_unitario)
+    return render(
+        request,
+        "proveedores/ingreso_detalle.html",
+        {
+            "ingreso": ingreso,
+            "detalles": detalles,
+            "saldo": saldo_de_ingreso(ingreso),
+            "impedimento": impedimento_para_anular(ingreso),
+            "form": form,
+        },
+        status=status,
+    )
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def ingreso(request, pk):
+    ingreso = _buscar(lambda clave: ingreso_con_detalles(request.user, clave), pk)
+    return _detalle_ingreso(request, ingreso, AnularIngresoForm())
+
+
+@requiere_funcion("Proveedores")
+@require_POST
+def ingreso_anular(request, pk):
+    """Anula con motivo, solo sin pagos vigentes; devuelve el stock (DEC-92)."""
+    ingreso = _buscar(lambda clave: ingreso_con_detalles(request.user, clave), pk)
+    form = AnularIngresoForm(request.POST)
+    if form.is_valid():
+        try:
+            anular_ingreso(request.user, ingreso, form.cleaned_data["motivo"])
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, f"Se anuló el ingreso N.º {ingreso.pk}.")
+            return redirect("proveedores:ingreso", pk=ingreso.pk)
+    return _detalle_ingreso(request, ingreso, form, status=400)

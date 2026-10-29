@@ -75,6 +75,8 @@ CHECKS = {
     "ingreso_mercaderia": [
         "ingreso_mercaderia_total_no_negativo",
         "ingreso_mercaderia_condicion_pago_valida",
+        "ingreso_mercaderia_estado_valido",
+        "ingreso_mercaderia_datos_de_anulacion_segun_estado",
     ],
     "detalle_ingreso": ["detalle_ingreso_cantidad_positiva", "detalle_ingreso_precio_no_negativo"],
     "pago_proveedor": ["pago_proveedor_monto_positivo"],

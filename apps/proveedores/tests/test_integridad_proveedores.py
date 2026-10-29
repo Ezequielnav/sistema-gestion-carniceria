@@ -95,3 +95,15 @@ def test_el_renglon_de_ingreso_se_lee_con_el_formato_de_cantidad(categoria):
     asado = Producto(nombre="Asado", categoria=categoria, unidad_medida=UnidadMedida.KG)
 
     assert str(DetalleIngreso(producto=asado, cantidad=Decimal("1.250"))) == "Asado x 1,250 kg"
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {"estado": "OTRO"},
+        {"estado": "ANULADO"},  # sin fecha, usuario ni motivo
+        {"estado": "VIGENTE", "motivo_anulacion": "No corresponde"},
+    ],
+)
+def test_dec92_la_base_exige_los_datos_de_anulacion_segun_el_estado(ingreso, datos):
+    _rechaza(lambda: IngresoMercaderia.objects.filter(pk=ingreso.pk).update(**datos))

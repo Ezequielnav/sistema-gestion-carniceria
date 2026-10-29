@@ -442,6 +442,10 @@ Restricción: único (`producto_id`, `proveedor_id`).
 | total | decimal | S | Suma de los detalles |
 | condicion_pago | enum | S | `CONTADO` (registra el pago por el total en la misma operación) o `A_CREDITO` (deja la deuda) (DEC-81, supuesto) |
 | observacion | string | N | Número de remito o de factura, texto libre (DEC-81) |
+| estado | enum | S | `VIGENTE` o `ANULADO`; un ingreso no se edita, se anula (DEC-92) |
+| anulado_en | datetime | N | Solo si está anulado |
+| anulado_por_usuario_id | FK usuario | N | Solo si está anulado |
+| motivo_anulacion | text | N | Obligatorio si está anulado |
 
 **detalle_ingreso** (propuesta)
 
@@ -586,7 +590,7 @@ Solo se incorporan si el negocio lo confirma.
 | `movimiento_cuenta_corriente` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `tipo` y referencias; `CHECK` de `tipo`; `UNIQUE (venta_id)` si no es nulo (una venta genera como mucho un movimiento, diagrama 3.1) |
 | `pago_cliente`, `pago_proveedor` | `CHECK (monto > 0)`, coherente con `movimiento_caja` y `movimiento_cuenta_corriente`, que exigen monto positivo (más estricto que RI-16) |
 | `producto_proveedor` | `UNIQUE (producto_id, proveedor_id)`; `CHECK (precio_compra >= 0)` |
-| `ingreso_mercaderia` y `detalle_ingreso` | `CHECK (total >= 0)`; `CHECK` de `condicion_pago`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)` |
+| `ingreso_mercaderia` y `detalle_ingreso` | `CHECK (total >= 0)`; `CHECK` de `condicion_pago` y de `estado`; `CHECK` de que `anulado_en`, `anulado_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADO'` (DEC-92, como DEC-67); `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)` |
 | `cliente` | `CHECK (limite_credito >= 0)` |
 | `ajuste_stock` | `CHECK (stock_nuevo >= 0)`; `CHECK` de `motivo` |
 | Todas las claves foráneas | `ON DELETE RESTRICT` |

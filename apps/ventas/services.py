@@ -1,6 +1,6 @@
 """Reglas de CU-01 Registrar venta, y el resumen del inicio."""
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -16,6 +16,7 @@ from apps.caja.services import (
 )
 from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
+from apps.comun.models import subtotal
 from apps.usuarios.models import Rol
 from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
 
@@ -64,11 +65,6 @@ def buscar_para_venta(texto, limite=LIMITE_BUSQUEDA):
     exacto = Producto.objects.filter(activo=True, plus_interno=texto).first() if texto else None
     productos = list(buscar_productos(texto)[: limite + 1])
     return exacto, productos[:limite], len(productos) > limite
-
-
-def subtotal(cantidad, precio):
-    """Cantidad × precio, redondeado a centavos con la mitad hacia arriba (DEC-49)."""
-    return (cantidad * precio).quantize(CENTAVO, rounding=ROUND_HALF_UP)
 
 
 def _validar_cantidad(producto, cantidad):

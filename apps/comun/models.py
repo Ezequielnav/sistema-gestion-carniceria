@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -23,6 +23,14 @@ NO_NEGATIVO = MinValueValidator(Decimal("0"), message="No puede ser negativo.")
 def validar_positivo(valor):
     if valor is not None and valor <= 0:
         raise ValidationError("Debe ser mayor a 0.", code="positivo")
+
+
+def subtotal(cantidad, precio):
+    """Cantidad × precio, redondeado a centavos con la mitad hacia arriba (DEC-49).
+
+    Lo usan la venta y el ingreso de mercadería (DEC-89).
+    """
+    return (cantidad * precio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def campo_monto(**kwargs):

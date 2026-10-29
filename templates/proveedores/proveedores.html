@@ -14,6 +14,7 @@
       Nuevo proveedor
     </a>
   </div>
+  {% include "proveedores/_pestanas.html" with activa="proveedores" %}
 
   <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
     <label for="buscar" class="sr-only">Buscar proveedor</label>
@@ -35,6 +36,7 @@
               <th scope="col" class="px-5 py-3 font-medium">Proveedor</th>
               <th scope="col" class="px-5 py-3 font-medium">Teléfono</th>
               <th scope="col" class="px-5 py-3 font-medium">Email</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Saldo</th>
               <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
@@ -49,6 +51,8 @@
                 </td>
                 <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ proveedor.telefono|default:"—" }}</td>
                 <td class="px-5 py-3 text-gray-600">{{ proveedor.email|default:"—" }}</td>
+                {# Ingresos vigentes menos pagos (DEC-81); no se guarda. #}
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ proveedor.saldo|floatformat:"2g" }}</td>
                 <td class="px-5 py-3 text-right whitespace-nowrap">
                   {% if proveedor.activo %}
                     <a href="{% url 'proveedores:editar' proveedor.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ proveedor }}»</span></a>

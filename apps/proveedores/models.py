@@ -7,6 +7,13 @@ from apps.catalogo.models import formatear_cantidad
 from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_monto, validar_positivo
 
 
+class EstadoIngreso(models.TextChoices):
+    """Un ingreso no se edita: el Administrador lo anula con motivo (DEC-92)."""
+
+    VIGENTE = "VIGENTE", "Vigente"
+    ANULADO = "ANULADO", "Anulado"
+
+
 class CondicionPago(models.TextChoices):
     """A crédito deja la deuda; contado registra el pago (DEC-81, supuesto; ex PR-18)."""
 
@@ -61,8 +68,20 @@ class IngresoMercaderia(ModeloBase):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     total = campo_monto(validators=[NO_NEGATIVO])
     condicion_pago = models.CharField(max_length=9, choices=CondicionPago.choices)
-    # Por ejemplo, número de remito (a confirmar: PR-18).
+    # Número de remito o de factura, y su fecha si hace falta (DEC-81, DEC-93).
     observacion = models.CharField(max_length=255, blank=True)
+    estado = models.CharField(
+        max_length=7, choices=EstadoIngreso.choices, default=EstadoIngreso.VIGENTE
+    )
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por_usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ingresos_anulados",
+    )
+    motivo_anulacion = models.TextField(blank=True)
 
     class Meta:
         db_table = "ingreso_mercaderia"
@@ -75,6 +94,28 @@ class IngresoMercaderia(ModeloBase):
             models.CheckConstraint(
                 condition=Q(condicion_pago__in=CondicionPago.values),
                 name="ingreso_mercaderia_condicion_pago_valida",
+            ),
+            models.CheckConstraint(
+                condition=Q(estado__in=EstadoIngreso.values),
+                name="ingreso_mercaderia_estado_valido",
+            ),
+            # Los datos de la anulación están si y solo si el ingreso está anulado (DEC-92).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        estado=EstadoIngreso.ANULADO,
+                        anulado_en__isnull=False,
+                        anulado_por_usuario__isnull=False,
+                    )
+                    & ~Q(motivo_anulacion="")
+                )
+                | Q(
+                    estado=EstadoIngreso.VIGENTE,
+                    anulado_en__isnull=True,
+                    anulado_por_usuario__isnull=True,
+                    motivo_anulacion="",
+                ),
+                name="ingreso_mercaderia_datos_de_anulacion_segun_estado",
             ),
         ]
 
