@@ -77,6 +77,17 @@ def test_cp74_el_inicio_muestra_solo_el_menu_del_rol(client):
     assert "Cobrar en el mostrador" not in respuesta.content.decode()
 
 
+@pytest.mark.parametrize("rol", [Rol.ADMINISTRADOR, Rol.CAJERA, Rol.DUENIO])
+def test_el_titulo_del_menu_lateral_es_menu_para_todos_los_roles(client, rol):
+    client.force_login(_usuario(rol))
+
+    contenido = client.get(reverse("inicio")).content.decode()
+
+    assert '<nav aria-label="Menú"' in contenido
+    assert ">Menú</p>" in contenido
+    assert "Funciones" not in contenido
+
+
 # CP-75
 
 
