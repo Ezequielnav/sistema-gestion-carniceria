@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.catalogo.models import formatear_cantidad
 from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_monto, validar_positivo
 
 
@@ -110,7 +111,7 @@ class DetalleIngreso(ModeloBase):
         ]
 
     def __str__(self):
-        return f"{self.producto} x {self.cantidad}"
+        return f"{self.producto} x {formatear_cantidad(self.cantidad, self.producto.unidad_medida)}"
 
 
 class PagoProveedor(ModeloBase):

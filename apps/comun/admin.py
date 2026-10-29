@@ -46,6 +46,8 @@ class RenglonesSoloLecturaInline(TabularInline):
 
     extra = 0
     can_delete = False
+    # El título repetiría el producto y la cantidad de la fila (Unfold).
+    show_title = False
     show_change_link = False
 
     def has_add_permission(self, request, obj=None):

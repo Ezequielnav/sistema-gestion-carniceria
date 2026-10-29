@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static cantidades %}<!doctype html>
 <html lang="es-AR">
 <head>
   <meta charset="utf-8">
@@ -43,7 +43,7 @@
           {% for detalle in detalles %}
             <tr>
               <td class="py-1 pr-2">{{ detalle.producto.nombre }}</td>
-              <td class="cifras py-1 text-right whitespace-nowrap">{{ detalle.cantidad|floatformat:"-3" }}{% if detalle.producto.unidad_medida == "KG" %} kg{% endif %}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
               <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
               <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>

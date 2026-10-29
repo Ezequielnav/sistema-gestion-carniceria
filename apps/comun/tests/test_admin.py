@@ -228,7 +228,10 @@ def test_los_productos_se_listan_dentro_de_la_venta_sin_poder_editarlos(
     assert not renglones.has_add_permission
     assert not renglones.has_change_permission
     assert not renglones.has_delete_permission
-    assert "Aceite 1 l" in respuesta.content.decode()
+    contenido = respuesta.content.decode()
+    assert "Aceite 1 l" in contenido
+    # Sin título por renglón: repetiría producto y cantidad.
+    assert "Aceite 1 l x " not in contenido
 
 
 def test_los_productos_se_listan_dentro_del_ingreso(cliente_admin, ingreso, producto):

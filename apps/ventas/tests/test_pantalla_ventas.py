@@ -152,6 +152,7 @@ def test_venta_completa_desde_la_pantalla_y_ticket(
         "Nueva venta",
     ]:
         assert texto in contenido, texto
+    assert "2,000" not in contenido
 
 
 def test_dec47_los_precios_del_navegador_se_ignoran(client, usuario, caja_hoy, efectivo, aceite):

@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
+from django.utils.formats import number_format
 
 from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_monto
 
@@ -10,6 +11,16 @@ class UnidadMedida(models.TextChoices):
 
     UNIDAD = "UNIDAD", "Unidad"
     KG = "KG", "Kilogramo"
+
+
+def formatear_cantidad(cantidad, unidad):
+    """Cantidad para mostrar: por unidad, entera ("2"); por kg, con 3 decimales y coma ("1,250 kg").
+
+    Única forma de mostrar cantidades de venta e ingreso (panel, detalle y ticket).
+    """
+    if unidad == UnidadMedida.KG:
+        return f"{number_format(cantidad, 3, use_l10n=True)} kg"
+    return number_format(cantidad, 0, use_l10n=True)
 
 
 class Categoria(ModeloBase):

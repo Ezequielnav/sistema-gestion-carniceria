@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load cantidades %}
 
 {% block titulo %}Venta N.º {{ venta.pk }}{% endblock %}
 {% block encabezado %}{% if puede_anular %}Historial de ventas{% else %}Ventas de la caja{% endif %}{% endblock %}
@@ -27,7 +28,7 @@
           {% for detalle in detalles %}
             <tr>
               <td class="px-5 py-3">{{ detalle.producto.nombre }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|floatformat:"-3" }}{% if detalle.producto.unidad_medida == "KG" %} kg{% endif %}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
               <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
               <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>
