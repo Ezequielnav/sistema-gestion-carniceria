@@ -17,6 +17,7 @@ from apps.caja.models import (
     TipoMovimientoCaja,
     Turno,
 )
+from apps.comun.models import pesos
 from apps.usuarios.models import Rol
 
 
@@ -205,6 +206,103 @@ def registrar_egreso_otro(usuario, monto, descripcion):
             usuario=usuario,
             descripcion=descripcion,
         )
+
+
+# SC-02 para CU-07: pago a proveedor en efectivo y su reversa (R-3, DEC-80, DEC-92).
+# Comparten con el egreso "otro" y el cierre el bloqueo de la caja y el control de efectivo.
+
+
+def transferencia():
+    """El medio de pago por transferencia (DEC-104)."""
+    medio = MedioPago.objects.filter(es_transferencia=True).first()
+    if medio is None:
+        raise ValidationError(
+            "No hay un medio de pago marcado como transferencia. Hay que marcarlo en el panel.",
+            code="sin_transferencia",
+        )
+    return medio
+
+
+def efectivo_disponible():
+    """Efectivo esperado de la caja abierta, o None sin caja abierta (para mostrarlo)."""
+    caja = caja_abierta()
+    medio = MedioPago.objects.filter(es_efectivo=True).first()
+    if caja is None or medio is None:
+        return None
+    return _esperado(caja, medio)
+
+
+def registrar_egreso_pago_proveedor(pago, usuario):
+    """Egreso `PAGO_PROVEEDOR` de un pago en efectivo, en la caja abierta del día (DEC-80).
+
+    Va dentro de la transacción del pago. A nombre de quien registra, aunque la caja la haya
+    abierto otro usuario. Sin caja abierta, con la de otro día (como DEC-50) o sin efectivo
+    suficiente (CU-07 A1, como DEC-57), se rechaza mostrando el máximo.
+    """
+    caja = _caja_abierta_bloqueada()
+    if es_de_otro_dia(caja):
+        raise ValidationError(
+            "La caja abierta es de otro día: hay que cerrarla y abrir la de hoy para pagar en "
+            "efectivo.",
+            code="caja_de_otro_dia",
+        )
+    medio = efectivo()
+    disponible = _esperado(caja, medio)
+    if pago.monto > disponible:
+        raise ValidationError(
+            {
+                "monto": f"En la caja hay {pesos(max(disponible, Decimal('0')))} en efectivo: "
+                "ese es el máximo que se puede pagar."
+            },
+            code="sin_efectivo_suficiente",
+        )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        fecha_hora=pago.fecha_hora,
+        tipo=TipoMovimientoCaja.EGRESO,
+        monto=pago.monto,
+        medio_pago=medio,
+        concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+        pago_proveedor=pago,
+        usuario=usuario,
+    )
+
+
+def egreso_de_pago(pago):
+    """El egreso de caja de un pago en efectivo, o None si fue por transferencia."""
+    return (
+        MovimientoCaja.objects.filter(
+            pago_proveedor=pago, concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR
+        )
+        .select_related("caja")
+        .first()
+    )
+
+
+def registrar_reversa_pago_proveedor(pago, usuario, motivo):
+    """Ingreso `ANULACION_PAGO` que revierte el egreso de un pago anulado (DEC-92).
+
+    Va en la caja del egreso, que tiene que seguir abierta aunque sea de otro día (como
+    DEC-72). El egreso no se toca; un pago tiene a lo sumo una reversa (la base lo exige).
+    """
+    egreso = egreso_de_pago(pago)
+    caja = Caja.objects.select_for_update().get(pk=egreso.caja_id)
+    if caja.estado != EstadoCaja.ABIERTA:
+        raise ValidationError(
+            "La caja de este pago ya se cerró: un pago en efectivo se anula solo con su caja "
+            "abierta.",
+            code="caja_cerrada",
+        )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        tipo=TipoMovimientoCaja.INGRESO,
+        monto=egreso.monto,
+        medio_pago=egreso.medio_pago,
+        concepto=ConceptoMovimientoCaja.ANULACION_PAGO,
+        pago_proveedor=pago,
+        usuario=usuario,
+        descripcion=motivo,
+    )
 
 
 # CU-03 Cerrar caja (RF-07, RF-08, RF-09, RI-10, DEC-38, DEC-40, DEC-56)

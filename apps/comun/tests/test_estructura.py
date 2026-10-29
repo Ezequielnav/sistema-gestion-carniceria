@@ -50,7 +50,9 @@ CHECKS = {
         "movimiento_caja_concepto_valido",
         "movimiento_caja_referencia_segun_concepto",
         "movimiento_caja_anulacion_es_egreso",
+        "movimiento_caja_anulacion_pago_es_ingreso",
     ],
+    "medio_pago": ["medio_pago_efectivo_o_transferencia"],
     "venta": [
         "venta_monto_total_no_negativo",
         "venta_estado_valido",
@@ -79,7 +81,11 @@ CHECKS = {
         "ingreso_mercaderia_datos_de_anulacion_segun_estado",
     ],
     "detalle_ingreso": ["detalle_ingreso_cantidad_positiva", "detalle_ingreso_precio_no_negativo"],
-    "pago_proveedor": ["pago_proveedor_monto_positivo"],
+    "pago_proveedor": [
+        "pago_proveedor_monto_positivo",
+        "pago_proveedor_estado_valido",
+        "pago_proveedor_datos_de_anulacion_segun_estado",
+    ],
     "cliente": ["cliente_limite_credito_no_negativo"],
     "pago_cliente": ["pago_cliente_monto_positivo"],
     "movimiento_cuenta_corriente": [
@@ -93,6 +99,7 @@ CHECKS = {
 UNICOS = [
     ("caja", "caja_una_sola_abierta", ["estado"], True),
     ("medio_pago", "medio_pago_un_solo_efectivo", ["es_efectivo"], True),
+    ("medio_pago", "medio_pago_una_sola_transferencia", ["es_transferencia"], True),
     (
         "cierre_caja_detalle",
         "cierre_caja_detalle_caja_medio_unico",
@@ -100,6 +107,12 @@ UNICOS = [
         False,
     ),
     ("movimiento_caja", "movimiento_caja_una_anulacion_por_venta", ["venta_id"], True),
+    (
+        "movimiento_caja",
+        "movimiento_caja_un_movimiento_por_pago_y_concepto",
+        ["pago_proveedor_id", "concepto"],
+        True,
+    ),
     ("producto", "producto_plus_interno_unico", ["plus_interno"], True),
     ("producto_proveedor", "producto_proveedor_unico", ["producto_id", "proveedor_id"], False),
     ("movimiento_cuenta_corriente", "movimiento_cuenta_corriente_venta_unica", ["venta_id"], True),

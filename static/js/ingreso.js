@@ -1,4 +1,4 @@
-// CU-05: ingreso de mercadería a crédito. La lista vive en el navegador; el servidor valida
+// CU-05: ingreso de mercadería a crédito o al contado. La lista vive en el navegador; el servidor valida
 // y calcula todo al confirmar (DEC-79, DEC-89). El precio se completa con el último precio
 // de compra del proveedor (DEC-90) y se puede cambiar.
 (function () {
@@ -9,6 +9,10 @@
 
   const proveedor = document.getElementById("id_proveedor");
   const observacion = document.getElementById("id_observacion");
+  const condicion = document.getElementById("id_condicion_pago");
+  const medio = document.getElementById("id_medio_pago");
+  const bloqueMedio = document.getElementById("bloque-medio");
+  const tituloTotal = document.getElementById("titulo-total");
   const buscar = document.getElementById("buscar");
   const resultados = document.getElementById("resultados");
   const cuerpo = document.getElementById("lineas");
@@ -296,6 +300,15 @@
     guardar.disabled = false;
   });
 
+  // DEC-81: al contado se elige el medio y el total se paga en la misma operación.
+  function mostrarCondicion() {
+    const contado = condicion.value === "CONTADO";
+    bloqueMedio.classList.toggle("hidden", !contado);
+    tituloTotal.textContent = contado ? "Total (se paga ahora)" : "Total (deuda)";
+  }
+  condicion.addEventListener("change", mostrarCondicion);
+  mostrarCondicion();
+
   window.addEventListener("beforeunload", (evento) => {
     if (lineas.size === 0 || confirmado) return;
     evento.preventDefault();
@@ -312,6 +325,8 @@
       csrfmiddlewaretoken: csrf,
       proveedor: proveedor.value,
       observacion: observacion.value,
+      condicion_pago: condicion.value,
+      medio_pago: condicion.value === "CONTADO" ? medio.value : "",
       lineas: JSON.stringify(lista),
     });
     confirmar.disabled = true;

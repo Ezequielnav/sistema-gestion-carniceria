@@ -8,7 +8,7 @@
 {% block contenido %}
   <a href="{% url 'proveedores:ingresos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a ingresos</a>
   <h2 class="mt-2 text-2xl font-semibold tracking-tight">Nuevo ingreso de mercadería</h2>
-  <p class="mt-1 text-sm text-gray-500">A crédito: el total queda como deuda con el proveedor. La fecha es la de hoy.</p>
+  <p class="mt-1 text-sm text-gray-500">A crédito, el total queda como deuda; al contado, se registra el pago por el total en la misma operación. La fecha es la de hoy.</p>
 
   <div id="ingreso" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"
        data-buscar="{% url 'proveedores:ingreso_buscar' %}" data-confirmar="{% url 'proveedores:ingreso_confirmar' %}"
@@ -23,6 +23,15 @@
           <label for="{{ form.observacion.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.observacion.label }}</label>
           {{ form.observacion }}
           <p class="mt-1.5 text-xs text-gray-500">Número de remito o factura, y su fecha si hace falta.</p>
+        </div>
+        <div>
+          <label for="{{ form.condicion_pago.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.condicion_pago.label }}</label>
+          {{ form.condicion_pago }}
+        </div>
+        <div id="bloque-medio" class="hidden">
+          <label for="{{ form.medio_pago.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.medio_pago.label }}</label>
+          {{ form.medio_pago }}
+          <p class="mt-1.5 text-xs text-gray-500">En efectivo sale de la caja abierta de hoy; si no alcanza, no se guarda el ingreso.</p>
         </div>
         <div class="sm:col-span-2">
           <label for="buscar" class="mb-1.5 block text-sm font-medium text-gray-700">Buscar producto</label>
@@ -56,7 +65,7 @@
 
     <aside class="space-y-4 self-start rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-label="Total del ingreso">
       <div>
-        <p class="text-sm text-gray-500">Total (deuda)</p>
+        <p id="titulo-total" class="text-sm text-gray-500">Total (deuda)</p>
         <p id="total" class="cifras text-3xl font-semibold tracking-tight">$ 0,00</p>
       </div>
       <div id="errores" role="alert" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"></div>

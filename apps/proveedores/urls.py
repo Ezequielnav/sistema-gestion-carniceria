@@ -17,4 +17,8 @@ urlpatterns = [
     path("ingresos/confirmar/", views.ingreso_confirmar, name="ingreso_confirmar"),
     path("ingresos/<int:pk>/", views.ingreso, name="ingreso"),
     path("ingresos/<int:pk>/anular/", views.ingreso_anular, name="ingreso_anular"),
+    path("pagos/", views.pagos, name="pagos"),
+    path("pagos/nuevo/", views.pago_nuevo, name="pago_nuevo"),
+    path("pagos/<int:pk>/", views.pago, name="pago"),
+    path("pagos/<int:pk>/anular/", views.pago_anular, name="pago_anular"),
 ]

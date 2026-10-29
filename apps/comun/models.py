@@ -3,6 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.formats import number_format
 
 
 class ModeloBase(models.Model):
@@ -31,6 +32,11 @@ def subtotal(cantidad, precio):
     Lo usan la venta y el ingreso de mercadería (DEC-89).
     """
     return (cantidad * precio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def pesos(monto):
+    """Monto para mostrar en mensajes, como en las pantallas: "$ 10.000,00" (es-AR)."""
+    return f"$ {number_format(monto, 2, use_l10n=True, force_grouping=True)}"
 
 
 def campo_monto(**kwargs):

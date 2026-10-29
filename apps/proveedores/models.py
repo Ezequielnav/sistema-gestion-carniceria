@@ -155,6 +155,13 @@ class DetalleIngreso(ModeloBase):
         return f"{self.producto} x {formatear_cantidad(self.cantidad, self.producto.unidad_medida)}"
 
 
+class EstadoPago(models.TextChoices):
+    """Un pago no se edita: el Administrador lo anula con motivo (DEC-92)."""
+
+    VIGENTE = "VIGENTE", "Vigente"
+    ANULADO = "ANULADO", "Anulado"
+
+
 class PagoProveedor(ModeloBase):
     fecha_hora = models.DateTimeField(default=timezone.now)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
@@ -163,6 +170,16 @@ class PagoProveedor(ModeloBase):
     monto = campo_monto(validators=[validar_positivo])
     medio_pago = models.ForeignKey("caja.MedioPago", on_delete=models.PROTECT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    estado = models.CharField(max_length=7, choices=EstadoPago.choices, default=EstadoPago.VIGENTE)
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por_usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="pagos_proveedor_anulados",
+    )
+    motivo_anulacion = models.TextField(blank=True)
 
     class Meta:
         db_table = "pago_proveedor"
@@ -170,6 +187,27 @@ class PagoProveedor(ModeloBase):
         verbose_name_plural = "pagos a proveedores"
         constraints = [
             models.CheckConstraint(condition=Q(monto__gt=0), name="pago_proveedor_monto_positivo"),
+            models.CheckConstraint(
+                condition=Q(estado__in=EstadoPago.values), name="pago_proveedor_estado_valido"
+            ),
+            # Los datos de la anulación están si y solo si el pago está anulado (DEC-92).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        estado=EstadoPago.ANULADO,
+                        anulado_en__isnull=False,
+                        anulado_por_usuario__isnull=False,
+                    )
+                    & ~Q(motivo_anulacion="")
+                )
+                | Q(
+                    estado=EstadoPago.VIGENTE,
+                    anulado_en__isnull=True,
+                    anulado_por_usuario__isnull=True,
+                    motivo_anulacion="",
+                ),
+                name="pago_proveedor_datos_de_anulacion_segun_estado",
+            ),
         ]
 
     def __str__(self):

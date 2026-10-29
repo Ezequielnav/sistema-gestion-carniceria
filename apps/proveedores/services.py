@@ -12,13 +12,22 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
+from apps.caja.models import EstadoCaja
+from apps.caja.services import (
+    efectivo,
+    egreso_de_pago,
+    registrar_egreso_pago_proveedor,
+    registrar_reversa_pago_proveedor,
+    transferencia,
+)
 from apps.catalogo.models import Producto
 from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
-from apps.comun.models import subtotal
+from apps.comun.models import pesos, subtotal
 from apps.proveedores.models import (
     CondicionPago,
     DetalleIngreso,
     EstadoIngreso,
+    EstadoPago,
     IngresoMercaderia,
     PagoProveedor,
     ProductoProveedor,
@@ -100,8 +109,8 @@ def reactivar(usuario, proveedor):
     return proveedor
 
 
-# CU-05 Registrar ingreso de mercadería, a crédito (DEC-81, DEC-89 a DEC-94).
-# El contado, con su pago, llega con CU-07 (etapa 4).
+# CU-05 Registrar ingreso de mercadería (DEC-81, DEC-89 a DEC-94). El contado registra su
+# pago con el servicio de CU-07 en la misma operación.
 
 CENTAVO = Decimal("0.01")
 MOTIVO_MAXIMO = 255
@@ -153,14 +162,21 @@ def _validar_precio(producto, precio):
         raise ValidationError(f"El precio de {producto} admite hasta 2 decimales.")
 
 
-def registrar_ingreso(usuario, proveedor, lineas, observacion=""):
-    """Ingreso a crédito: en una operación, ingreso, detalles, stock y precio de compra.
+def registrar_ingreso(
+    usuario, proveedor, lineas, observacion="", condicion=CondicionPago.A_CREDITO, medio=None
+):
+    """En una operación, ingreso, detalles, stock y precio de compra; al contado, también el
+    pago por el total (DEC-81): si el pago se rechaza, no se guarda nada (CP-92).
 
     `lineas`: [(producto_id, cantidad, precio_unitario)]. La fecha es la de hoy (DEC-93);
     las cantidades siguen DEC-79 sin el tope de la venta (DEC-76); el total es la suma de
     los subtotales redondeados (DEC-89); la carne no mueve stock (DEC-94, RI-07).
     """
     _exigir_permiso(usuario)
+    if condicion not in CondicionPago.values:
+        raise ValidationError("Elegí si el ingreso es a crédito o al contado.")
+    if condicion == CondicionPago.CONTADO:
+        _validar_medio(medio)
     if proveedor is None or not proveedor.activo:
         raise ValidationError("Elegí un proveedor activo.")
     if not lineas:
@@ -183,6 +199,9 @@ def registrar_ingreso(usuario, proveedor, lineas, observacion=""):
                 validar(producto, valor)
             except ValidationError as error:
                 errores.extend(error.messages)
+    total = sum(subtotal(c, p) for _, c, p in lineas)
+    if condicion == CondicionPago.CONTADO and total <= 0:
+        errores.append("Un ingreso al contado tiene que tener un total mayor a 0.")
     if errores:
         raise ValidationError(errores)
     with transaction.atomic():
@@ -190,8 +209,8 @@ def registrar_ingreso(usuario, proveedor, lineas, observacion=""):
             fecha=timezone.localdate(),
             proveedor=proveedor,
             usuario=usuario,
-            total=sum(subtotal(c, p) for _, c, p in lineas),
-            condicion_pago=CondicionPago.A_CREDITO,
+            total=total,
+            condicion_pago=condicion,
             observacion=observacion,
         )
         for producto_id, cantidad, precio in lineas:
@@ -204,12 +223,13 @@ def registrar_ingreso(usuario, proveedor, lineas, observacion=""):
             ProductoProveedor.objects.update_or_create(
                 producto=producto, proveedor=proveedor, defaults={"precio_compra": precio}
             )
+        if condicion == CondicionPago.CONTADO:
+            registrar_pago(usuario, ingreso, total, medio)
     return ingreso
 
 
 def _pagos_vigentes(ingreso):
-    # Los pagos todavía no se anulan: llega con CU-07 (etapa 4), que filtrará por estado.
-    return PagoProveedor.objects.filter(ingreso=ingreso)
+    return PagoProveedor.objects.filter(ingreso=ingreso, estado=EstadoPago.VIGENTE)
 
 
 def saldo_de_ingreso(ingreso):
@@ -229,7 +249,9 @@ def saldo_de_proveedor(proveedor):
         or 0
     )
     pagado = (
-        PagoProveedor.objects.filter(proveedor=proveedor).aggregate(total=Sum("monto"))["total"]
+        PagoProveedor.objects.filter(proveedor=proveedor, estado=EstadoPago.VIGENTE).aggregate(
+            total=Sum("monto")
+        )["total"]
         or 0
     )
     return Decimal(deuda - pagado).quantize(CENTAVO)
@@ -245,7 +267,7 @@ def saldos_de_proveedores(proveedores):
         .values_list("proveedor_id", "total")
     )
     pagos = dict(
-        PagoProveedor.objects.filter(proveedor_id__in=ids)
+        PagoProveedor.objects.filter(proveedor_id__in=ids, estado=EstadoPago.VIGENTE)
         .values("proveedor_id")
         .annotate(total=Sum("monto"))
         .values_list("proveedor_id", "total")
@@ -271,7 +293,7 @@ def impedimento_para_anular(ingreso):
     if ingreso.estado == EstadoIngreso.ANULADO:
         return "El ingreso ya está anulado."
     if _pagos_vigentes(ingreso).exists():
-        return "El ingreso tiene pagos: primero hay que anularlos."
+        return "El ingreso tiene pagos vigentes: primero hay que anularlos."
     return None
 
 
@@ -308,3 +330,145 @@ def anular_ingreso(usuario, ingreso, motivo):
         for detalle in ingreso.detalleingreso_set.select_related("producto"):
             mover_stock(detalle.producto, -detalle.cantidad)
     return ingreso
+
+
+# CU-07 Registrar pago a proveedor (DEC-80, DEC-81, DEC-92)
+
+
+def medios_para_pagar():
+    """Efectivo y transferencia, los únicos medios para pagar a proveedores (DEC-80, DEC-104)."""
+    medios = []
+    for buscar in (efectivo, transferencia):
+        try:
+            medio = buscar()
+        except ValidationError:
+            continue
+        if medio.activo:
+            medios.append(medio)
+    return medios
+
+
+def _validar_medio(medio):
+    if medio is None or medio not in medios_para_pagar():
+        raise ValidationError(
+            {"medio_pago": "A los proveedores se les paga en efectivo o por transferencia."}
+        )
+
+
+def ingresos_con_saldo():
+    """Ingresos vigentes de proveedores activos con saldo pendiente, para elegir la deuda."""
+    vigentes = Q(pagoproveedor__estado=EstadoPago.VIGENTE)
+    return [
+        ingreso
+        for ingreso in IngresoMercaderia.objects.filter(
+            estado=EstadoIngreso.VIGENTE, proveedor__activo=True
+        )
+        .annotate(pagado=Sum("pagoproveedor__monto", filter=vigentes))
+        .select_related("proveedor")
+        .order_by("proveedor__nombre", "fecha", "pk")
+        if ingreso.total - (ingreso.pagado or 0) > 0
+    ]
+
+
+def registrar_pago(usuario, ingreso, monto, medio, proveedor=None):
+    """Pago de un ingreso con saldo: en efectivo, con su egreso de caja; por transferencia,
+    sin movimiento de caja (DEC-80). El monto no supera el saldo (RI-08) y el proveedor es
+    el del ingreso (RI-14).
+
+    Bloquea el ingreso, como la anulación, para que dos pagos o un pago y una anulación no se
+    crucen; en efectivo, después bloquea la caja (siempre en ese orden).
+    """
+    _exigir_permiso(usuario)
+    _validar_medio(medio)
+    if proveedor is not None and ingreso.proveedor_id != proveedor.pk:
+        raise ValidationError("El ingreso elegido es de otro proveedor.")
+    if monto is None or monto <= 0:
+        raise ValidationError({"monto": "El monto tiene que ser mayor a 0."})
+    if monto != monto.quantize(CENTAVO):
+        raise ValidationError({"monto": "El monto admite hasta 2 decimales."})
+    with transaction.atomic():
+        ingreso = (
+            IngresoMercaderia.objects.select_for_update()
+            .select_related("proveedor")
+            .get(pk=ingreso.pk)
+        )
+        if ingreso.estado != EstadoIngreso.VIGENTE:
+            raise ValidationError("El ingreso está anulado: no recibe pagos.")
+        if not ingreso.proveedor.activo:
+            raise ValidationError("El proveedor está dado de baja: no recibe pagos.")
+        saldo = saldo_de_ingreso(ingreso)
+        if monto > saldo:
+            raise ValidationError(
+                {"monto": f"El saldo del ingreso es {pesos(saldo)}: el pago no puede superarlo."}
+            )
+        pago = PagoProveedor.objects.create(
+            proveedor=ingreso.proveedor,
+            ingreso=ingreso,
+            monto=monto,
+            medio_pago=medio,
+            usuario=usuario,
+        )
+        if medio.es_efectivo:
+            registrar_egreso_pago_proveedor(pago, usuario)
+    return pago
+
+
+def listar_pagos(usuario):
+    """Más nuevos primero (DEC-95 pagina de a 25 en la vista)."""
+    _exigir_permiso(usuario)
+    return PagoProveedor.objects.select_related("proveedor", "ingreso", "medio_pago").order_by(
+        "-fecha_hora", "-pk"
+    )
+
+
+def pago_con_detalles(usuario, pk):
+    _exigir_permiso(usuario)
+    return PagoProveedor.objects.select_related(
+        "proveedor", "ingreso", "medio_pago", "usuario", "anulado_por_usuario"
+    ).get(pk=pk)
+
+
+def impedimento_para_anular_pago(pago):
+    """Por qué no se puede anular, o None: ya anulado o en efectivo con su caja cerrada."""
+    if pago.estado == EstadoPago.ANULADO:
+        return "El pago ya está anulado."
+    egreso = egreso_de_pago(pago)
+    if egreso is not None and egreso.caja.estado != EstadoCaja.ABIERTA:
+        return (
+            "La caja de este pago ya se cerró: un pago en efectivo se anula solo con su caja "
+            "abierta."
+        )
+    return None
+
+
+def anular_pago(usuario, pago, motivo):
+    """Anula con motivo: por transferencia, siempre; en efectivo, con una reversa
+    `ANULACION_PAGO` en la caja de su egreso, si sigue abierta (DEC-92). El saldo vuelve a
+    subir; el pago y su egreso no se tocan."""
+    _exigir_permiso(usuario)
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise ValidationError({"motivo": "Escribí por qué se anula el pago."})
+    if len(motivo) > MOTIVO_MAXIMO:
+        # Va también en la descripción de la reversa de caja, que admite 255 caracteres.
+        raise ValidationError({"motivo": f"El motivo admite hasta {MOTIVO_MAXIMO} caracteres."})
+    with transaction.atomic():
+        pago = PagoProveedor.objects.select_for_update().get(pk=pago.pk)
+        if pago.estado == EstadoPago.ANULADO:
+            raise ValidationError("El pago ya está anulado.")
+        if egreso_de_pago(pago) is not None:
+            registrar_reversa_pago_proveedor(pago, usuario, motivo)
+        pago.estado = EstadoPago.ANULADO
+        pago.anulado_en = timezone.now()
+        pago.anulado_por_usuario = usuario
+        pago.motivo_anulacion = motivo
+        pago.save(
+            update_fields=[
+                "estado",
+                "anulado_en",
+                "anulado_por_usuario",
+                "motivo_anulacion",
+                "actualizado_en",
+            ]
+        )
+    return pago

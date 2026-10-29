@@ -7,27 +7,39 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from apps.caja.services import efectivo_disponible, egreso_de_pago
 from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import crear_producto
 from apps.comun.models import subtotal
 from apps.comun.permisos import requiere_funcion
-from apps.proveedores.forms import AnularIngresoForm, ConfirmarIngresoForm, ProveedorForm
+from apps.proveedores.forms import (
+    AnularIngresoForm,
+    AnularPagoForm,
+    ConfirmarIngresoForm,
+    PagoForm,
+    ProveedorForm,
+)
 from apps.proveedores.services import (
     CAMPOS_EDITABLES,
     anular_ingreso,
+    anular_pago,
     buscar_para_ingreso,
     crear_proveedor,
     dar_de_baja,
     impedimento_para_anular,
+    impedimento_para_anular_pago,
     ingreso_con_detalles,
     listar_ingresos,
+    listar_pagos,
     listar_proveedores,
     modificar_proveedor,
+    pago_con_detalles,
     precios_sugeridos,
     proveedor_dado_de_baja,
     proveedor_editable,
     reactivar,
     registrar_ingreso,
+    registrar_pago,
     saldo_de_ingreso,
     saldos_de_proveedores,
 )
@@ -210,7 +222,12 @@ def ingreso_confirmar(request):
     datos = form.cleaned_data
     try:
         ingreso = registrar_ingreso(
-            request.user, datos["proveedor"], datos["lineas"], datos["observacion"]
+            request.user,
+            datos["proveedor"],
+            datos["lineas"],
+            datos["observacion"],
+            datos["condicion_pago"],
+            datos["medio_pago"],
         )
     except ValidationError as error:
         return JsonResponse({"errores": error.messages}, status=400)
@@ -228,6 +245,7 @@ def _detalle_ingreso(request, ingreso, form, status=200):
         {
             "ingreso": ingreso,
             "detalles": detalles,
+            "pagos": ingreso.pagoproveedor_set.select_related("medio_pago").order_by("pk"),
             "saldo": saldo_de_ingreso(ingreso),
             "impedimento": impedimento_para_anular(ingreso),
             "form": form,
@@ -258,3 +276,82 @@ def ingreso_anular(request, pk):
             messages.success(request, f"Se anuló el ingreso N.º {ingreso.pk}.")
             return redirect("proveedores:ingreso", pk=ingreso.pk)
     return _detalle_ingreso(request, ingreso, form, status=400)
+
+
+# CU-07 Registrar pago a proveedor (DEC-80, DEC-81, DEC-92)
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def pagos(request):
+    lista = listar_pagos(request.user)
+    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
+    return render(request, "proveedores/pagos.html", {"pagina": pagina})
+
+
+@requiere_funcion("Proveedores")
+@require_http_methods(["GET", "POST"])
+def pago_nuevo(request):
+    inicial = {}
+    if request.method == "GET" and request.GET.get("ingreso", "").isdigit():
+        try:
+            ingreso = ingreso_con_detalles(request.user, int(request.GET["ingreso"]))
+        except ObjectDoesNotExist:
+            ingreso = None
+        if ingreso is not None:
+            inicial = {"ingreso": ingreso.pk, "monto": saldo_de_ingreso(ingreso)}
+    form = PagoForm(request.POST or None, initial=inicial)
+    if request.method == "POST" and form.is_valid():
+        datos = form.cleaned_data
+        try:
+            pago = registrar_pago(
+                request.user, datos["ingreso"], datos["monto"], datos["medio_pago"]
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, f"Se registró el pago N.º {pago.pk}.")
+            return redirect("proveedores:pago", pk=pago.pk)
+    return render(
+        request,
+        "proveedores/pago_form.html",
+        {"form": form, "efectivo_disponible": efectivo_disponible()},
+    )
+
+
+def _detalle_pago(request, pago, form, status=200):
+    return render(
+        request,
+        "proveedores/pago_detalle.html",
+        {
+            "pago": pago,
+            "egreso": egreso_de_pago(pago),
+            "impedimento": impedimento_para_anular_pago(pago),
+            "form": form,
+        },
+        status=status,
+    )
+
+
+@requiere_funcion("Proveedores")
+@require_GET
+def pago(request, pk):
+    pago = _buscar(lambda clave: pago_con_detalles(request.user, clave), pk)
+    return _detalle_pago(request, pago, AnularPagoForm())
+
+
+@requiere_funcion("Proveedores")
+@require_POST
+def pago_anular(request, pk):
+    """Por transferencia, siempre; en efectivo, con la caja del egreso abierta (DEC-92)."""
+    pago = _buscar(lambda clave: pago_con_detalles(request.user, clave), pk)
+    form = AnularPagoForm(request.POST)
+    if form.is_valid():
+        try:
+            anular_pago(request.user, pago, form.cleaned_data["motivo"])
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, f"Se anuló el pago N.º {pago.pk}.")
+            return redirect("proveedores:pago", pk=pago.pk)
+    return _detalle_pago(request, pago, form, status=400)
