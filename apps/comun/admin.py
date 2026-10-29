@@ -1,9 +1,11 @@
 from decimal import Decimal
 
+from django.contrib import admin
 from django.core.validators import MinValueValidator
 from django.db import models
 from unfold.admin import ModelAdmin, TabularInline
 
+from apps.catalogo.models import formatear_cantidad
 from apps.comun.models import validar_positivo
 
 
@@ -58,3 +60,8 @@ class RenglonesSoloLecturaInline(TabularInline):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    # DEC-48: "2" por unidad y "1,250 kg" por kg, como el detalle y el ticket.
+    @admin.display(description="Cantidad")
+    def cantidad_con_unidad(self, obj):
+        return formatear_cantidad(obj.cantidad, obj.producto.unidad_medida)

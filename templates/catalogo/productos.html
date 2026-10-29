@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load cantidades %}
 
 {% block titulo %}Productos{% endblock %}
 {% block encabezado %}Productos{% endblock %}
@@ -65,8 +66,8 @@
                 {% if puede_modificar %}
                   <td class="cifras px-5 py-3 text-right whitespace-nowrap">
                     {% if producto.controla_stock %}
-                      {{ producto.stock_actual|floatformat:"-3" }}
-                      {% if producto.stock_minimo is not None %}<span class="text-xs text-gray-500">mín. {{ producto.stock_minimo|floatformat:"-3" }}</span>{% endif %}
+                      {{ producto.stock_actual|cantidad:producto.unidad_medida }}
+                      {% if producto.stock_minimo is not None %}<span class="text-xs text-gray-500">mín. {{ producto.stock_minimo|cantidad:producto.unidad_medida }}</span>{% endif %}
                     {% else %}
                       <span class="text-xs text-gray-500">Sin control</span>
                     {% endif %}

@@ -23,7 +23,8 @@ class ProductoProveedorAdmin(AdminBase):
 
 class DetalleIngresoInline(RenglonesSoloLecturaInline):
     model = DetalleIngreso
-    fields = ("producto", "cantidad", "precio_unitario", "fecha_vencimiento")
+    fields = ("producto", "cantidad_con_unidad", "precio_unitario", "fecha_vencimiento")
+    readonly_fields = fields
     verbose_name = "producto"
     verbose_name_plural = "productos del ingreso"
 

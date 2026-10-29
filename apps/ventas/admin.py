@@ -7,7 +7,8 @@ from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
 
 class DetalleVentaInline(RenglonesSoloLecturaInline):
     model = DetalleVenta
-    fields = ("producto", "cantidad", "precio_unitario", "subtotal")
+    fields = ("producto", "cantidad_con_unidad", "precio_unitario", "subtotal")
+    readonly_fields = fields
     verbose_name = "producto"
     verbose_name_plural = "productos de la venta"
 

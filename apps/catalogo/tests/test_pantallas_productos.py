@@ -1,11 +1,12 @@
 """CU-11 de punta a punta: pantallas de /productos/ por rol (CP-53, CP-55, CP-56, CP-57, CP-59)."""
 
+import re
 from decimal import Decimal
 
 import pytest
 from django.urls import reverse
 
-from apps.catalogo.models import Producto
+from apps.catalogo.models import Producto, UnidadMedida
 
 pytestmark = pytest.mark.django_db
 
@@ -63,6 +64,29 @@ def test_admin_ve_stock_y_acciones(client, admin, producto):
     assert "Stock" in contenido
     assert _editar(producto) in contenido and _baja(producto) in contenido
     assert "Incluir dados de baja" in contenido
+
+
+def test_el_stock_se_muestra_segun_la_unidad_aunque_sea_negativo(client, admin, producto):
+    # DEC-48: entero por unidad, "kg" con coma por kg; DEC-46: puede ser negativo.
+    producto.stock_actual = Decimal("12.000")
+    producto.stock_minimo = Decimal("5")
+    producto.save()
+    asado = Producto.objects.create(
+        nombre="Asado",
+        categoria=producto.categoria,
+        precio_venta=Decimal("9800.00"),
+        unidad_medida=UnidadMedida.KG,
+        controla_stock=True,
+        stock_actual=Decimal("-1.250"),
+    )
+    client.force_login(admin)
+
+    listado = client.get(LISTADO).content.decode()
+    assert re.search(r">\s*12\s*<span[^>]*>mín\. 5</span>", listado)
+    assert "-1,250 kg" in listado
+    assert "12,000" not in listado and "-1.25" not in listado
+
+    assert "-1,250 kg" in client.get(_editar(asado)).content.decode()
 
 
 # Filtro de dados de baja (agregado del alumno)

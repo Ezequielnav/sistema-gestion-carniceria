@@ -248,7 +248,10 @@ def test_los_productos_se_listan_dentro_del_ingreso(cliente_admin, ingreso, prod
     (renglones,) = respuesta.context["inline_admin_formsets"]
     assert renglones.formset.model is DetalleIngreso
     assert not renglones.has_change_permission
-    assert "Aceite 1 l" in respuesta.content.decode()
+    contenido = respuesta.content.decode()
+    assert "Aceite 1 l" in contenido
+    # Misma cantidad que en el detalle y el ticket (DEC-48): "2", no "2,000".
+    assert "field-cantidad_con_unidad" in contenido and "2,000" not in contenido
 
 
 @pytest.mark.parametrize("modelo", [DetalleVenta, DetalleIngreso], ids=lambda m: m._meta.db_table)

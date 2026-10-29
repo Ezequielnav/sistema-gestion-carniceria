@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load cantidades %}
 
 {% block titulo %}{% if producto %}Editar producto{% else %}Nuevo producto{% endif %}{% endblock %}
 {% block encabezado %}Productos{% endblock %}
@@ -36,7 +37,7 @@
 
       <p class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
         {% if producto %}
-          Stock actual: <span class="cifras font-medium">{{ producto.stock_actual|floatformat:"-3" }}</span>.
+          Stock actual: <span class="cifras font-medium">{{ producto.stock_actual|cantidad:producto.unidad_medida }}</span>.
         {% else %}
           El stock arranca en 0.
         {% endif %}
