@@ -333,3 +333,36 @@ def test_cp109_un_ajuste_no_se_modifica_ni_se_borra_en_el_panel(cliente_panel, a
 
     ajuste.refresh_from_db()
     assert ajuste.stock_nuevo == Decimal("7")
+
+
+# Formato de stock y mínimo en el panel y en /productos/ (DEC-48)
+
+
+def test_el_panel_muestra_stock_y_minimo_con_el_formato_de_la_unidad(
+    cliente_panel, aceite, bondiola
+):
+    aceite.stock_minimo = Decimal("6")
+    aceite.save()
+
+    listado = cliente_panel.get(reverse("admin:catalogo_producto_changelist")).content.decode()
+    assert "10 (mín. 6)" in listado and "-1,250 kg" in listado
+    assert "10,000" not in listado and "6,000" not in listado
+
+    ficha = cliente_panel.get(reverse("admin:catalogo_producto_change", args=[aceite.pk]))
+    form = ficha.context["adminform"].form
+    assert form["stock_actual"].value() == Decimal("10")
+    assert form["stock_minimo"].value() == Decimal("6")
+    contenido = ficha.content.decode()
+    assert 'value="10"' in contenido and 'value="6"' in contenido
+    assert "10,000" not in contenido and "6,000" not in contenido
+
+
+def test_el_formulario_de_productos_muestra_el_minimo_entero_por_unidad(client, admin, aceite):
+    aceite.stock_minimo = Decimal("6")
+    aceite.save()
+    client.force_login(admin)
+
+    form = client.get(_editar(aceite)).context["form"]
+
+    assert form["stock_minimo"].value() == Decimal("6")
+    assert 'value="6"' in str(form["stock_minimo"])

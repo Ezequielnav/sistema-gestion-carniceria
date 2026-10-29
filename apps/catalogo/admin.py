@@ -3,7 +3,14 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from unfold.widgets import UnfoldAdminSelectWidget
 
-from apps.catalogo.models import AjusteStock, Categoria, MotivoAjuste, Producto, formatear_cantidad
+from apps.catalogo.models import (
+    AjusteStock,
+    Categoria,
+    MotivoAjuste,
+    Producto,
+    cantidad_para_editar,
+    formatear_cantidad,
+)
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
     MOTIVOS_DE_MODIFICACION,
@@ -46,7 +53,11 @@ class ProductoAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
-            self.fields["stock_mostrado"].initial = self.instance.stock_actual
+            # Por unidad, stock y mínimo se muestran enteros, como en /productos/ (DEC-48).
+            unidad = self.instance.unidad_medida
+            stock = cantidad_para_editar(self.instance.stock_actual, unidad)
+            self.initial["stock_actual"] = self.fields["stock_mostrado"].initial = stock
+            self.initial["stock_minimo"] = cantidad_para_editar(self.instance.stock_minimo, unidad)
         else:
             self.fields["stock_actual"].label = "Stock inicial"
 
@@ -72,9 +83,19 @@ class ProductoAdminForm(forms.ModelForm):
 @admin.register(Producto)
 class ProductoAdmin(AdminBase):
     form = ProductoAdminForm
-    list_display = ("nombre", "plus_interno", "categoria", "precio_venta", "stock_actual", "activo")
+    list_display = ("nombre", "plus_interno", "categoria", "precio_venta", "stock", "activo")
     list_filter = ("activo", "controla_stock", "categoria")
     search_fields = ("nombre", "plus_interno")
+
+    # DEC-48: "6" por unidad y "1,250 kg" por kg, como en /productos/.
+    @admin.display(description="Stock", ordering="stock_actual")
+    def stock(self, obj):
+        if not obj.controla_stock:
+            return "Sin control"
+        texto = formatear_cantidad(obj.stock_actual, obj.unidad_medida)
+        if obj.stock_minimo is not None:
+            texto += f" (mín. {formatear_cantidad(obj.stock_minimo, obj.unidad_medida)})"
+        return texto
 
     def get_fields(self, request, obj=None):
         campos = super().get_fields(request, obj)

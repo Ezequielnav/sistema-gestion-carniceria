@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -23,6 +25,16 @@ def formatear_cantidad(cantidad, unidad):
     if unidad == UnidadMedida.KG:
         return f"{number_format(cantidad, 3, use_l10n=True)} kg"
     return number_format(cantidad, 0, use_l10n=True)
+
+
+def cantidad_para_editar(cantidad, unidad):
+    """Valor inicial de un campo de cantidad: entero por unidad ("6", no "6,000"; DEC-48).
+
+    Los campos editables no llevan "kg"; por kg quedan los 3 decimales.
+    """
+    if cantidad is None or unidad != UnidadMedida.UNIDAD:
+        return cantidad
+    return cantidad.quantize(Decimal(1))
 
 
 class Categoria(ModeloBase):

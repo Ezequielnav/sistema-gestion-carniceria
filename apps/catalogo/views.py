@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
@@ -9,7 +7,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.catalogo.forms import ProductoForm
-from apps.catalogo.models import UnidadMedida
+from apps.catalogo.models import cantidad_para_editar
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
     crear_producto,
@@ -91,11 +89,10 @@ def editar(request, pk):
     # Un producto dado de baja no se edita: primero se reactiva (DEC-33, DEC-85).
     producto = _producto_editable(pk)
     inicial = model_to_dict(producto, CAMPOS_EDITABLES)
-    # Por unidad, el stock se muestra entero ("7", no "7,000"; DEC-48).
-    stock = producto.stock_actual
-    if producto.unidad_medida == UnidadMedida.UNIDAD:
-        stock = stock.quantize(Decimal(1))
-    inicial.update(stock=stock, stock_mostrado=stock)
+    # Por unidad, stock y mínimo se muestran enteros ("7", no "7,000"; DEC-48).
+    stock = cantidad_para_editar(producto.stock_actual, producto.unidad_medida)
+    minimo = cantidad_para_editar(producto.stock_minimo, producto.unidad_medida)
+    inicial.update(stock=stock, stock_mostrado=stock, stock_minimo=minimo)
     form = ProductoForm(request.POST or None, initial=inicial, con_stock=True, es_alta=False)
     respuesta = _guardar_con(
         request,
