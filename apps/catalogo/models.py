@@ -6,7 +6,7 @@ from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_mon
 
 
 class UnidadMedida(models.TextChoices):
-    """A confirmar (PR-03)."""
+    """Unidad o kg, elegida por producto (DEC-79, supuesto del proyecto; ex PR-03)."""
 
     UNIDAD = "UNIDAD", "Unidad"
     KG = "KG", "Kilogramo"

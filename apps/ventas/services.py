@@ -4,7 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Count, F, Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from apps.caja.models import Caja, EstadoCaja, MedioPago
@@ -15,12 +15,11 @@ from apps.caja.services import (
     registrar_reversa_venta,
 )
 from apps.catalogo.models import Producto, UnidadMedida
-from apps.catalogo.services import buscar_productos
+from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
 from apps.usuarios.models import Rol
 from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
 
 CENTAVO = Decimal("0.01")
-MILESIMA = Decimal("0.001")
 # Máximo por línea, en kg o unidades: supuesto del proyecto, no confirmado por el negocio
 # (DEC-76, pendiente de relevamiento PR-36). Frena errores como un código en el peso (DF-01).
 CANTIDAD_MAXIMA = Decimal("100")
@@ -66,20 +65,14 @@ def subtotal(cantidad, precio):
 
 
 def _validar_cantidad(producto, cantidad):
-    """Mayor a 0 (RI-16) y hasta el máximo (DEC-76); entera por unidad y hasta 3 decimales
-    por kg (DEC-48)."""
-    if cantidad <= 0:
-        raise ValidationError(f"La cantidad de {producto} tiene que ser mayor a 0.")
+    """Tope por línea de la venta (DEC-76) y la regla de catálogo (RI-16, DEC-48)."""
     if cantidad > CANTIDAD_MAXIMA:
         unidad = "kg" if producto.unidad_medida == UnidadMedida.KG else "unidades"
         raise ValidationError(
             f"La cantidad de {producto} supera el máximo de {CANTIDAD_MAXIMA} {unidad} por "
             "línea. Revisá que no se haya cargado un código en la cantidad."
         )
-    if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
-        raise ValidationError(f"{producto} se vende por unidad: la cantidad tiene que ser entera.")
-    if cantidad != cantidad.quantize(MILESIMA):
-        raise ValidationError(f"La cantidad de {producto} admite hasta 3 decimales.")
+    validar_cantidad(producto, cantidad)
 
 
 def _verificar_caja(caja):
@@ -173,9 +166,7 @@ def registrar_venta(usuario, lineas, medio_pago):
                     f"Stock insuficiente de {producto}: la venta se registró y el stock quedó "
                     "negativo. Avisale al administrador."
                 )
-            Producto.objects.filter(pk=producto.pk).update(
-                stock_actual=F("stock_actual") - detalle.cantidad
-            )
+            mover_stock(producto, -detalle.cantidad)
     return venta, avisos
 
 
@@ -302,10 +293,7 @@ def anular_venta(usuario, venta, motivo):
                 "actualizado_en",
             ]
         )
-        # DEC-70: vuelve el stock de los productos que hoy lo controlan.
-        detalles = venta.detalleventa_set.filter(producto__controla_stock=True)
-        for detalle in detalles.select_related("producto"):
-            Producto.objects.filter(pk=detalle.producto_id).update(
-                stock_actual=F("stock_actual") + detalle.cantidad
-            )
+        # DEC-70: vuelve el stock de los productos que hoy lo controlan (mover_stock, RI-07).
+        for detalle in venta.detalleventa_set.select_related("producto"):
+            mover_stock(detalle.producto, detalle.cantidad)
     return venta

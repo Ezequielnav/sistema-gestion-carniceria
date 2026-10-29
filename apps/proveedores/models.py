@@ -7,7 +7,7 @@ from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_mon
 
 
 class CondicionPago(models.TextChoices):
-    """A confirmar (PR-18)."""
+    """A crédito deja la deuda; contado registra el pago (DEC-81, supuesto; ex PR-18)."""
 
     CONTADO = "CONTADO", "Contado"
     A_CREDITO = "A_CREDITO", "A crédito"

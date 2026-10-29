@@ -1,11 +1,15 @@
-"""Reglas de CU-11 Gestionar productos."""
+"""Reglas de CU-11 Gestionar productos y servicio único de stock y cantidades (DEC-96)."""
+
+from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 
-from apps.catalogo.models import Producto
+from apps.catalogo.models import Producto, UnidadMedida
 from apps.usuarios.models import Rol
+
+MILESIMA = Decimal("0.001")
 
 # Campos que se cargan desde la pantalla. stock_actual no está: arranca en 0 y lo cambian
 # solo las ventas y los ingresos (RI-07); activo cambia solo con la baja.
@@ -18,6 +22,33 @@ CAMPOS_EDITABLES = [
     "controla_stock",
     "stock_minimo",
 ]
+
+
+# Stock y cantidades (R-1, R-2): ventas, anulaciones e ingresos usan solo estas funciones.
+
+
+def validar_cantidad(producto, cantidad):
+    """Mayor a 0 (RI-16); entera por unidad y hasta 3 decimales por kg (DEC-48, DEC-79).
+
+    El tope por línea de la venta (DEC-76) no va acá: lo agrega ventas.
+    """
+    if cantidad <= 0:
+        raise ValidationError(f"La cantidad de {producto} tiene que ser mayor a 0.")
+    if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
+        raise ValidationError(f"{producto} se vende por unidad: la cantidad tiene que ser entera.")
+    if cantidad != cantidad.quantize(MILESIMA):
+        raise ValidationError(f"La cantidad de {producto} admite hasta 3 decimales.")
+
+
+def mover_stock(producto, cantidad):
+    """Suma `cantidad` al stock (resta si es negativa) si el producto lo controla (RI-07).
+
+    Única forma de cambiar stock_actual (DEC-96). Puede quedar negativo (DEC-46). Se llama
+    dentro de la transacción de la operación que mueve el stock.
+    """
+    if not producto.controla_stock:
+        return
+    Producto.objects.filter(pk=producto.pk).update(stock_actual=F("stock_actual") + cantidad)
 
 
 def cantidad_de_productos_activos():
