@@ -62,9 +62,11 @@
 | RF-23 | Al confirmar un ingreso de mercadería, el sistema debe actualizar el stock | Base (CU-05) | Alta | Confirmado |
 | RF-24 | Si un producto del ingreso no existe, el sistema debe permitir crearlo | Base (CU-05, A1) | Media | Confirmado |
 | RF-25 | El Administrador debe poder consultar el stock de todos los productos y filtrar por categoría y proveedor | Base (CU-06) | Alta | Confirmado |
-| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado; umbral decidido (DEC-82, supuesto): mínimo por producto, alerta con `stock_actual <= stock_minimo` o stock negativo |
-| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte |
+| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado; umbral decidido (DEC-82, ajustado por DEC-101, supuesto): mínimo por producto, alerta con `stock_actual <= stock_minimo` o, sin mínimo, con `stock_actual <= 0` |
+| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte; el aviso aparece también al agregar el producto a la venta (DEC-102) |
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
+| RF-50 | El Administrador debe poder ajustar el stock de un producto con control de stock ingresando el stock contado y un motivo; el sistema aplica la diferencia y registra el ajuste | Propuesta (PR-32) | Media | Decidido (DEC-98, supuesto del proyecto) |
+| RF-51 | Al dar de alta un producto con control de stock, el Administrador debe poder cargar un stock inicial, que se registra como ajuste | Propuesta (PR-32) | Baja | Decidido (DEC-99, supuesto del proyecto) |
 
 ### 2.5 Proveedores
 
@@ -140,10 +142,11 @@
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
 | CU-09 Generar reportes | RF-42 a RF-46 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
-| CU-11 Gestionar productos | RF-21, RF-17, RF-24 |
+| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-51 |
 | CU-12 Gestionar clientes | RF-35 |
 | CU-13 Gestionar proveedores | RF-29 |
 | CU-14 Gestionar usuarios | RF-03 |
+| CU-15 Ajustar stock | RF-50, RF-51 |
 | Sin caso de uso todavía | RF-34 (pedidos a proveedor), RF-47 (datos históricos) |
 
 ## 5. Resumen de requisitos a confirmar

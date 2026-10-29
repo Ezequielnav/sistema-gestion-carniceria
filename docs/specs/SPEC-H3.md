@@ -56,10 +56,10 @@ No están escritos en `/docs`: salen de revisar el código que H3 va a tocar.
 | **pago.** Se elige un ingreso vigente del proveedor con saldo; monto mayor a 0 y no mayor al saldo del ingreso. Los pagos anulados no cuentan para el saldo | RF-31, RF-32, RI-08, RI-14, CU-07 A2, DEC-81 |
 | **pago.** Medios: efectivo o transferencia, tanto en el pago de un ingreso a crédito como en el contado. Efectivo: caja abierta del día, egreso `PAGO_PROVEEDOR` en la misma operación a nombre de quien registra; si supera el efectivo esperado, se rechaza mostrando el máximo. Transferencia: sin movimiento de caja | RF-33, RN-09, RI-09, RI-13, DEC-80, CP-36, CP-90, CP-91 |
 | **pago.** Anulación con motivo, solo el Administrador: por transferencia, siempre; en efectivo, solo si la caja de su egreso sigue abierta, con una reversa `INGRESO` de concepto `ANULACION_PAGO` en esa caja, vinculada al pago, a nombre de quien anula y con el motivo; el egreso original no se toca. El saldo del ingreso vuelve a subir | S-6 |
-| **consulta-stock.** Lista de productos activos con control de stock, con filtros por categoría, proveedor y "solo con alerta"; alerta si `stock_actual <= stock_minimo` o si el stock es negativo; la carne no aparece | RF-25, RF-26, RN-10, DEC-82, CP-37, R-7, R-8 |
+| **consulta-stock.** Lista de productos activos con control de stock, con filtros por categoría, proveedor y "solo con alerta"; alerta si `stock_actual <= stock_minimo` o, sin mínimo, si `stock_actual <= 0` (DEC-101); la carne no aparece | RF-25, RF-26, RN-10, DEC-82, CP-37, R-7, R-8 |
 | **consulta-stock.** La tarjeta "stock bajo" del inicio cuenta los productos con alerta y la ve solo el Administrador | DEC-30, DEC-82, R-8 |
 
-**Fuera de H3:** vencimientos (RF-28, PR-21), pedidos a proveedor (RF-34, PR-19), registro de faltantes (RF-27, PR-37), ajustes de stock (PR-32), edición de ingresos y pagos (se anulan y se cargan de nuevo, S-6), datos de contacto extra (PR-31), CU-06 para la cajera y los dueños (PR-25).
+**Fuera de H3:** vencimientos (RF-28, PR-21), pedidos a proveedor (RF-34, PR-19), registro de faltantes (RF-27, PR-37), edición de ingresos y pagos (se anulan y se cargan de nuevo, S-6), datos de contacto extra (PR-31), CU-06 para la cajera y los dueños (PR-25).
 
 ### Criterios de aceptación
 
@@ -73,7 +73,7 @@ No están escritos en `/docs`: salen de revisar el código que H3 va a tocar.
 8. Sin caja abierta, o con la de otro día, un pago en efectivo se rechaza (CP-91).
 9. Un ingreso `CONTADO` en efectivo sin efectivo suficiente no deja ingreso, stock, pago ni egreso (CP-92).
 10. Anular un pago por transferencia sube el saldo; uno en efectivo con su caja abierta deja una reversa en la caja; con la caja cerrada, se rechaza (CP-102).
-11. La consulta de stock marca los productos en o por debajo del mínimo y los negativos, filtra por categoría y proveedor, y el inicio del Administrador muestra la tarjeta "stock bajo" (CP-37).
+11. La consulta de stock marca los productos en o por debajo del mínimo y, sin mínimo, los que tienen 0 o menos (DEC-101), filtra por categoría y proveedor, y el inicio del Administrador muestra la tarjeta "stock bajo" (CP-37).
 
 ## 2. Comandos
 
@@ -151,4 +151,10 @@ def mover_stock(producto, cantidad):
 
 ## Cambios después de aprobar el spec
 
-Ninguno todavía.
+| Fecha | Cambio | Decisión | Etapa |
+|---|---|---|---|
+| 2026-10-29 | Ajuste de stock (CU-15) con registro en `ajuste_stock`; salía de "Fuera de H3" (PR-32, cerrada como supuesto). Necesita su propio spec (`SPEC-CU-15.md`) y una migración | DEC-98 | 3b |
+| 2026-10-29 | Stock inicial en el alta del Administrador, registrado como ajuste | DEC-99 | 3b |
+| 2026-10-29 | Panel: sin alta de productos, `stock_actual` y `ajuste_stock` de solo lectura | DEC-100 | 3b |
+| 2026-10-29 | Alerta sin mínimo con `stock_actual <= 0` (criterio 11 y regla de consulta-stock) | DEC-101 | 5 |
+| 2026-10-29 | Aviso de stock insuficiente al agregar en la venta, sin cantidades; cambia el comportamiento de la venta (pedido por el alumno) | DEC-102 | 5 |

@@ -80,7 +80,8 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-21 | Venta con más de un medio de pago | RF-19 | No se permite: un solo medio por venta | Decidido (DEC-42); automatizado (H2, etapa 2) |
 | CP-82 | Buscar con el código del lector | RF-11 | Un código que coincide exacto con un plus agrega el producto a la venta | Decidido (DEC-37); automatizado (H2, etapa 2) |
 | CP-106 | Ver y filtrar los productos desde el buscador de la venta | DEC-97, DEC-52 | Sin texto trae los activos por nombre, sin stock y hasta 50, avisando si hay más; "Ver productos" muestra todos aunque haya texto escrito; filtra al dejar de escribir; una lectura rápida terminada en Enter no filtra y agrega por plus exacto; una respuesta vieja no reabre la lista; las flechas no se salen de la lista | Decidido (DEC-97); automatizado (servicio, vista y `buscador.js` con `node --test`) |
-| CP-83 | Venta con stock insuficiente | CU-01 A3, RI-07 | Se permite con aviso y el `stock_actual` queda negativo | Decidido (DEC-46); automatizado (H2, etapa 2) |
+| CP-83 | Venta con stock insuficiente | CU-01 A3, RI-07 | Se permite con aviso y el `stock_actual` queda negativo; el aviso también aparece al agregar el producto (CP-110) | Decidido (DEC-46); automatizado (H2, etapa 2) |
+| CP-110 | Aviso de stock insuficiente al agregar a la venta | CU-01 A3, DEC-102, DEC-33 | Si la cantidad de la línea supera el stock de un producto con control, la pantalla avisa al agregarlo o al cambiar la cantidad; la respuesta del servidor no incluye el stock ni la diferencia; sin control de stock no avisa; la venta se confirma igual (DEC-46) | Decidido (DEC-102); a automatizar (H3, etapa 5) |
 | CP-84 | Ticket de una venta confirmada | RF-14 | Muestra negocio, número, fecha y hora, cajera, detalle, total, medio de pago y "No válido como factura" | Decidido (DEC-44); automatizado (H2, etapa 2) |
 | CP-85 | Anular una venta | RI-02, RI-07 | Solo el Administrador, con motivo y con la caja abierta: la venta queda anulada y, en la misma operación, se registra un egreso `ANULACION` por su total y su medio y el stock de cada producto con control vuelve exactamente al valor previo a la venta (varias líneas, kg con decimales, producto creado durante la venta; los productos sin control no se tocan); el esperado del cierre la descuenta. Una segunda anulación se rechaza y no devuelve stock otra vez. El motivo admite hasta 255 caracteres. Se rechaza sin motivo, ya anulada, con la caja cerrada o si no alcanza el efectivo | Decidido (DEC-45, DEC-66 a DEC-70); automatizado (H2, etapa 4) |
 | CP-87 | Cantidad por línea sobre el máximo | DEC-76 (supuesto, PR-36), DF-01 | Más de 100 kg o 100 unidades en una línea (ya agrupada) se rechaza; 100 se acepta. En la pantalla, Enter en el peso vuelve al buscador y una lectura del lector en el peso se busca como producto sin tocar la cantidad (DEC-75, prueba de `static/js/lector.js` con `node --test`) | Supuesto (DEC-76); automatizado (H2, etapa 4) |
@@ -106,10 +107,11 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-91 | Pago a proveedor en efectivo sin caja abierta del día | RN-09 | Se rechaza si no hay caja abierta o si la abierta es de otro día | Decidido (DEC-80, supuesto) |
 | CP-92 | Ingreso al contado | RN-08, RF-30, RNF-10 | Se guardan juntos el ingreso, el stock, el pago por el total y, si es en efectivo, el egreso; si el pago se rechaza (por ejemplo, por falta de efectivo), no se guarda nada | Decidido (DEC-81, supuesto) |
 | CP-93 | Cantidades del ingreso | RF-22, RI-16 | Por `UNIDAD` se rechaza una cantidad con decimales; por `KG` se aceptan hasta 3 decimales; más de 100 kg o 100 unidades se acepta (no rige DEC-76) | Decidido (DEC-79, DEC-81, supuesto) |
-| CP-37 | Stock en o por debajo del mínimo | RN-10, RF-26 | La consulta muestra la alerta si `stock_actual <= stock_minimo` y si el stock es negativo, aunque no haya mínimo; sin mínimo y con stock no negativo, o en carne, no hay alerta. La tarjeta "stock bajo" del inicio la ve solo el Administrador | Decidido (DEC-82, supuesto) |
+| CP-37 | Stock en o por debajo del mínimo | RN-10, RF-26 | La consulta muestra la alerta si `stock_actual <= stock_minimo` y, sin mínimo, si `stock_actual <= 0` (DEC-101); sin mínimo y con stock mayor a 0, o en carne, no hay alerta. La tarjeta "stock bajo" del inicio la ve solo el Administrador | Decidido (DEC-82 y DEC-101, supuesto) |
 | CP-100 | Precio de compra sugerido y actualizado | DEC-90, RI-12 | El ingreso precarga el último precio de compra del producto con ese proveedor y, al confirmar, lo crea o actualiza; anular el ingreso no lo revierte | Decidido (DEC-90); a automatizar (H3, etapa 3) |
 | CP-101 | Anular un ingreso | DEC-92, RI-07 | Solo el Administrador, con motivo y sin pagos vigentes: el ingreso queda anulado, el stock vuelve (aunque quede negativo) y el saldo del proveedor baja; con un pago vigente, se rechaza | Decidido (DEC-92); a automatizar (H3, etapa 3) |
 | CP-102 | Anular un pago a proveedor | DEC-92, RI-13 | Solo el Administrador, con motivo: por transferencia, sin movimiento de caja; en efectivo con su caja abierta, una reversa `INGRESO` `ANULACION_PAGO` vinculada al pago, sin tocar el egreso; con la caja cerrada, se rechaza; un pago tiene a lo sumo una reversa. El saldo vuelve a subir | Decidido (DEC-92); a automatizar (H3, etapa 4) |
+| CP-107 | Ajustar stock | RF-50, RI-07, RI-17, DEC-98 | El Administrador ingresa el stock contado y el motivo: el stock queda igual al contado y se registra el ajuste con fecha, usuario, stock anterior y nuevo; un conteo igual al stock se registra sin cambiarlo; contado negativo, con decimales por `UNIDAD` o con más de 3 decimales se rechaza; "otro" sin observación se rechaza; un producto sin control de stock o dado de baja no se ajusta; la cajera y los dueños reciben 403; no hay edición ni borrado | Decidido (DEC-98, supuesto); a automatizar (H3, etapa 3b) |
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08)
 
@@ -134,12 +136,14 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-56 | Cajera con permiso crea un producto durante la venta | RN-05, RF-17 | Se crea. En H1 se prueba desde la pantalla de productos; desde la venta (`/ventas/producto/`), en H2: el producto se agrega a la venta en curso, y sin permiso la opción no aparece y el alta da 403. La cajera con permiso no modifica ni da de baja | Confirmado; automatizado (H1 y H2, etapa 4) |
 | CP-57 | Baja de un producto con ventas | RI-11 | Baja lógica: el producto queda inactivo y las ventas siguen intactas; deja de listarse salvo con el filtro del Administrador y no se edita desde la pantalla ni por su URL (DEC-33) | Confirmado |
 | CP-97 | Reactivar un producto dado de baja | DEC-85, CU-11 | El Administrador lo reactiva con "Reactivar" en el listado de dados de baja (POST), sin condición de stock; la cajera y los dueños reciben 403 y un producto activo da 404 | Decidido (DEC-85); automatizado (etapa 0b de H3) |
+| CP-108 | Stock inicial en el alta de un producto | RF-51, DEC-99, DEC-33 | El Administrador da de alta un producto con control de stock y stock inicial 12: el stock queda en 12 y se registra un ajuste `STOCK_INICIAL` con stock anterior 0; sin valor, arranca en 0 sin ajuste; con un producto sin control de stock se rechaza junto al campo; la cajera con permiso no ve el campo y, si lo envía, su alta arranca en 0 | Decidido (DEC-99, supuesto); a automatizar (H3, etapa 3b) |
 | CP-58 | Intentar borrar un registro referenciado | RI-11 | La aplicación y la base lo impiden (la prueba fuerza el control inmediato de las claves foráneas, que en Django son diferidas) | Confirmado |
 | CP-59 | Plus interno de producto repetido (si no es nulo) y nombre de usuario repetido | `UNIQUE` de `producto` y `usuario` en la sección 7 de [05-modelo-datos.md](05-modelo-datos.md) | Se rechaza; en producto, con el mensaje junto al campo (CU-11 A1), también si otra operación guarda el mismo plus al mismo tiempo | Confirmado para `usuario`; `producto` implementado con el supuesto de 05 (único si existe), a confirmar (PR-22; el plus, DEC-37) |
 | CP-99 | Gestionar proveedores | RF-29, DEC-87, DEC-88 | El Administrador da de alta, modifica, da de baja (con confirmación) y reactiva un proveedor; un proveedor dado de baja no se lista salvo con el filtro; la cajera y los dueños reciben 403 | Decidido (DEC-87); a automatizar (H3, etapa 2) |
 | CP-103 | Registros operativos en el panel de administración | DEC-31 | Ventas, ingresos, cajas, pagos y movimientos se consultan, pero el alta, la modificación y el borrado responden 403 y el registro no cambia | Automatizado |
 | CP-104 | Ficha de una venta y de un ingreso en el panel | DEC-31, DEC-67 | La venta muestra el bloque "Venta" con etiquetas claras y el bloque "Anulación" solo si está anulada; los productos de la venta y del ingreso se ven dentro como tabla de solo lectura, y los detalles no tienen listado propio ni título por renglón; las cantidades se leen "2" o "1,250 kg" (DEC-48) | Automatizado |
 | CP-105 | Grupos y permisos individuales en el panel | DEC-32 | No existe la página de Grupos y la ficha del usuario no muestra `groups` ni `user_permissions` | Automatizado |
+| CP-109 | Producto y ajustes en el panel de administración | DEC-100, DEC-31 | El panel no da de alta productos (403) y muestra `stock_actual` de solo lectura; `ajuste_stock` se consulta pero no se crea, modifica ni borra | Decidido (DEC-100); a automatizar (H3, etapa 3b) |
 
 ### 4.6 Reportes (CU-09)
 
@@ -158,7 +162,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-86 | `venta` con estado inválido o con datos de anulación que no coinciden con el estado | DEC-67 | La base rechaza el registro |
 | CP-71 | Montos negativos y cantidades menores o iguales a cero en la base | RI-16 | La base los rechaza (restricción `CHECK`, no solo validación de formulario) |
 | CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores, no quedan migraciones sin aplicar y los modelos no tienen cambios sin migrar |
-| CP-73 | Las 17 entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo: las 17 tablas (y ninguna condicional), auditoría en todas, cada `CHECK` y `UNIQUE` de la sección 7.4 (los parciales, con su condición), los índices de la sección 7.5 y toda clave foránea con `PROTECT` |
+| CP-73 | Las entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo: las 17 tablas (18 desde `ajuste_stock`, etapa 3b de H3, DEC-98) y ninguna condicional, auditoría en todas, cada `CHECK` y `UNIQUE` de la sección 7.4 (los parciales, con su condición), los índices de la sección 7.5 y toda clave foránea con `PROTECT` |
 | CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: historial de ventas (con anulación, DEC-71, DEC-86), productos, stock, clientes, proveedores, reportes y usuarios; cajera: ventas, ventas de la caja (sin anular, DEC-84) y caja, y productos solo con permiso de alta; dueños: solo reportes |
 | CP-75 | Abrir el inicio sin sesión | RF-01, RNF-06 (H1.4) | Redirige al ingreso |
 | CP-76 | Resumen del día en el inicio | H1.4 (DEC-30) | Ventas de hoy (cantidad y monto, sin las de otros días ni las anuladas, DEC-73), cajas abiertas, productos activos y últimas ventas salen de la base |
@@ -177,7 +181,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
 | RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19 |
 | RN-06 | CP-53 | RI-06 | CP-41 |
-| RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85 |
+| RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85, CP-107 |
 | RN-08 | CP-30, CP-32, CP-92 | RI-08 | CP-34 |
 | RN-09 | CP-36, CP-91 | RI-09 | CP-36 |
 | RN-10 | CP-37 | RI-10 | CP-04 |
@@ -187,6 +191,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RNF-10 | CP-14, CP-85, CP-88 | RI-14 | CP-35 |
 | — | — | RI-15 | CP-42, CP-43 |
 | — | — | RI-16 | CP-16, CP-71 |
+| — | — | RI-17 | CP-107, CP-108 |
 
 ## 6. Recorridos manuales
 

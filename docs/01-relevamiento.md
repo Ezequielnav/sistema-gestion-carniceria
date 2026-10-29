@@ -74,7 +74,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-10 | ¿Qué egresos de caja existen (gastos, retiros, pagos a proveedores)? | Tipos de egreso | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-43 (DEC-35); la reversa de una venta anulada usa el concepto `ANULACION` (DEC-68) |
 | PR-30 | Si se carga mal una venta o un movimiento de caja, ¿cómo se corrige hoy (anular, contra-asiento, editar) y quién lo autoriza? | Ningún caso de uso cubre anulaciones ni correcciones; define si el modelo necesita estados o movimientos de reversa | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-45 (DEC-35) |
 | PR-31 | ¿Qué datos de contacto se guardan de clientes y proveedores (teléfono, mail, dirección, identificación fiscal)? | Define los campos de cliente y proveedor | 03, 05 | Pendiente |
-| PR-32 | ¿Se hacen conteos de inventario o ajustes de stock (mermas, roturas, diferencias)? ¿Quién los autoriza? | Define si hace falta un caso de uso de ajuste de stock | 03, 04, 05 | Pendiente |
+| PR-32 | ¿Se hacen conteos de inventario o ajustes de stock (mermas, roturas, diferencias)? ¿Quién los autoriza? | Define si hace falta un caso de uso de ajuste de stock | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-98 (supuesto del proyecto): CU-15, ajustes del Administrador con motivo |
 | PR-33 | ¿Quién asume el costo mensual del servicio donde se aloje el sistema (hosting, base de datos, copias de seguridad)? ¿Hay un presupuesto? | Condiciona qué opciones de alojamiento son viables | 06, 07 | Pendiente |
 
 ### 3.3 Clientes y cuentas corrientes
