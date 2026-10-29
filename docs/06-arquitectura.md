@@ -292,7 +292,7 @@ Por decisión del alumno, en esta etapa no se preparan archivos de despliegue. C
 - Despliegue desde el repositorio de GitHub.
 - Variables de entorno para claves y configuración.
 - Costo acorde al presupuesto del negocio (PR-33).
-- Archivos estáticos versionados (por ejemplo, con un hash en el nombre, como hace `ManifestStaticFilesStorage` de Django), para que el navegador no siga usando un JavaScript o CSS viejo después de una actualización. Pendiente: en el recorrido de la etapa 4 de H2 el navegador tenía en caché el `venta.js` anterior y no mostraba "Crear producto" hasta recargarlo sin caché (registro de recorridos de 08).
+- Archivos estáticos versionados (por ejemplo, con un hash en el nombre, como hace `ManifestStaticFilesStorage` de Django), para que el navegador no siga usando un JavaScript o CSS viejo después de una actualización. Pendiente: en el recorrido de la etapa 4 de H2 el navegador tenía en caché el `venta.js` anterior y no mostraba "Crear producto" hasta recargarlo sin caché (registro de recorridos de 08). En desarrollo, el `runserver` del proyecto (`apps/comun/management/commands/runserver.py`) sirve los estáticos con `Cache-Control: no-cache` solo con `DEBUG`, para que el navegador vuelva a pedir cada archivo; no reemplaza al versionado del despliegue.
 
 El proveedor y el costo se verifican con los planes vigentes al decidir. Si la cátedra solo exige una demostración local (PA-05), el despliegue puede no ser parte de la entrega.
 

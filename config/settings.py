@@ -25,8 +25,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
+    # Antes de staticfiles para que su runserver sirva los estáticos sin caché con DEBUG.
     "apps.comun",
+    "django.contrib.staticfiles",
     "apps.usuarios",
     "apps.caja",
     "apps.ventas",

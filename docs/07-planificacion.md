@@ -57,7 +57,7 @@ Surgieron en la revisión de H2. No bloquean el cierre del hito; se retoman en e
 |---|---|---|
 | L1 | Anular una venta a cuenta corriente no debe crear un egreso de caja, sino revertir el movimiento de la cuenta corriente. Hoy esa venta no existe (DEC-41 no ofrece el medio cuenta corriente), así que no hace falta un rechazo; se resuelve al construir SC-03 | H4 |
 | L2 | La unión de `venta.js` con `lector.js` y `buscador.js` no tiene prueba de navegador automatizada (08, sección 9) | A decidir: requiere una dependencia nueva |
-| L3 | Archivos estáticos versionados al publicar (06, sección 9) | Con el despliegue |
+| L3 | Archivos estáticos versionados al publicar (06, sección 9): al preparar el despliegue, usar estáticos con hash en el nombre (`ManifestStaticFilesStorage` o equivalente) para que los usuarios no queden con un JS viejo después de una actualización. En desarrollo ya se sirven sin caché con `DEBUG` | Con el despliegue |
 | L4 | Cualquier cajera abre el ticket de cualquier venta por su número | Resuelto en la etapa 0b de H3 (DEC-84): la cajera solo ve ventas de la caja abierta |
 | L5 | El formulario de la venta no limita la cantidad de líneas | H6 o antes, si hace falta |
 | L6 | "Ventas de la caja" (cajera) no tiene paginación; el "Historial de ventas" del Administrador sí (DEC-86) | Si una caja tiene muchas ventas |
