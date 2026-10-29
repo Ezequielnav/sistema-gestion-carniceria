@@ -77,10 +77,11 @@ FUNCIONES = [
     ),
     Funcion(
         "Proveedores",
-        "Ingresos de mercadería y pagos",
+        "Proveedores, ingresos y pagos",
         "CU-05, CU-07, CU-13",
         frozenset({ADMIN}),
         "camion",
+        url="proveedores:proveedores",  # DEC-88; ingresos y pagos en las etapas 3 y 4
     ),
     Funcion("Reportes", "Ventas, caja y saldos", "CU-09", frozenset({ADMIN, DUENIO}), "grafico"),
     Funcion("Usuarios", "Cuentas y roles", "CU-14", frozenset({ADMIN}), "usuario"),

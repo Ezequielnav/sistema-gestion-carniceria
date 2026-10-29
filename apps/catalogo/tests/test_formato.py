@@ -6,7 +6,6 @@ import pytest
 from django.template import Context, Template
 
 from apps.catalogo.models import UnidadMedida, formatear_cantidad
-from apps.proveedores.models import DetalleIngreso
 from apps.ventas.models import DetalleVenta
 
 
@@ -32,8 +31,6 @@ def test_el_filtro_de_plantilla_usa_el_mismo_formato():
     assert plantilla.render(Context({"c": Decimal("2.000"), "u": "UNIDAD"})) == "2"
 
 
-def test_los_renglones_de_venta_e_ingreso_se_leen_con_ese_formato(producto, categoria):
-    asado = producto.__class__(nombre="Asado", categoria=categoria, unidad_medida=UnidadMedida.KG)
-
+def test_los_renglones_de_venta_se_leen_con_ese_formato(producto):
+    # El de ingreso, en proveedores (R-6: catálogo no importa proveedores).
     assert str(DetalleVenta(producto=producto, cantidad=Decimal("2.000"))) == "Aceite 1 l x 2"
-    assert str(DetalleIngreso(producto=asado, cantidad=Decimal("1.250"))) == "Asado x 1,250 kg"

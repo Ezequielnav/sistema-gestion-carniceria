@@ -72,7 +72,7 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar |
+| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar (PR-31). Implementado en H3, etapa 2 (DEC-87, DEC-88): nombre, teléfono y email |
 | RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado; modalidad decidida (DEC-81, supuesto): `A_CREDITO` deja la deuda y `CONTADO` registra el pago en la misma operación |
 | RF-31 | El Administrador debe poder registrar pagos a proveedores con proveedor, monto, fecha, medio de pago y productos asociados | Base (2.1, CU-07) | Alta | Confirmado |
 | RF-32 | El sistema debe listar los proveedores con deudas pendientes y actualizar su saldo al registrar un pago | Base (CU-07) | Alta | Confirmado |

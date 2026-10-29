@@ -1,5 +1,8 @@
 """CP-72 y CP-73: la base que crean las migraciones coincide con 05-modelo-datos.md."""
 
+import ast
+from pathlib import Path
+
 import pytest
 from django.apps import apps
 from django.core.management import call_command
@@ -222,3 +225,21 @@ def test_cp73_toda_clave_foranea_existe_en_la_base_y_protege_el_borrado(modelo):
         assert any(r["foreign_key"] and r["columns"] == [campo.column] for r in restricciones), (
             campo.column
         )
+
+
+# R-6 (DEC-96): proveedores depende de catálogo y caja, nunca al revés.
+
+
+@pytest.mark.parametrize("app", ["catalogo", "caja"])
+def test_r6_catalogo_y_caja_no_importan_proveedores(app):
+    carpeta = Path(apps.get_app_config(app).path)
+    importaciones = []
+    for archivo in carpeta.rglob("*.py"):
+        arbol = ast.parse(archivo.read_text(encoding="utf-8"))
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.ImportFrom) and nodo.module:
+                importaciones.append((archivo.name, nodo.module))
+            elif isinstance(nodo, ast.Import):
+                importaciones += [(archivo.name, alias.name) for alias in nodo.names]
+
+    assert not [i for i in importaciones if i[1].startswith("apps.proveedores")]

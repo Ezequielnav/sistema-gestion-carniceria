@@ -522,6 +522,7 @@ flowchart LR
 | Poscondiciones | Proveedores actualizados |
 
 **Flujo normal (alta):** el Administrador ingresa nombre y contacto del proveedor (según el modelo del documento base) y el sistema lo guarda. También permite modificar y dar de baja.
+**Implementación (H3, etapa 2):** pantalla `/proveedores/`, solo del Administrador (DEC-88; la cajera y los dueños reciben 403 y no la ven en el menú). Igual que CU-11 (DEC-87): listado de activos paginado de a 25 (DEC-95) con búsqueda por nombre, teléfono o email e "Incluir dados de baja"; alta y modificación con nombre obligatorio y teléfono y email opcionales; baja lógica con confirmación; "Reactivar" (POST) en el listado de dados de baja. Un proveedor dado de baja no se edita: primero se reactiva. El nombre repetido no se bloquea. Las reglas y los permisos están también en el servicio (R-9), y una prueba de estructura verifica que catálogo y caja no importan `proveedores` (R-6).
 **Pendientes:** ninguno para el pago (PR-17 cerrada por DEC-80); los datos de contacto dependen de PR-31.
 
 ### CU-14 Gestionar usuarios
