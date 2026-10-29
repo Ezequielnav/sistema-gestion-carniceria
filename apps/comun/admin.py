@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 
 from apps.comun.models import validar_positivo
 
@@ -29,6 +29,26 @@ class SoloLecturaAdmin(AdminBase):
     """
 
     def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class RenglonesSoloLecturaInline(TabularInline):
+    """Renglones de un registro operativo (detalles de venta o de ingreso), dentro de él.
+
+    No tienen módulo propio en el panel: se ven en una tabla de solo lectura (DEC-31).
+    """
+
+    extra = 0
+    can_delete = False
+    show_change_link = False
+
+    def has_add_permission(self, request, obj=None):
         return False
 
     def has_change_permission(self, request, obj=None):

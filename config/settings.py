@@ -152,7 +152,6 @@ UNFOLD = {
                 "title": "Ventas y caja",
                 "items": [
                     _item("Ventas", "receipt_long", "admin:ventas_venta_changelist"),
-                    _item("Detalle de ventas", "list_alt", "admin:ventas_detalleventa_changelist"),
                     _item("Cajas", "point_of_sale", "admin:caja_caja_changelist"),
                     _item(
                         "Movimientos de caja", "swap_vert", "admin:caja_movimientocaja_changelist"
@@ -194,11 +193,6 @@ UNFOLD = {
                         "admin:proveedores_ingresomercaderia_changelist",
                     ),
                     _item(
-                        "Detalle de ingresos",
-                        "list_alt",
-                        "admin:proveedores_detalleingreso_changelist",
-                    ),
-                    _item(
                         "Precios de proveedores",
                         "sell",
                         "admin:proveedores_productoproveedor_changelist",
@@ -214,7 +208,6 @@ UNFOLD = {
                 "title": "Usuarios",
                 "items": [
                     _item("Usuarios", "person", "admin:usuarios_usuario_changelist"),
-                    _item("Grupos", "admin_panel_settings", "admin:auth_group_changelist"),
                 ],
             },
         ],
