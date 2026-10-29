@@ -102,6 +102,23 @@ def test_cp82_la_busqueda_devuelve_el_exacto_y_los_resultados(client, usuario, a
     assert "stock" not in datos["resultados"][0]
 
 
+def test_cp106_sin_texto_la_cajera_sin_permiso_ve_los_activos_sin_stock(
+    client, usuario, caja_hoy, aceite, asado
+):
+    assert not usuario.puede_crear_productos
+    client.force_login(usuario)
+
+    pantalla = client.get(NUEVA).content.decode()
+    assert 'id="ver-productos"' in pantalla
+    assert "js/buscador.js" in pantalla
+
+    datos = client.get(BUSCAR, {"q": ""}).json()
+    assert datos["exacto"] is None
+    assert datos["hay_mas"] is False
+    assert [p["nombre"] for p in datos["resultados"]] == ["Aceite 1 l", "Asado"]
+    assert set(datos["resultados"][0]) == {"id", "nombre", "plus", "precio", "unidad"}
+
+
 # Confirmación y ticket (CP-10, CP-11, CP-84, DEC-47, DEC-54)
 
 

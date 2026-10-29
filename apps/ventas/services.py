@@ -50,13 +50,20 @@ def medios_de_pago_para_venta():
     return MedioPago.objects.filter(activo=True, ingresa_a_caja=True).order_by("pk")
 
 
-def buscar_para_venta(texto, limite=20):
-    """Activos por nombre o plus, y el que coincide exacto con el plus (DEC-37, DEC-52)."""
+# Tope de la lista del buscador (DEC-97); el resto se encuentra escribiendo.
+LIMITE_BUSQUEDA = 50
+
+
+def buscar_para_venta(texto, limite=LIMITE_BUSQUEDA):
+    """Activos por nombre o plus, el que coincide exacto con el plus y si quedan más.
+
+    El texto vacío trae la lista de activos para elegir (DEC-97); el código exacto agrega
+    el producto (DEC-37, DEC-52).
+    """
     texto = texto.strip()
-    if not texto:
-        return None, []
-    exacto = Producto.objects.filter(activo=True, plus_interno=texto).first()
-    return exacto, list(buscar_productos(texto)[:limite])
+    exacto = Producto.objects.filter(activo=True, plus_interno=texto).first() if texto else None
+    productos = list(buscar_productos(texto)[: limite + 1])
+    return exacto, productos[:limite], len(productos) > limite
 
 
 def subtotal(cantidad, precio):

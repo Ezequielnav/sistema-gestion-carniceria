@@ -20,6 +20,7 @@ from apps.catalogo.models import Producto, UnidadMedida
 from apps.usuarios.models import Rol, Usuario
 from apps.ventas.models import DetalleVenta, Venta
 from apps.ventas.services import (
+    LIMITE_BUSQUEDA,
     buscar_para_venta,
     medios_de_pago_para_venta,
     registrar_venta,
@@ -288,20 +289,56 @@ def test_cp83_stock_insuficiente_se_vende_con_aviso(usuario, caja_hoy, efectivo,
 
 
 def test_cp82_buscar_por_codigo_exacto_y_por_nombre(aceite, asado):
-    exacto, resultados = buscar_para_venta(" 501 ")
+    exacto, resultados, _ = buscar_para_venta(" 501 ")
     assert exacto == aceite and resultados == [aceite]
 
-    exacto, resultados = buscar_para_venta("asa")
+    exacto, resultados, _ = buscar_para_venta("asa")
     assert exacto is None and resultados == [asado]
-
-    assert buscar_para_venta("") == (None, [])
 
 
 def test_la_busqueda_no_trae_inactivos(aceite):
     aceite.activo = False
     aceite.save()
 
-    assert buscar_para_venta("501") == (None, [])
+    assert buscar_para_venta("501") == (None, [], False)
+    assert buscar_para_venta("") == (None, [], False)
+
+
+# CP-106 (DEC-97)
+
+
+def test_cp106_sin_texto_trae_los_activos_por_nombre(aceite, asado):
+    aceite.activo = False
+    aceite.save()
+    otro = Producto.objects.create(
+        nombre="Achuras",
+        categoria=asado.categoria,
+        precio_venta=Decimal("1500.00"),
+        unidad_medida=UnidadMedida.KG,
+        controla_stock=False,
+    )
+
+    assert buscar_para_venta("  ") == (None, [otro, asado], False)
+
+
+def test_cp106_la_lista_tiene_un_tope_y_avisa_que_hay_mas(categoria):
+    Producto.objects.bulk_create(
+        Producto(
+            nombre=f"Producto {i:02}",
+            categoria=categoria,
+            precio_venta=Decimal("100"),
+            unidad_medida=UnidadMedida.UNIDAD,
+            controla_stock=False,
+        )
+        for i in range(LIMITE_BUSQUEDA + 1)
+    )
+
+    exacto, resultados, hay_mas = buscar_para_venta("")
+    assert exacto is None and hay_mas
+    assert [p.nombre for p in resultados] == [f"Producto {i:02}" for i in range(LIMITE_BUSQUEDA)]
+
+    _, resultados, hay_mas = buscar_para_venta("Producto 5")
+    assert [p.nombre for p in resultados] == ["Producto 50"] and not hay_mas
 
 
 # Permisos

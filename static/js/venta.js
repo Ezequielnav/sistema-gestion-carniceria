@@ -8,6 +8,7 @@
 
   const buscar = document.getElementById("buscar");
   const resultados = document.getElementById("resultados");
+  const verProductos = document.getElementById("ver-productos");
   const cuerpo = document.getElementById("lineas");
   const vacia = document.getElementById("vacia");
   const total = document.getElementById("total");
@@ -145,19 +146,53 @@
     } else {
       lineas.set(producto.id, { producto, cantidad: "1" });
     }
-    resultados.classList.add("hidden");
+    cerrarLista();
     buscar.value = "";
     mostrarErrores([]);
     dibujar(producto.unidad === "KG" ? producto.id : undefined);
     if (producto.unidad !== "KG") buscar.focus();
   }
 
-  function mostrarResultados(lista, texto) {
+  // DEC-97: lista para elegir, navegable con flechas; el foco queda en el buscador.
+  const buscador = crearBuscadorDiferido();
+  let visibles = [];
+  let marcado = -1;
+
+  function marcar(indice) {
+    const opciones = resultados.querySelectorAll("[role=option]");
+    marcado = indice;
+    opciones.forEach((opcion, i) => {
+      opcion.setAttribute("aria-selected", String(i === marcado));
+      opcion.classList.toggle("bg-gray-100", i === marcado);
+    });
+    if (marcado >= 0) {
+      buscar.setAttribute("aria-activedescendant", opciones[marcado].id);
+      opciones[marcado].scrollIntoView({ block: "nearest" });
+    } else {
+      buscar.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  function cerrarLista() {
+    buscador.descartar();
+    resultados.classList.add("hidden");
+    buscar.setAttribute("aria-expanded", "false");
+    visibles = [];
+    marcar(-1);
+  }
+
+  function aviso(texto) {
+    const li = document.createElement("li");
+    li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
+    li.textContent = texto;
+    return li;
+  }
+
+  function mostrarResultados(lista, texto, hayMas) {
     resultados.replaceChildren();
+    visibles = lista;
     if (lista.length === 0) {
-      const li = document.createElement("li");
-      li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
-      li.textContent = "No se encontraron productos.";
+      const li = aviso("No se encontraron productos.");
       // A1: solo con permiso de alta (DEC-63).
       if (alta) {
         const crear = document.createElement("button");
@@ -169,22 +204,27 @@
       }
       resultados.append(li);
     }
-    for (const producto of lista) {
-      const boton = document.createElement("button");
-      boton.type = "button";
-      boton.className = "flex w-full items-center justify-between gap-4 px-3 py-2.5 text-left text-sm hover:bg-gray-50";
+    lista.forEach((producto, i) => {
+      const opcion = document.createElement("li");
+      opcion.id = `producto-${producto.id}`;
+      opcion.setAttribute("role", "option");
+      opcion.className = "flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 text-sm hover:bg-gray-50";
       const nombre = document.createElement("span");
       nombre.textContent = producto.plus ? `${producto.nombre} (${producto.plus})` : producto.nombre;
       const precio = document.createElement("span");
-      precio.className = "cifras text-gray-600";
-      precio.textContent = `$ ${pesos.format(Number(producto.precio))}${producto.unidad === "KG" ? " / kg" : ""}`;
-      boton.append(nombre, precio);
-      boton.addEventListener("click", () => agregar(producto));
-      const li = document.createElement("li");
-      li.append(boton);
-      resultados.append(li);
-    }
+      precio.className = "cifras whitespace-nowrap text-gray-600";
+      precio.textContent = `$ ${pesos.format(Number(producto.precio))} ${producto.unidad === "KG" ? "/ kg" : "/ u."}`;
+      opcion.append(nombre, precio);
+      // mousedown evita que el clic saque el foco del buscador antes de agregar.
+      opcion.addEventListener("mousedown", (evento) => evento.preventDefault());
+      opcion.addEventListener("click", () => agregar(producto));
+      opcion.addEventListener("mousemove", () => marcado !== i && marcar(i));
+      resultados.append(opcion);
+    });
+    if (hayMas) resultados.append(aviso("Seguí escribiendo para ver más."));
     resultados.classList.remove("hidden");
+    buscar.setAttribute("aria-expanded", "true");
+    marcar(-1);
   }
 
   async function consultar(texto) {
@@ -195,18 +235,63 @@
   }
 
   async function buscarTexto(texto) {
+    const turno = buscador.inmediato();
     const datos = await consultar(texto);
+    if (!buscador.vigente(turno)) return;
     if (datos.exacto) agregar(datos.exacto);
     else {
       buscar.value = texto;
-      mostrarResultados(datos.resultados, texto);
+      mostrarResultados(datos.resultados, texto, datos.hay_mas);
       buscar.focus();
     }
   }
 
+  async function filtrar(texto, turno) {
+    const datos = await consultar(texto);
+    if (buscador.vigente(turno)) mostrarResultados(datos.resultados, texto, datos.hay_mas);
+  }
+
+  function abrirLista() {
+    filtrar(buscar.value.trim(), buscador.inmediato());
+  }
+
+  // DEC-97: la lista se abre a pedido (clic en el buscador vacío, flecha abajo o el botón),
+  // nunca sola al volver el foco después de agregar un producto.
+  buscar.addEventListener("click", () => {
+    if (!buscar.value.trim()) abrirLista();
+  });
+  verProductos.addEventListener("click", () => {
+    abrirLista();
+    buscar.focus();
+  });
+  buscar.addEventListener("input", () => {
+    marcar(-1);
+    buscador.diferir(buscar.value.trim(), filtrar);
+  });
+  document.addEventListener("click", (evento) => {
+    if (![buscar, resultados, verProductos].some((parte) => parte.contains(evento.target))) cerrarLista();
+  });
+
   buscar.addEventListener("keydown", (evento) => {
+    const abierta = !resultados.classList.contains("hidden");
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(evento.key) && (abierta || evento.key === "ArrowDown")) {
+      evento.preventDefault();
+      if (abierta) marcar(moverSeleccion(marcado, visibles.length, evento.key));
+      else abrirLista();
+      return;
+    }
+    if (evento.key === "Escape" && abierta) {
+      evento.preventDefault();
+      cerrarLista();
+      return;
+    }
     if (evento.key !== "Enter") return;
     evento.preventDefault();
+    // Un producto marcado con las flechas; si no, el plus exacto o la búsqueda (DEC-52).
+    if (abierta && marcado >= 0) {
+      agregar(visibles[marcado]);
+      return;
+    }
     const texto = buscar.value.trim();
     if (texto) buscarTexto(texto);
   });
@@ -280,7 +365,7 @@
     lineas.clear();
     guardada.borrar();
     medio.value = "";
-    resultados.classList.add("hidden");
+    cerrarLista();
     mostrarErrores([]);
     dibujar();
     buscar.focus();

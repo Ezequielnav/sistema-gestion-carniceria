@@ -80,13 +80,17 @@ def nueva(request):
 @requiere_funcion("Ventas")
 @require_GET
 def buscar(request):
-    """Búsqueda por nombre o plus y coincidencia exacta del lector (DEC-37, DEC-52)."""
+    """Búsqueda por nombre o plus y coincidencia exacta del lector (DEC-37, DEC-52).
+
+    Sin texto, trae los activos para elegir (DEC-97).
+    """
     _solo_cajera(request)
-    exacto, resultados = buscar_para_venta(request.GET.get("q", ""))
+    exacto, resultados, hay_mas = buscar_para_venta(request.GET.get("q", ""))
     return JsonResponse(
         {
             "exacto": _producto(exacto) if exacto else None,
             "resultados": [_producto(p) for p in resultados],
+            "hay_mas": hay_mas,
         }
     )
 

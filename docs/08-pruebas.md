@@ -31,7 +31,7 @@ El sistema lo mantiene una sola persona (RNF-13), por lo que la estrategia busca
 | Recorridos manuales | Que lo construido se puede usar, en PC y celular (RNF-02, RNF-03) | Lista de recorridos de la sección 6 | Al cerrar cada hito |
 | Aceptación | Que el negocio lo considera útil | Prueba con datos ficticios frente a la cajera y el administrador | Antes de la entrega (H6) |
 
-No se prevén pruebas de carga ni de interfaz automatizadas (la unión de `venta.js` con `lector.js` se verifica en los recorridos con Playwright): no se justifican para un local con pocos usuarios simultáneos. Se reevalúa si aparece un problema de rendimiento (RNF-12, umbral a definir).
+No se prevén pruebas de carga ni de interfaz automatizadas (la unión de `venta.js` con `lector.js` y `buscador.js` se verifica en los recorridos con Playwright): no se justifican para un local con pocos usuarios simultáneos. Se reevalúa si aparece un problema de rendimiento (RNF-12, umbral a definir).
 
 ## 3. Entorno y datos de prueba
 
@@ -79,6 +79,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-20 | Venta de carne | RF-20, RF-16 | Se registra por producto y por kg con su precio; el stock no cambia | Decidido (DEC-36); automatizado (H2, etapa 2) |
 | CP-21 | Venta con más de un medio de pago | RF-19 | No se permite: un solo medio por venta | Decidido (DEC-42); automatizado (H2, etapa 2) |
 | CP-82 | Buscar con el código del lector | RF-11 | Un código que coincide exacto con un plus agrega el producto a la venta | Decidido (DEC-37); automatizado (H2, etapa 2) |
+| CP-106 | Ver y filtrar los productos desde el buscador de la venta | DEC-97, DEC-52 | Sin texto trae los activos por nombre, sin stock y hasta 50, avisando si hay más; filtra al dejar de escribir; una lectura rápida terminada en Enter no filtra y agrega por plus exacto; una respuesta vieja no reabre la lista; las flechas no se salen de la lista | Decidido (DEC-97); automatizado (servicio, vista y `buscador.js` con `node --test`) |
 | CP-83 | Venta con stock insuficiente | CU-01 A3, RI-07 | Se permite con aviso y el `stock_actual` queda negativo | Decidido (DEC-46); automatizado (H2, etapa 2) |
 | CP-84 | Ticket de una venta confirmada | RF-14 | Muestra negocio, número, fecha y hora, cajera, detalle, total, medio de pago y "No válido como factura" | Decidido (DEC-44); automatizado (H2, etapa 2) |
 | CP-85 | Anular una venta | RI-02, RI-07 | Solo el Administrador, con motivo y con la caja abierta: la venta queda anulada y, en la misma operación, se registra un egreso `ANULACION` por su total y su medio y el stock de cada producto con control vuelve exactamente al valor previo a la venta (varias líneas, kg con decimales, producto creado durante la venta; los productos sin control no se tocan); el esperado del cierre la descuenta. Una segunda anulación se rechaza y no devuelve stock otra vez. El motivo admite hasta 255 caracteres. Se rechaza sin motivo, ya anulada, con la caja cerrada o si no alcanza el efectivo | Decidido (DEC-45, DEC-66 a DEC-70); automatizado (H2, etapa 4) |
@@ -244,7 +245,7 @@ Para un proyecto individual alcanza con **GitHub Issues**, con las etiquetas `bu
 | PR-22 (unicidad de productos) | CP-59 |
 | PR-37 (registro de faltantes de stock) | RF-27 no tiene prueba: mientras tanto se prueba el supuesto DEC-46 (CP-83) |
 | PR-36 (máximo por línea) | CP-87 prueba el supuesto DEC-76 (100 kg o unidades); se ajusta al responder |
-| Unión de `venta.js` y `lector.js` | No hay prueba de navegador automatizada: se verifica en los recorridos con Playwright. Agregarla implica una dependencia nueva (por ejemplo, pytest-playwright) y se decide aparte |
+| Unión de `venta.js` con `lector.js` y `buscador.js` | No hay prueba de navegador automatizada: se verifica en los recorridos con Playwright. Agregarla implica una dependencia nueva (por ejemplo, pytest-playwright) y se decide aparte |
 | RNF-12 (umbral de rendimiento) | No hay prueba de rendimiento hasta definirlo |
 | Tablas con texto `sr-only` en otras pantallas (DF-02) | `catalogo/productos.html` (H1) tiene el mismo patrón que causó DF-02; verificar a 375 px en RM-09 (H6) o antes |
 | Versionado de archivos estáticos (06, sección 9) | Hasta publicarse con nombres versionados, un recorrido puede usar un JavaScript viejo en caché: recargar sin caché antes de probar |
