@@ -19,7 +19,8 @@
       {% endif %}
 
       <div class="grid gap-5 sm:grid-cols-2">
-        {% for campo in form %}
+        {% for campo in form.hidden_fields %}{{ campo }}{% endfor %}
+        {% for campo in form.visible_fields %}
           <div class="{% if campo.name == 'nombre' %}sm:col-span-2{% endif %}">
             {% if campo.widget_type == "checkbox" %}
               <label class="flex items-center gap-2 pt-7 text-sm font-medium text-gray-700">{{ campo }} {{ campo.label }}</label>
@@ -36,14 +37,12 @@
       </div>
 
       <p class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
-        {% if producto %}
-          Stock actual: <span class="cifras font-medium">{{ producto.stock_actual|cantidad:producto.unidad_medida }}</span>.
-        {% elif form.stock_inicial %}
-          Sin stock inicial, arranca en 0.
+        {% if form.stock %}
+          {% if producto %}Stock actual: <span class="cifras font-medium">{{ producto.stock_actual|cantidad:producto.unidad_medida }}</span>. {% endif %}
+          Solo para productos que controlan stock. Si lo cargás o lo cambiás, queda registrado como ajuste con tu usuario, la fecha y el stock anterior y nuevo.
         {% else %}
-          El stock arranca en 0.
+          El stock arranca en 0. Lo cambian las ventas, los ingresos de mercadería y el administrador.
         {% endif %}
-        Lo cambian solo las ventas, los ingresos de mercadería y los ajustes de stock.
       </p>
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

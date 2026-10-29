@@ -1,4 +1,4 @@
-"""Reglas de CU-11 Gestionar productos, CU-15 Ajustar stock y servicio único de stock (DEC-96)."""
+"""Reglas de CU-11 Gestionar productos, con el stock editable (DEC-98), y servicio de stock."""
 
 from decimal import Decimal
 
@@ -11,8 +11,8 @@ from apps.usuarios.models import Rol
 
 MILESIMA = Decimal("0.001")
 
-# Campos que se cargan desde la pantalla. stock_actual no está: arranca en 0 (o en el stock
-# inicial del Administrador, DEC-99) y lo cambian solo ventas, ingresos y ajustes (RI-07);
+# Campos que se cargan desde la pantalla. stock_actual no está: el Administrador lo edita
+# aparte y el servicio lo cambia con mover_stock y un ajuste registrado (DEC-98, RI-17);
 # activo cambia solo con la baja.
 CAMPOS_EDITABLES = [
     "nombre",
@@ -48,7 +48,7 @@ def validar_cantidad(producto, cantidad):
 
 
 def validar_stock_contado(producto, cantidad):
-    """Stock contado o inicial: como validar_cantidad, pero admite 0 (RI-17, DEC-98)."""
+    """Stock editado a mano: como validar_cantidad, pero admite 0 (RI-17, DEC-98)."""
     if cantidad < 0:
         raise ValidationError("El stock no puede ser negativo.")
     _validar_formato(producto, cantidad, "el stock", "entero")
@@ -139,39 +139,45 @@ def _plus_repetido(plus):
     )
 
 
-def crear_producto(usuario, datos, stock_inicial=None):
+def crear_producto(usuario, datos, stock=None):
     """Alta de producto. El nombre repetido no se bloquea (propuesta no confirmada de CU-11).
 
-    El stock inicial es solo del Administrador y se registra como ajuste (DEC-99).
+    El stock es solo del Administrador; si es mayor a 0 se registra como ajuste
+    "Stock inicial" (DEC-99). La cajera con permiso de alta arranca en 0 (DEC-33).
     """
     if not puede_crear(usuario):
         raise PermissionDenied("Tu usuario no tiene permiso para dar de alta productos.")
-    if stock_inicial is not None and not puede_modificar(usuario):
-        raise PermissionDenied("Solo el administrador carga el stock inicial.")
+    if stock and not puede_modificar(usuario):
+        raise PermissionDenied("Solo el administrador carga el stock.")
     producto = Producto(**{campo: datos.get(campo) for campo in CAMPOS_EDITABLES})
     producto.stock_actual = 0
-    if stock_inicial:
-        if not producto.controla_stock:
-            raise ValidationError(
-                {"stock_inicial": "Solo los productos que controlan stock tienen stock inicial."}
-            )
-        try:
-            validar_stock_contado(producto, stock_inicial)
-        except ValidationError as error:
-            raise ValidationError({"stock_inicial": error.messages}) from error
+    if stock:
+        validar_stock_editado(producto, stock)
     with transaction.atomic():
         _guardar(producto)
-        if stock_inicial:
-            _registrar_ajuste(usuario, producto, stock_inicial, MotivoAjuste.STOCK_INICIAL, "")
+        if stock:
+            _registrar_ajuste(usuario, producto, stock, MotivoAjuste.STOCK_INICIAL)
     return producto
 
 
-def modificar_producto(usuario, producto, datos):
+def modificar_producto(usuario, producto, datos, stock=None, stock_mostrado=None, motivo=None):
+    """Modifica el producto y, si el Administrador cambió el stock, registra el ajuste (DEC-98).
+
+    El cambio se mide contra el stock que mostró el formulario (`stock_mostrado`), no contra
+    el actual: una venta hecha mientras se editaba no se deshace por error.
+    """
     if not puede_modificar(usuario):
         raise PermissionDenied("Solo el administrador puede modificar productos.")
     for campo in CAMPOS_EDITABLES:
         setattr(producto, campo, datos.get(campo))
-    return _guardar(producto)
+    cambia_stock = stock_cambiado(producto, stock, stock_mostrado)
+    if cambia_stock:
+        validar_stock_editado(producto, stock)
+    with transaction.atomic():
+        _guardar(producto)
+        if cambia_stock:
+            _registrar_ajuste(usuario, producto, stock, motivo or MotivoAjuste.MODIFICACION_MANUAL)
+    return producto
 
 
 def dar_de_baja(usuario, producto):
@@ -197,54 +203,45 @@ def reactivar(usuario, producto):
     return producto
 
 
-# CU-15 Ajustar stock (DEC-98, supuesto del proyecto)
+# Stock editado a mano al crear o modificar (DEC-98, supuesto del proyecto)
 
-MOTIVOS_DE_AJUSTE = [m for m in MotivoAjuste if m != MotivoAjuste.STOCK_INICIAL]
-
-
-def producto_ajustable(pk):
-    """Activo y con control de stock (DEC-98). Producto.DoesNotExist si no lo es."""
-    return Producto.objects.get(pk=pk, activo=True, controla_stock=True)
+MOTIVOS_DE_MODIFICACION = [m for m in MotivoAjuste if m != MotivoAjuste.STOCK_INICIAL]
 
 
-def _registrar_ajuste(usuario, producto, stock_nuevo, motivo, observacion):
-    """Lleva el stock al valor contado con mover_stock y guarda el ajuste (RI-07, RI-17).
+def stock_cambiado(producto, stock, stock_mostrado=None):
+    """Si hay que registrar un ajuste: el stock enviado difiere del que se mostró."""
+    if stock is None:
+        return False
+    referencia = producto.stock_actual if stock_mostrado is None else stock_mostrado
+    return stock != referencia
+
+
+def validar_stock_editado(producto, stock):
+    """Solo con control de stock; mayor o igual a 0 y con el formato de DEC-79 (RI-17).
+
+    `producto` lleva la unidad y el control de stock que se están guardando.
+    """
+    if not producto.controla_stock:
+        raise ValidationError({"stock": "Solo los productos que controlan stock tienen stock."})
+    try:
+        validar_stock_contado(producto, stock)
+    except ValidationError as error:
+        raise ValidationError({"stock": error.messages}) from error
+
+
+def _registrar_ajuste(usuario, producto, stock_nuevo, motivo):
+    """Lleva el stock al valor indicado con mover_stock y guarda el ajuste (RI-07, RI-17).
 
     Se llama dentro de una transacción; bloquea el producto para que el stock anterior sea
     el del momento aunque haya ventas al mismo tiempo.
     """
     anterior = Producto.objects.select_for_update().get(pk=producto.pk).stock_actual
     mover_stock(producto, stock_nuevo - anterior)
+    producto.stock_actual = stock_nuevo
     return AjusteStock.objects.create(
         producto=producto,
         usuario=usuario,
         stock_anterior=anterior,
         stock_nuevo=stock_nuevo,
         motivo=motivo,
-        observacion=observacion,
     )
-
-
-def ajustar_stock(usuario, producto, stock_contado, motivo, observacion=""):
-    """El stock queda igual al contado; un conteo igual también se registra (DEC-98).
-
-    Los ajustes no se editan ni se borran: un error se corrige con otro ajuste (RI-17).
-    """
-    if not puede_modificar(usuario):
-        raise PermissionDenied("Solo el administrador ajusta el stock.")
-    if not (producto.activo and producto.controla_stock):
-        raise ValidationError("Solo se ajustan productos activos que controlan stock.")
-    errores = {}
-    try:
-        validar_stock_contado(producto, stock_contado)
-    except ValidationError as error:
-        errores["stock_contado"] = error.messages
-    if motivo not in MOTIVOS_DE_AJUSTE:
-        errores["motivo"] = "Elegí un motivo."
-    observacion = (observacion or "").strip()
-    if motivo == MotivoAjuste.OTRO and not observacion:
-        errores["observacion"] = "Con el motivo «Otro», contá qué pasó."
-    if errores:
-        raise ValidationError(errores)
-    with transaction.atomic():
-        return _registrar_ajuste(usuario, producto, stock_contado, motivo, observacion)

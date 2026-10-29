@@ -95,18 +95,22 @@ class Producto(ModeloBase):
 
 
 class MotivoAjuste(models.TextChoices):
-    """Motivos del ajuste de stock (DEC-98, supuesto del proyecto; ex PR-32)."""
+    """Motivo de un cambio de stock hecho a mano (DEC-98, supuesto del proyecto; ex PR-32)."""
 
+    MODIFICACION_MANUAL = "MODIFICACION_MANUAL", "Modificación manual"
     CONTEO = "CONTEO", "Conteo"
     VENCIMIENTO = "VENCIMIENTO", "Vencimiento"
     ROTURA = "ROTURA", "Rotura"
     OTRO = "OTRO", "Otro"
-    # Solo desde el alta del producto (DEC-99); no se elige en el ajuste.
+    # Solo en el alta del producto (DEC-99); no se elige al modificar.
     STOCK_INICIAL = "STOCK_INICIAL", "Stock inicial"
 
 
 class AjusteStock(ModeloBase):
-    """CU-15: stock contado de un producto. No se edita ni se borra (RI-17)."""
+    """Cambio de stock hecho a mano al crear o modificar un producto (CU-11, DEC-98).
+
+    Lo registra el servicio de catálogo; no se edita ni se borra (RI-17).
+    """
 
     fecha_hora = models.DateTimeField(default=timezone.now)
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
@@ -114,8 +118,7 @@ class AjusteStock(ModeloBase):
     # Stock al guardar el ajuste: copia histórica, puede ser negativo (DEC-46).
     stock_anterior = campo_cantidad()
     stock_nuevo = campo_cantidad(validators=[NO_NEGATIVO])
-    motivo = models.CharField(max_length=13, choices=MotivoAjuste.choices)
-    observacion = models.CharField(max_length=255, blank=True)
+    motivo = models.CharField(max_length=19, choices=MotivoAjuste.choices)
 
     class Meta:
         db_table = "ajuste_stock"
@@ -127,10 +130,6 @@ class AjusteStock(ModeloBase):
             ),
             models.CheckConstraint(
                 condition=Q(motivo__in=MotivoAjuste.values), name="ajuste_stock_motivo_valido"
-            ),
-            models.CheckConstraint(
-                condition=~Q(motivo=MotivoAjuste.OTRO) | ~Q(observacion=""),
-                name="ajuste_stock_otro_con_observacion",
             ),
         ]
         indexes = [

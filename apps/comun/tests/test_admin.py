@@ -56,9 +56,7 @@ SOLO_LECTURA = {
     "pago_proveedor",
     "ajuste_stock",
 }
-# DEC-100: el producto se modifica en el panel, pero el alta va por /productos/ (CP-109).
-SIN_ALTA = {"producto"}
-EDITABLES = [m for m in MODELOS if m._meta.db_table not in SOLO_LECTURA | SIN_ALTA]
+EDITABLES = [m for m in MODELOS if m._meta.db_table not in SOLO_LECTURA]
 OPERATIVOS = [m for m in MODELOS if m._meta.db_table in SOLO_LECTURA]
 
 
@@ -120,6 +118,8 @@ def test_precio_negativo_muestra_el_error_junto_al_campo(cliente_admin, producto
         "precio_venta": "-5",
         "unidad_medida": "UNIDAD",
         "controla_stock": "on",
+        "stock_actual": "0",
+        "stock_mostrado": "0",
         "activo": "on",
     }
 
@@ -133,14 +133,13 @@ def test_precio_negativo_muestra_el_error_junto_al_campo(cliente_admin, producto
     assert producto.precio_venta == 2500
 
 
-def test_el_formulario_de_producto_marca_minimos_y_no_edita_el_stock(cliente_admin, producto):
+def test_el_formulario_de_producto_marca_minimos(cliente_admin, producto):
     client, _ = cliente_admin
 
     formulario = client.get(_url(Producto, "change", producto.pk)).context["adminform"].form
 
     assert formulario.fields["precio_venta"].widget.attrs["min"] == "0"
     assert formulario.fields["stock_minimo"].widget.attrs["min"] == "0"
-    assert "stock_actual" not in formulario.fields
 
 
 def test_medio_de_pago_repetido_con_otras_mayusculas_muestra_un_mensaje_claro(
@@ -262,18 +261,3 @@ def test_los_productos_se_listan_dentro_del_ingreso(cliente_admin, ingreso, prod
 def test_los_renglones_no_tienen_modulo_propio_en_el_panel(modelo):
     with pytest.raises(NoReverseMatch):
         _url(modelo, "changelist")
-
-
-# CP-109 (DEC-100)
-
-
-def test_cp109_el_panel_no_da_de_alta_productos_ni_edita_el_stock(cliente_admin, producto):
-    client, _ = cliente_admin
-
-    assert client.get(_url(Producto, "changelist")).status_code == 200
-    assert client.get(_url(Producto, "add")).status_code == 403
-    assert client.post(_url(Producto, "add"), {"nombre": "Otro"}).status_code == 403
-    respuesta = client.get(_url(Producto, "change", producto.pk))
-    assert respuesta.status_code == 200
-    assert "stock_actual" not in respuesta.context["adminform"].form.fields
-    assert Producto.objects.count() == 1

@@ -72,17 +72,10 @@
                       <span class="text-xs text-gray-500">Sin control</span>
                     {% endif %}
                   </td>
-                  <td class="px-5 py-3 text-right">
+                  <td class="px-5 py-3 text-right whitespace-nowrap">
                     {% if producto.activo %}
-                      {# Tres acciones: bajan de línea en pantallas angostas en lugar de cortarse. #}
-                      <div class="flex flex-wrap justify-end gap-1 whitespace-nowrap">
-                        <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>
-                        {# CU-15: solo con control de stock (DEC-98). #}
-                        {% if producto.controla_stock %}
-                          <a href="{% url 'catalogo:ajustar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ajustar stock<span class="sr-only"> de «{{ producto }}»</span></a>
-                        {% endif %}
-                        <a href="{% url 'catalogo:baja' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja</a>
-                      </div>
+                      <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>
+                      <a href="{% url 'catalogo:baja' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja</a>
                     {% else %}
                       {# DEC-85: reactivar, solo el Administrador. #}
                       <form method="post" action="{% url 'catalogo:reactivar' producto.pk %}" class="inline">

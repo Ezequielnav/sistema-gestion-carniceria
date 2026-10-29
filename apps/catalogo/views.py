@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
@@ -6,16 +8,14 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
-from apps.catalogo.forms import AjusteStockForm, ProductoForm
-from apps.catalogo.models import formatear_cantidad
+from apps.catalogo.forms import ProductoForm
+from apps.catalogo.models import UnidadMedida
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
-    ajustar_stock,
     crear_producto,
     dar_de_baja,
     listar_productos,
     modificar_producto,
-    producto_ajustable,
     producto_dado_de_baja,
     producto_editable,
     puede_crear,
@@ -72,12 +72,12 @@ def _guardar_con(request, form, operacion, mensaje):
 def nuevo(request):
     if not puede_crear(request.user):
         raise PermissionDenied
-    # DEC-99: el stock inicial es solo del Administrador.
-    form = ProductoForm(request.POST or None, con_stock_inicial=puede_modificar(request.user))
+    # DEC-99: el stock inicial es solo del Administrador; la cajera arranca en 0 (DEC-33).
+    form = ProductoForm(request.POST or None, con_stock=puede_modificar(request.user))
     respuesta = _guardar_con(
         request,
         form,
-        lambda datos: crear_producto(request.user, datos, datos.get("stock_inicial")),
+        lambda datos: crear_producto(request.user, datos, datos.get("stock")),
         "Se dio de alta «{producto}».",
     )
     return respuesta or render(request, "catalogo/producto_form.html", {"form": form})
@@ -90,11 +90,24 @@ def editar(request, pk):
         raise PermissionDenied
     # Un producto dado de baja no se edita: primero se reactiva (DEC-33, DEC-85).
     producto = _producto_editable(pk)
-    form = ProductoForm(request.POST or None, initial=model_to_dict(producto, CAMPOS_EDITABLES))
+    inicial = model_to_dict(producto, CAMPOS_EDITABLES)
+    # Por unidad, el stock se muestra entero ("7", no "7,000"; DEC-48).
+    stock = producto.stock_actual
+    if producto.unidad_medida == UnidadMedida.UNIDAD:
+        stock = stock.quantize(Decimal(1))
+    inicial.update(stock=stock, stock_mostrado=stock)
+    form = ProductoForm(request.POST or None, initial=inicial, con_stock=True, es_alta=False)
     respuesta = _guardar_con(
         request,
         form,
-        lambda datos: modificar_producto(request.user, producto, datos),
+        lambda datos: modificar_producto(
+            request.user,
+            producto,
+            datos,
+            stock=datos.get("stock"),
+            stock_mostrado=datos.get("stock_mostrado"),
+            motivo=datos.get("motivo_ajuste") or None,
+        ),
         "Se guardaron los cambios de «{producto}».",
     )
     if respuesta:
@@ -131,36 +144,3 @@ def reactivar_producto(request, pk):
     reactivar(request.user, producto)
     messages.success(request, f"Se reactivó «{producto}».")
     return redirect("catalogo:productos")
-
-
-@requiere_funcion("Productos")
-@require_http_methods(["GET", "POST"])
-def ajustar(request, pk):
-    """CU-15: stock contado y motivo; queda registrado (DEC-98)."""
-    if not puede_modificar(request.user):
-        raise PermissionDenied
-    try:
-        producto = producto_ajustable(pk)
-    except ObjectDoesNotExist as error:
-        raise Http404 from error
-    form = AjusteStockForm(request.POST or None, producto=producto)
-    if request.method == "POST" and form.is_valid():
-        datos = form.cleaned_data
-        try:
-            ajuste = ajustar_stock(
-                request.user,
-                producto,
-                datos["stock_contado"],
-                datos["motivo"],
-                datos["observacion"],
-            )
-        except ValidationError as error:
-            form.add_error(None, error)
-        else:
-            messages.success(
-                request,
-                f"Se ajustó el stock de «{producto}»: "
-                f"{formatear_cantidad(ajuste.stock_nuevo, producto.unidad_medida)}.",
-            )
-            return redirect("catalogo:productos")
-    return render(request, "catalogo/ajuste_form.html", {"form": form, "producto": producto})

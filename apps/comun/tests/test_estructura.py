@@ -67,7 +67,6 @@ CHECKS = {
     "ajuste_stock": [
         "ajuste_stock_nuevo_no_negativo",
         "ajuste_stock_motivo_valido",
-        "ajuste_stock_otro_con_observacion",
     ],
     "producto_proveedor": ["producto_proveedor_precio_no_negativo"],
     "ingreso_mercaderia": [
