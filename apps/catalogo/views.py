@@ -6,13 +6,16 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
-from apps.catalogo.forms import ProductoForm
+from apps.catalogo.forms import AjusteStockForm, ProductoForm
+from apps.catalogo.models import formatear_cantidad
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
+    ajustar_stock,
     crear_producto,
     dar_de_baja,
     listar_productos,
     modificar_producto,
+    producto_ajustable,
     producto_dado_de_baja,
     producto_editable,
     puede_crear,
@@ -69,11 +72,12 @@ def _guardar_con(request, form, operacion, mensaje):
 def nuevo(request):
     if not puede_crear(request.user):
         raise PermissionDenied
-    form = ProductoForm(request.POST or None)
+    # DEC-99: el stock inicial es solo del Administrador.
+    form = ProductoForm(request.POST or None, con_stock_inicial=puede_modificar(request.user))
     respuesta = _guardar_con(
         request,
         form,
-        lambda datos: crear_producto(request.user, datos),
+        lambda datos: crear_producto(request.user, datos, datos.get("stock_inicial")),
         "Se dio de alta «{producto}».",
     )
     return respuesta or render(request, "catalogo/producto_form.html", {"form": form})
@@ -127,3 +131,36 @@ def reactivar_producto(request, pk):
     reactivar(request.user, producto)
     messages.success(request, f"Se reactivó «{producto}».")
     return redirect("catalogo:productos")
+
+
+@requiere_funcion("Productos")
+@require_http_methods(["GET", "POST"])
+def ajustar(request, pk):
+    """CU-15: stock contado y motivo; queda registrado (DEC-98)."""
+    if not puede_modificar(request.user):
+        raise PermissionDenied
+    try:
+        producto = producto_ajustable(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+    form = AjusteStockForm(request.POST or None, producto=producto)
+    if request.method == "POST" and form.is_valid():
+        datos = form.cleaned_data
+        try:
+            ajuste = ajustar_stock(
+                request.user,
+                producto,
+                datos["stock_contado"],
+                datos["motivo"],
+                datos["observacion"],
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(
+                request,
+                f"Se ajustó el stock de «{producto}»: "
+                f"{formatear_cantidad(ajuste.stock_nuevo, producto.unidad_medida)}.",
+            )
+            return redirect("catalogo:productos")
+    return render(request, "catalogo/ajuste_form.html", {"form": form, "producto": producto})

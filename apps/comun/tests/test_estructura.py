@@ -20,6 +20,7 @@ TABLAS = {
     "detalle_venta",
     "categoria",
     "producto",
+    "ajuste_stock",
     "proveedor",
     "producto_proveedor",
     "ingreso_mercaderia",
@@ -63,6 +64,11 @@ CHECKS = {
         "producto_stock_minimo_no_negativo",
         "producto_unidad_medida_valida",
     ],
+    "ajuste_stock": [
+        "ajuste_stock_nuevo_no_negativo",
+        "ajuste_stock_motivo_valido",
+        "ajuste_stock_otro_con_observacion",
+    ],
     "producto_proveedor": ["producto_proveedor_precio_no_negativo"],
     "ingreso_mercaderia": [
         "ingreso_mercaderia_total_no_negativo",
@@ -105,6 +111,7 @@ INDICES = [
     ("pago_proveedor", ["proveedor_id"], False),
     ("pago_proveedor", ["ingreso_id"], False),
     ("producto", ["nombre"], False),
+    ("ajuste_stock", ["producto_id", "fecha_hora"], False),
     ("detalle_ingreso", ["fecha_vencimiento"], True),
 ]
 
@@ -142,7 +149,7 @@ def test_cp72_los_modelos_no_tienen_cambios_sin_migrar():
 # CP-73
 
 
-def test_cp73_existen_las_17_tablas_y_ninguna_condicional():
+def test_cp73_existen_las_18_tablas_y_ninguna_condicional():
     tablas = set(connection.introspection.table_names())
 
     assert TABLAS <= tablas

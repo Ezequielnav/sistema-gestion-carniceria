@@ -1,4 +1,4 @@
-"""Reglas de CU-11 Gestionar productos y servicio único de stock y cantidades (DEC-96)."""
+"""Reglas de CU-11 Gestionar productos, CU-15 Ajustar stock y servicio único de stock (DEC-96)."""
 
 from decimal import Decimal
 
@@ -6,13 +6,14 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 
-from apps.catalogo.models import Producto, UnidadMedida
+from apps.catalogo.models import AjusteStock, MotivoAjuste, Producto, UnidadMedida
 from apps.usuarios.models import Rol
 
 MILESIMA = Decimal("0.001")
 
-# Campos que se cargan desde la pantalla. stock_actual no está: arranca en 0 y lo cambian
-# solo las ventas y los ingresos (RI-07); activo cambia solo con la baja.
+# Campos que se cargan desde la pantalla. stock_actual no está: arranca en 0 (o en el stock
+# inicial del Administrador, DEC-99) y lo cambian solo ventas, ingresos y ajustes (RI-07);
+# activo cambia solo con la baja.
 CAMPOS_EDITABLES = [
     "nombre",
     "categoria",
@@ -24,7 +25,16 @@ CAMPOS_EDITABLES = [
 ]
 
 
-# Stock y cantidades (R-1, R-2): ventas, anulaciones e ingresos usan solo estas funciones.
+# Stock y cantidades (R-1, R-2): ventas, anulaciones, ingresos y ajustes usan solo estas
+# funciones.
+
+
+def _validar_formato(producto, cantidad, que, entera):
+    """Entera por unidad y hasta 3 decimales por kg (DEC-48, DEC-79)."""
+    if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
+        raise ValidationError(f"{producto} se vende por unidad: {que} tiene que ser {entera}.")
+    if cantidad != cantidad.quantize(MILESIMA):
+        raise ValidationError(f"{que.capitalize()} de {producto} admite hasta 3 decimales.")
 
 
 def validar_cantidad(producto, cantidad):
@@ -34,10 +44,14 @@ def validar_cantidad(producto, cantidad):
     """
     if cantidad <= 0:
         raise ValidationError(f"La cantidad de {producto} tiene que ser mayor a 0.")
-    if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
-        raise ValidationError(f"{producto} se vende por unidad: la cantidad tiene que ser entera.")
-    if cantidad != cantidad.quantize(MILESIMA):
-        raise ValidationError(f"La cantidad de {producto} admite hasta 3 decimales.")
+    _validar_formato(producto, cantidad, "la cantidad", "entera")
+
+
+def validar_stock_contado(producto, cantidad):
+    """Stock contado o inicial: como validar_cantidad, pero admite 0 (RI-17, DEC-98)."""
+    if cantidad < 0:
+        raise ValidationError("El stock no puede ser negativo.")
+    _validar_formato(producto, cantidad, "el stock", "entero")
 
 
 def mover_stock(producto, cantidad):
@@ -125,13 +139,31 @@ def _plus_repetido(plus):
     )
 
 
-def crear_producto(usuario, datos):
-    """Alta de producto. El nombre repetido no se bloquea (propuesta no confirmada de CU-11)."""
+def crear_producto(usuario, datos, stock_inicial=None):
+    """Alta de producto. El nombre repetido no se bloquea (propuesta no confirmada de CU-11).
+
+    El stock inicial es solo del Administrador y se registra como ajuste (DEC-99).
+    """
     if not puede_crear(usuario):
         raise PermissionDenied("Tu usuario no tiene permiso para dar de alta productos.")
+    if stock_inicial is not None and not puede_modificar(usuario):
+        raise PermissionDenied("Solo el administrador carga el stock inicial.")
     producto = Producto(**{campo: datos.get(campo) for campo in CAMPOS_EDITABLES})
     producto.stock_actual = 0
-    return _guardar(producto)
+    if stock_inicial:
+        if not producto.controla_stock:
+            raise ValidationError(
+                {"stock_inicial": "Solo los productos que controlan stock tienen stock inicial."}
+            )
+        try:
+            validar_stock_contado(producto, stock_inicial)
+        except ValidationError as error:
+            raise ValidationError({"stock_inicial": error.messages}) from error
+    with transaction.atomic():
+        _guardar(producto)
+        if stock_inicial:
+            _registrar_ajuste(usuario, producto, stock_inicial, MotivoAjuste.STOCK_INICIAL, "")
+    return producto
 
 
 def modificar_producto(usuario, producto, datos):
@@ -163,3 +195,56 @@ def reactivar(usuario, producto):
     producto.activo = True
     producto.save(update_fields=["activo", "actualizado_en"])
     return producto
+
+
+# CU-15 Ajustar stock (DEC-98, supuesto del proyecto)
+
+MOTIVOS_DE_AJUSTE = [m for m in MotivoAjuste if m != MotivoAjuste.STOCK_INICIAL]
+
+
+def producto_ajustable(pk):
+    """Activo y con control de stock (DEC-98). Producto.DoesNotExist si no lo es."""
+    return Producto.objects.get(pk=pk, activo=True, controla_stock=True)
+
+
+def _registrar_ajuste(usuario, producto, stock_nuevo, motivo, observacion):
+    """Lleva el stock al valor contado con mover_stock y guarda el ajuste (RI-07, RI-17).
+
+    Se llama dentro de una transacción; bloquea el producto para que el stock anterior sea
+    el del momento aunque haya ventas al mismo tiempo.
+    """
+    anterior = Producto.objects.select_for_update().get(pk=producto.pk).stock_actual
+    mover_stock(producto, stock_nuevo - anterior)
+    return AjusteStock.objects.create(
+        producto=producto,
+        usuario=usuario,
+        stock_anterior=anterior,
+        stock_nuevo=stock_nuevo,
+        motivo=motivo,
+        observacion=observacion,
+    )
+
+
+def ajustar_stock(usuario, producto, stock_contado, motivo, observacion=""):
+    """El stock queda igual al contado; un conteo igual también se registra (DEC-98).
+
+    Los ajustes no se editan ni se borran: un error se corrige con otro ajuste (RI-17).
+    """
+    if not puede_modificar(usuario):
+        raise PermissionDenied("Solo el administrador ajusta el stock.")
+    if not (producto.activo and producto.controla_stock):
+        raise ValidationError("Solo se ajustan productos activos que controlan stock.")
+    errores = {}
+    try:
+        validar_stock_contado(producto, stock_contado)
+    except ValidationError as error:
+        errores["stock_contado"] = error.messages
+    if motivo not in MOTIVOS_DE_AJUSTE:
+        errores["motivo"] = "Elegí un motivo."
+    observacion = (observacion or "").strip()
+    if motivo == MotivoAjuste.OTRO and not observacion:
+        errores["observacion"] = "Con el motivo «Otro», contá qué pasó."
+    if errores:
+        raise ValidationError(errores)
+    with transaction.atomic():
+        return _registrar_ajuste(usuario, producto, stock_contado, motivo, observacion)

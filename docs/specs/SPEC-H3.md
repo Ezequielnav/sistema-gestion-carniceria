@@ -153,8 +153,8 @@ def mover_stock(producto, cantidad):
 
 | Fecha | Cambio | Decisión | Etapa |
 |---|---|---|---|
-| 2026-10-29 | Ajuste de stock (CU-15) con registro en `ajuste_stock`; salía de "Fuera de H3" (PR-32, cerrada como supuesto). Necesita su propio spec (`SPEC-CU-15.md`) y una migración | DEC-98 | 3b |
-| 2026-10-29 | Stock inicial en el alta del Administrador, registrado como ajuste | DEC-99 | 3b |
-| 2026-10-29 | Panel: sin alta de productos, `stock_actual` y `ajuste_stock` de solo lectura | DEC-100 | 3b |
+| 2026-10-29 | Ajuste de stock (CU-15) con registro en `ajuste_stock`; salía de "Fuera de H3" (PR-32, cerrada como supuesto). Spec propio (`SPEC-CU-15.md`) y una migración; se hace en la etapa 1b, antes de proveedores | DEC-98 | 1b |
+| 2026-10-29 | Stock inicial en el alta del Administrador, registrado como ajuste | DEC-99 | 1b |
+| 2026-10-29 | Panel: sin alta de productos, `stock_actual` y `ajuste_stock` de solo lectura | DEC-100 | 1b |
 | 2026-10-29 | Alerta sin mínimo con `stock_actual <= 0` (criterio 11 y regla de consulta-stock) | DEC-101 | 5 |
 | 2026-10-29 | Aviso de stock insuficiente al agregar en la venta, sin cantidades; cambia el comportamiento de la venta (pedido por el alumno) | DEC-102 | 5 |

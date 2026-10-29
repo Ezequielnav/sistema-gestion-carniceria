@@ -168,6 +168,7 @@ UNFOLD = {
                 "items": [
                     _item("Productos", "inventory_2", "admin:catalogo_producto_changelist"),
                     _item("Categorías", "category", "admin:catalogo_categoria_changelist"),
+                    _item("Ajustes de stock", "inventory", "admin:catalogo_ajustestock_changelist"),
                 ],
             },
             {

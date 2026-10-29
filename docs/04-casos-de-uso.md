@@ -503,7 +503,7 @@ flowchart LR
 
 **Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL): primero se reactiva con "Reactivar" en el listado de dados de baja, solo el Administrador y sin condición de stock (DEC-85). La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
 
-**Cambio de diseño (etapa 3b de H3, DEC-99 y DEC-100):** el alta del Administrador tiene el campo opcional "Stock inicial" (solo con control de stock, mayor o igual a 0, formato de DEC-79), que se guarda en la misma operación como un ajuste con motivo `STOCK_INICIAL`; la cajera con permiso no lo ve y su alta arranca en 0 (DEC-33), y tampoco lo tienen el alta durante la venta ni desde el ingreso. Cada producto activo con control de stock tiene el botón "Ajustar stock" (CU-15). El panel de administración no da de alta productos y no edita el stock.
+**Cambio de diseño (etapa 1b de H3, DEC-99 y DEC-100):** el alta del Administrador tiene el campo opcional "Stock inicial" (solo con control de stock, mayor o igual a 0, formato de DEC-79), que se guarda en la misma operación como un ajuste con motivo `STOCK_INICIAL`; la cajera con permiso no lo ve y su alta arranca en 0 (DEC-33), y tampoco lo tienen el alta durante la venta ni desde el ingreso. Cada producto activo con control de stock tiene el botón "Ajustar stock" (CU-15). El panel de administración no da de alta productos y no edita el stock.
 
 ### CU-12 Gestionar clientes
 
@@ -570,6 +570,7 @@ flowchart LR
 | A5 | El stock contado es igual al actual | Se registra igual, como constancia del conteo, sin cambiar el stock |
 
 **Decisiones de diseño (DEC-98, supuesto del proyecto):** los ajustes no se editan ni se borran: un error se corrige con otro ajuste. `ajuste_stock` registra solo los ajustes; las ventas y los ingresos no quedan en un libro de movimientos, que sigue diferido (DEC-24). El alta del Administrador puede registrar un stock inicial como ajuste con motivo `STOCK_INICIAL`, que no se elige en el ajuste manual (DEC-99).
+**Implementación (H3, etapa 1b):** spec `docs/specs/SPEC-CU-15.md`. Pantalla `/productos/<id>/ajustar/` desde "Ajustar stock" en el listado (solo productos activos con control de stock; otro producto da 404). Los errores de formato, de motivo y de observación se muestran juntos, cada uno junto a su campo. El ajuste se guarda con el producto bloqueado, con `mover_stock`. Los ajustes se consultan en el panel ("Ajustes de stock", solo lectura). En el listado, las acciones de cada producto bajan de línea en pantallas angostas.
 **Pendientes:** que el negocio confirme si hace conteos y quién los autoriza (PR-32 se cerró como supuesto).
 
 ## 6. Sub-casos reutilizables
