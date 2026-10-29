@@ -77,8 +77,13 @@ def puede_crear(usuario):
 
 
 def puede_modificar(usuario):
-    """Modificar y dar de baja: solo el Administrador (CU-11, RN-05)."""
+    """Modificar, dar de baja y cambiar el stock: solo el Administrador (CU-11, RN-05, DEC-103)."""
     return usuario.rol == Rol.ADMINISTRADOR
+
+
+def puede_ver_stock(usuario):
+    """El Administrador y toda cajera, con o sin permiso de alta, en solo lectura (DEC-103)."""
+    return usuario.rol in (Rol.ADMINISTRADOR, Rol.CAJERA)
 
 
 def buscar_productos(texto="", incluir_inactivos=False):
@@ -143,7 +148,7 @@ def crear_producto(usuario, datos, stock=None):
     """Alta de producto. El nombre repetido no se bloquea (propuesta no confirmada de CU-11).
 
     El stock es solo del Administrador; si es mayor a 0 se registra como ajuste
-    "Stock inicial" (DEC-99). La cajera con permiso de alta arranca en 0 (DEC-33).
+    "Stock inicial" (DEC-99). La cajera con permiso de alta arranca en 0 (DEC-103).
     """
     if not puede_crear(usuario):
         raise PermissionDenied("Tu usuario no tiene permiso para dar de alta productos.")

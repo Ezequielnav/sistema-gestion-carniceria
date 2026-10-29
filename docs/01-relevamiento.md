@@ -106,7 +106,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 |---|---|---|---|---|
 | PR-23 | ¿Cuántas personas usarán el sistema y desde qué dispositivos (PC de mostrador, celulares)? | Usuarios y diseño responsive | 03, 06 | Pendiente |
 | PR-24 | ¿Hay impresora de tickets? ¿Qué debe contener el ticket o comprobante (sin validez fiscal)? | Emisión de comprobante | 03, 04 | **Cerrada por decisión de diseño:** DEC-44 (DEC-35) |
-| PR-25 | ¿Quién es el "Administrador": el administrativo, los dueños u otra persona? ¿Qué ven los dueños? | Roles y permisos | 00, 03, 04 | Pendiente |
+| PR-25 | ¿Quién es el "Administrador": el administrativo, los dueños u otra persona? ¿Qué ven los dueños? | Roles y permisos | 00, 03, 04 | Pendiente para quién es el Administrador y qué ven los dueños; la consulta de stock de la cajera se decidió en DEC-103 |
 | PR-26 | ¿Cada persona tendrá su propio usuario y contraseña? | Seguridad y auditoría | 03, 06 | Pendiente |
 | PR-27 | ¿Qué reportes se necesitan, con qué frecuencia y en qué formato? ¿Deben generarse solos al cierre o a pedido? | La meta dice "automáticos"; el caso de uso, "a pedido" | 02, 03, 04 | Pendiente |
 | PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente |
@@ -134,7 +134,7 @@ Inconsistencias detectadas al revisar el documento de trabajo. Cada una indica q
 | ID | Hallazgo | Propuesta | Documentos afectados |
 |---|---|---|---|
 | H-01 | La meta de "registrar el 100% de ventas" choca con dejar fuera Kendra y el control de cortes; el caso de registrar venta exige stock, y el stock solo cubre no cárnicos | Resuelto por DEC-36 (ex PR-01) | 02, 03, 04 |
-| H-02 | Consultar stock: el diagrama la conecta con Cajera y Administrador, el texto solo con Administrador | Unificar tras PR-25 | 04 |
+| H-02 | Consultar stock: el diagrama la conecta con Cajera y Administrador, el texto solo con Administrador | Resuelta por DEC-103: la cajera consulta el stock, como en el diagrama | 04 |
 | H-03 | Los dueños son un rol pero no aparecen en el diagrama; los reportes figuran solo para el Administrador | Agregar el actor y ajustar permisos | 03, 04 |
 | H-04 | Falta un caso de uso de alta/baja/modificación de productos, clientes, proveedores y usuarios (inicio de sesión), aunque la cajera puede crear productos | Agregar casos de uso | 04 |
 | H-05 | Medios de pago: se listan cinco, el caso de uso dice "efectivo, débito, etc." y la caja solo totaliza efectivo, tarjeta y transferencia | Resuelto por DEC-41 (ex PR-08) | 03, 04, 05 |

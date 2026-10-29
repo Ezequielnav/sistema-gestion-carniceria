@@ -158,3 +158,4 @@ def mover_stock(producto, cantidad):
 | 2026-10-29 | Panel: alta y modificación de productos con el servicio de catálogo; `ajuste_stock` de solo lectura | DEC-100 | 1b |
 | 2026-10-29 | Alerta sin mínimo con `stock_actual <= 0` (criterio 11 y regla de consulta-stock) | DEC-101 | 5 |
 | 2026-10-29 | Aviso de stock insuficiente al agregar en la venta, sin cantidades; cambia el comportamiento de la venta (pedido por el alumno) | DEC-102 | 5 |
+| 2026-10-29 | La cajera consulta el stock en solo lectura (en `/productos/` y en CU-06) y el aviso de la venta puede mostrar la cantidad disponible; cambia S-2 para CU-06 | DEC-103 | 1b y 5 |

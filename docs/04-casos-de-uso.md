@@ -33,12 +33,12 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 | CU-03 Cerrar caja por turno | | C | |
 | CU-04 Registrar pago de cliente | C | ? (PR-14) | |
 | CU-05 Registrar ingreso de mercadería | C | | |
-| CU-06 Consultar stock | C | ? (PR-25) | ? (PR-25) |
+| CU-06 Consultar stock | C | C, solo lectura (DEC-103) | ? (PR-25) |
 | CU-07 Registrar pago a proveedor | C | | |
 | CU-08 Gestionar cuentas corrientes | C | | ? (PR-25) |
 | CU-09 Generar reportes | C | | C (solo consulta) |
 | CU-10 Iniciar sesión | C | C | C |
-| CU-11 Gestionar productos | C | alta con permiso | |
+| CU-11 Gestionar productos | C | consulta y stock en solo lectura (DEC-103); alta con permiso | |
 | CU-12 Gestionar clientes | C | ? | |
 | CU-13 Gestionar proveedores | C | | |
 | CU-14 Gestionar usuarios | C | | |
@@ -77,8 +77,8 @@ flowchart LR
     CAJ --- CU02
     CAJ --- CU03
     CAJ -. "a confirmar" .- CU04
-    CAJ -. "a confirmar" .- CU06
-    CAJ -. "alta con permiso" .- CU11
+    CAJ --- CU06
+    CAJ -. "consulta; alta con permiso" .- CU11
 
     ADM --- CU10
     ADM --- CU04
@@ -145,7 +145,7 @@ flowchart LR
 | Se agregó el actor Dueños | Es un rol del relevamiento y no figuraba |
 | Se agregaron CU-10 a CU-14 | Cubren inicio de sesión y altas de datos (H-04) |
 | CU-15 Ajustar stock se integró a CU-11 | El Administrador edita el stock al crear o modificar un producto y cada cambio queda registrado como ajuste (DEC-98); el ID CU-15 no se reutiliza |
-| Cajera y CU-06 pasan a "a confirmar" | El diagrama y el texto del documento base se contradecían (H-02) |
+| Cajera y CU-06 pasaron a "a confirmar" y después se confirmaron | El diagrama y el texto del documento base se contradecían (H-02); DEC-103 sigue al diagrama: la cajera consulta el stock en solo lectura |
 
 ## 4. Reglas de negocio
 
@@ -190,7 +190,7 @@ flowchart LR
 |---|---|---|---|
 | A1 | Producto no encontrado | La cajera puede crearlo si tiene permiso (CU-11), sin salir de la venta (DEC-62 a DEC-65) | PDF |
 | A2 | Medio de pago = cuenta corriente | Se ejecuta SC-03 | A confirmar: PR-12, PR-13 |
-| A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: al agregar el producto o cambiar su cantidad la pantalla avisa, sin mostrar el stock (DEC-102); la venta se permite y el stock puede quedar negativo | Decidido (DEC-46, DEC-102) |
+| A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: al agregar el producto o cambiar su cantidad la pantalla avisa y puede mostrar la cantidad disponible (DEC-102, DEC-103); la venta se permite y el stock puede quedar negativo | Decidido (DEC-46, DEC-102) |
 | A4 | La caja del turno no está abierta | El sistema indica que debe abrir la caja (CU-02) | Propuesta |
 | A5 | La cajera cancela | No se registra nada | Propuesta |
 
@@ -331,7 +331,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador (cajera y dueños, a confirmar: PR-25) |
+| Actor principal | Administrador y cajera, en solo lectura (DEC-103); dueños, a confirmar: PR-25 |
 | Requisitos | RF-25, RF-26, RF-28 |
 | Precondiciones | Existen productos registrados |
 | Poscondiciones | Ninguna (solo consulta) |
@@ -349,11 +349,11 @@ flowchart LR
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
 | A1 | Los filtros no devuelven productos | El sistema muestra "Sin productos para el filtro seleccionado" | Propuesta |
-| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta, a confirmar: PR-25 |
+| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; hoy los dueños (PR-25) |
 
 **Alcance:** solo productos no cárnicos.
 **Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; para la cajera queda pendiente (L9, PR-35).
-**Pendientes:** PR-21 (vencimientos), PR-25 (quién más consulta el stock).
+**Pendientes:** PR-21 (vencimientos), PR-25 (si los dueños consultan el stock).
 
 ### CU-07 Registrar pago a proveedor
 
@@ -476,7 +476,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador; la cajera solo para alta con permiso (RN-05) |
+| Actor principal | Administrador; la cajera consulta el listado y el stock (DEC-103) y da de alta con permiso (RN-05) |
 | Requisitos | RF-17, RF-21, RF-24 |
 | Origen | Propuesta (H-04); el alta ya aparece como flujo alternativo de CU-01 y CU-05 |
 | Poscondiciones | Catálogo actualizado |
@@ -496,9 +496,9 @@ flowchart LR
 | A1 | El plus interno ya existe | El sistema avisa junto al campo y no guarda. El nombre repetido no se bloquea: era una propuesta y no está confirmada (PR-22) |
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
 
-**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL): primero se reactiva con "Reactivar" en el listado de dados de baja, solo el Administrador y sin condición de stock (DEC-85). La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). La cajera con permiso solo da de alta y no ve el stock (CU-06 para la cajera está a confirmar: PR-25). La cajera sin permiso y los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
+**Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL): primero se reactiva con "Reactivar" en el listado de dados de baja, solo el Administrador y sin condición de stock (DEC-85). La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). Toda cajera, con o sin permiso de alta, ve el listado con el stock en solo lectura, sin editar ni dar de baja; la cajera con permiso además da de alta (DEC-103, que reemplaza en esto a DEC-33). Los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
 
-**Stock editable (etapa 1b de H3, DEC-98 a DEC-100, supuestos del proyecto):** el Administrador ve y edita el stock al crear y al modificar un producto, en `/productos/` y en el panel de administración, que guarda con el mismo servicio de catálogo. Solo para productos que controlan stock; mayor o igual a 0 y con el formato de DEC-79. Si al guardar el stock cambió, el servicio lo aplica con `mover_stock` y registra un ajuste (`ajuste_stock`) con usuario, fecha, stock anterior, stock nuevo y motivo: en el alta, "Stock inicial"; al modificar, el que se elija (por defecto "Modificación manual"; también conteo, vencimiento, rotura u otro). El cambio se mide contra el stock que mostró el formulario, así una venta hecha mientras se editaba no se deshace. La cajera con permiso de alta no ve el stock y su alta arranca en 0 (DEC-33), igual que el alta durante la venta y desde el ingreso. Los ajustes no se editan ni se borran: se consultan en el panel ("Ajustes de stock"), de solo lectura.
+**Stock editable (etapa 1b de H3, DEC-98 a DEC-100, supuestos del proyecto):** el Administrador ve y edita el stock al crear y al modificar un producto, en `/productos/` y en el panel de administración, que guarda con el mismo servicio de catálogo. Solo para productos que controlan stock; mayor o igual a 0 y con el formato de DEC-79. Si al guardar el stock cambió, el servicio lo aplica con `mover_stock` y registra un ajuste (`ajuste_stock`) con usuario, fecha, stock anterior, stock nuevo y motivo: en el alta, "Stock inicial"; al modificar, el que se elija (por defecto "Modificación manual"; también conteo, vencimiento, rotura u otro). El cambio se mide contra el stock que mostró el formulario, así una venta hecha mientras se editaba no se deshace. Solo el Administrador cambia el stock: la cajera lo ve en el listado pero su alta no carga stock y arranca en 0 (DEC-103), igual que el alta durante la venta y desde el ingreso. Los ajustes no se editan ni se borran: se consultan en el panel ("Ajustes de stock"), de solo lectura.
 
 ### CU-12 Gestionar clientes
 
@@ -560,7 +560,7 @@ Extiende CU-01 cuando el medio de pago es cuenta corriente. Selecciona el client
 
 ### SC-04 Avisar stock insuficiente (DEC-46)
 
-Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera al agregar el producto o cambiar su cantidad, sin mostrar el stock ni la diferencia (DEC-102, DEC-33), y otra vez en el ticket; la venta se permite y el `stock_actual` puede quedar negativo. Por ahora no se registra un faltante aparte: es un supuesto (DEC-46) y el registro del faltante, que figura en el relevamiento base (RF-27), queda pendiente de PR-37.
+Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera al agregar el producto o cambiar su cantidad, y puede mostrar la cantidad disponible (DEC-102, DEC-103), y otra vez en el ticket; la venta se permite y el `stock_actual` puede quedar negativo. Por ahora no se registra un faltante aparte: es un supuesto (DEC-46) y el registro del faltante, que figura en el relevamiento base (RF-27), queda pendiente de PR-37.
 
 ## 7. Prototipos
 

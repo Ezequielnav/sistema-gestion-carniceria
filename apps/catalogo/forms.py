@@ -62,7 +62,7 @@ class ProductoForm(forms.Form):
         self.fields.update(
             fields_for_model(Producto, fields=CAMPOS_EDITABLES, labels=ETIQUETAS, help_texts=AYUDAS)
         )
-        # DEC-98 y DEC-99: el stock lo ve y lo cambia solo el Administrador (DEC-33).
+        # DEC-98, DEC-99 y DEC-103: solo el Administrador carga y cambia el stock.
         if con_stock:
             self.fields.update(campos_de_stock(es_alta))
         self.fields["categoria"].empty_label = "Sin categoría"

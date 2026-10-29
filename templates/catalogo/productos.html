@@ -41,9 +41,11 @@
               <th scope="col" class="px-5 py-3 font-medium">Plus</th>
               <th scope="col" class="px-5 py-3 font-medium">Categoría</th>
               <th scope="col" class="px-5 py-3 text-right font-medium">Precio</th>
-              {% if puede_modificar %}
-                {# Consultar stock es del Administrador; para la cajera está a confirmar (PR-25). #}
+              {# DEC-103: el Administrador y toda cajera ven el stock; solo el Administrador lo cambia. #}
+              {% if ver_stock %}
                 <th scope="col" class="px-5 py-3 text-right font-medium">Stock</th>
+              {% endif %}
+              {% if puede_modificar %}
                 <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
               {% endif %}
             </tr>
@@ -63,7 +65,7 @@
                   $ {{ producto.precio_venta|floatformat:"2g" }}
                   <span class="text-xs text-gray-500">/ {% if producto.unidad_medida == "KG" %}kg{% else %}u.{% endif %}</span>
                 </td>
-                {% if puede_modificar %}
+                {% if ver_stock %}
                   <td class="cifras px-5 py-3 text-right whitespace-nowrap">
                     {% if producto.controla_stock %}
                       {{ producto.stock_actual|cantidad:producto.unidad_medida }}
@@ -72,6 +74,8 @@
                       <span class="text-xs text-gray-500">Sin control</span>
                     {% endif %}
                   </td>
+                {% endif %}
+                {% if puede_modificar %}
                   <td class="px-5 py-3 text-right whitespace-nowrap">
                     {% if producto.activo %}
                       <a href="{% url 'catalogo:editar' producto.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar</a>

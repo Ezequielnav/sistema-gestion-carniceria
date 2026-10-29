@@ -32,11 +32,12 @@ def _nombres(usuario):
 
 
 @pytest.mark.parametrize("con_permiso", [True, False])
-def test_rn05_el_menu_usa_la_misma_regla_que_el_alta_de_productos(con_permiso):
+def test_dec103_toda_cajera_ve_productos_y_el_alta_sigue_con_permiso(con_permiso):
     cajera = _usuario(Rol.CAJERA, puede_crear_productos=con_permiso)
     productos = next(f for f in FUNCIONES if f.nombre == "Productos")
 
-    assert puede_usar(cajera, productos) is puede_crear(cajera) is con_permiso
+    assert puede_usar(cajera, productos)
+    assert puede_crear(cajera) is con_permiso
 
 
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
@@ -51,13 +52,10 @@ def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     ]
 
 
-def test_cp74_cajera_ve_ventas_ventas_de_la_caja_y_caja():
-    # DEC-84: "Ventas de la caja" sin anular.
-    assert _nombres(_usuario(Rol.CAJERA)) == ["Ventas", "Ventas de la caja", "Caja"]
-
-
-def test_cp74_cajera_con_permiso_ve_productos():
-    assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=True)) == [
+@pytest.mark.parametrize("con_permiso", [True, False])
+def test_cp74_cajera_ve_ventas_ventas_de_la_caja_caja_y_productos(con_permiso):
+    # DEC-84: "Ventas de la caja" sin anular. DEC-103: productos con o sin permiso de alta.
+    assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=con_permiso)) == [
         "Ventas",
         "Ventas de la caja",
         "Caja",

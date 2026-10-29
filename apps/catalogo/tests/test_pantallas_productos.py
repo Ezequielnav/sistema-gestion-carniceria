@@ -149,14 +149,27 @@ def test_cp56_cajera_con_permiso_da_de_alta_desde_la_pantalla(client, cajera_alt
     assert Producto.objects.filter(plus_interno="700", activo=True).exists()
 
 
-def test_cajera_con_permiso_no_ve_stock_editar_ni_baja(client, cajera_alta, producto):
-    client.force_login(cajera_alta)
+# DEC-103: toda cajera ve el stock en solo lectura; solo el Administrador lo cambia.
 
-    contenido = client.get(LISTADO).content.decode()
 
-    assert "Nuevo producto" in contenido
+@pytest.mark.parametrize(("quien", "puede_dar_de_alta"), [("cajera_alta", True), ("cajera", False)])
+def test_dec103_la_cajera_ve_el_stock_sin_editar_ni_dar_de_baja(
+    client, request, producto, quien, puede_dar_de_alta
+):
+    producto.stock_actual = Decimal("12")
+    producto.stock_minimo = Decimal("5")
+    producto.save()
+    client.force_login(request.getfixturevalue(quien))
+
+    respuesta = client.get(LISTADO)
+
+    assert respuesta.status_code == 200
+    contenido = respuesta.content.decode()
+    assert ">Stock<" in contenido
+    assert re.search(r">\s*12\s*<span[^>]*>mín\. 5</span>", contenido)
     assert _editar(producto) not in contenido and _baja(producto) not in contenido
-    assert ">Stock<" not in contenido
+    assert ("Nuevo producto" in contenido) is puede_dar_de_alta
+    assert "Incluir dados de baja" not in contenido
 
 
 def test_cajera_con_permiso_no_edita_ni_da_de_baja_por_url(client, cajera_alta, producto):
@@ -172,14 +185,25 @@ def test_cajera_con_permiso_no_edita_ni_da_de_baja_por_url(client, cajera_alta, 
 # CP-55 y CP-53: sin permiso, ni pantalla ni URL directa
 
 
-@pytest.mark.parametrize("quien", ["cajera", "duenio"])
-def test_cp55_cp53_sin_permiso_no_entran_a_ninguna_pantalla(client, request, producto, quien):
-    client.force_login(request.getfixturevalue(quien))
+def test_cp55_cajera_sin_permiso_consulta_pero_no_da_de_alta_ni_modifica(client, cajera, producto):
+    client.force_login(cajera)
+
+    assert client.get(LISTADO).status_code == 200  # DEC-103
+    for url in (NUEVO, _editar(producto), _baja(producto)):
+        assert client.get(url).status_code == 403, url
+    assert client.post(NUEVO, _form()).status_code == 403
+    assert client.post(_editar(producto), _form(nombre="Otro")).status_code == 403
+    assert not Producto.objects.filter(plus_interno="700").exists()
+    producto.refresh_from_db()
+    assert producto.nombre == "Aceite 1 l"
+
+
+def test_cp53_los_duenios_no_entran_a_ninguna_pantalla(client, duenio, producto):
+    client.force_login(duenio)
 
     for url in (LISTADO, NUEVO, _editar(producto), _baja(producto)):
         assert client.get(url).status_code == 403, url
     assert client.post(NUEVO, _form()).status_code == 403
-    assert not Producto.objects.filter(plus_interno="700").exists()
 
 
 def test_sin_sesion_redirige_al_ingreso(client):
@@ -188,10 +212,10 @@ def test_sin_sesion_redirige_al_ingreso(client):
     assert respuesta.url.startswith(reverse("usuarios:ingresar"))
 
 
-def test_el_menu_de_la_cajera_sin_permiso_no_muestra_productos(client, cajera):
+def test_dec103_el_menu_de_la_cajera_sin_permiso_muestra_productos(client, cajera):
     client.force_login(cajera)
 
-    assert LISTADO not in client.get(reverse("inicio")).content.decode()
+    assert LISTADO in client.get(reverse("inicio")).content.decode()
 
 
 # CP-59 y RI-16 desde la pantalla: mensajes junto al campo

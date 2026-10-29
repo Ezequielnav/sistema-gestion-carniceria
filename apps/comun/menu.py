@@ -6,7 +6,6 @@ marcados "a confirmar" (PR-14, PR-25) se agregan cuando el negocio los confirme.
 
 from dataclasses import dataclass
 
-from apps.catalogo.services import puede_crear
 from apps.usuarios.models import Rol
 
 
@@ -20,8 +19,6 @@ class Funcion:
     icono: str = ""
     # Nombre de la URL; vacío mientras el caso de uso no está construido.
     url: str = ""
-    # Solo para la cajera con permiso de alta de productos (RN-05).
-    requiere_alta_productos: bool = False
 
 
 ADMIN = Rol.ADMINISTRADOR
@@ -61,14 +58,14 @@ FUNCIONES = [
         "billetera",
         url="caja:caja",
     ),
+    # DEC-103: toda cajera consulta productos y stock; el alta sigue con permiso (RN-05).
     Funcion(
         "Productos",
-        "Precios, categorías y altas",
+        "Precios, stock y altas",
         "CU-11",
         frozenset({ADMIN, CAJERA}),
         "paquete",
         url="catalogo:productos",
-        requiere_alta_productos=True,
     ),
     Funcion("Stock", "Existencias y faltantes", "CU-06", frozenset({ADMIN}), "capas"),
     Funcion(
@@ -91,12 +88,8 @@ FUNCIONES = [
 
 
 def puede_usar(usuario, funcion):
-    """Si el rol del usuario tiene la función (RF-02; RN-05 para la cajera)."""
-    if not usuario.is_authenticated or usuario.rol not in funcion.roles:
-        return False
-    if funcion.requiere_alta_productos and usuario.rol == CAJERA:
-        return puede_crear(usuario)  # RN-05, misma regla que el servicio de CU-11
-    return True
+    """Si el rol del usuario tiene la función (RF-02)."""
+    return usuario.is_authenticated and usuario.rol in funcion.roles
 
 
 def funciones_para(usuario):

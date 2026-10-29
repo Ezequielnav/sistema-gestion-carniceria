@@ -18,6 +18,7 @@ from apps.catalogo.services import (
     producto_editable,
     puede_crear,
     puede_modificar,
+    puede_ver_stock,
     reactivar,
 )
 from apps.comun.permisos import requiere_funcion
@@ -48,6 +49,7 @@ def productos(request):
             "incluir_inactivos": incluir_inactivos,
             "puede_crear": puede_crear(request.user),
             "puede_modificar": puede_modificar(request.user),
+            "ver_stock": puede_ver_stock(request.user),
         },
     )
 
@@ -70,7 +72,7 @@ def _guardar_con(request, form, operacion, mensaje):
 def nuevo(request):
     if not puede_crear(request.user):
         raise PermissionDenied
-    # DEC-99: el stock inicial es solo del Administrador; la cajera arranca en 0 (DEC-33).
+    # DEC-99: el stock inicial es solo del Administrador; la cajera arranca en 0 (DEC-103).
     form = ProductoForm(request.POST or None, con_stock=puede_modificar(request.user))
     respuesta = _guardar_con(
         request,

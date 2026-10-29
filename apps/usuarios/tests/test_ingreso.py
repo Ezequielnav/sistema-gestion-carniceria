@@ -176,11 +176,12 @@ def test_cp54_cajera_no_entra_al_panel(client):
     assert client.get(reverse("admin:usuarios_usuario_changelist")).status_code == 302
 
 
-def test_rn05_productos_solo_para_la_cajera_con_permiso():
+def test_dec103_productos_para_toda_cajera():
     vista = _vista("Productos")
 
+    assert _pedir(vista, _usuario(Rol.CAJERA)).status_code == 200
     with pytest.raises(PermissionDenied):
-        _pedir(vista, _usuario(Rol.CAJERA))
+        _pedir(vista, _usuario(Rol.DUENIO))
     cajera_alta = Usuario.objects.create_user(
         username="alta",
         password=CLAVE,
