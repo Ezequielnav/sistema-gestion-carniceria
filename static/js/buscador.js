@@ -54,7 +54,14 @@
     return actual;
   }
 
-  const exportado = { crearBuscadorDiferido, moverSeleccion };
+  // Texto con el que se abre la lista: "Ver productos" muestra todos y descarta lo escrito,
+  // para no repetir un filtro (por ejemplo, uno sin resultados); el clic y la flecha
+  // abren con lo que haya en el buscador.
+  function textoAlAbrir(desde, texto) {
+    return desde === "boton" ? "" : texto.trim();
+  }
+
+  const exportado = { crearBuscadorDiferido, moverSeleccion, textoAlAbrir };
   if (typeof module !== "undefined" && module.exports) module.exports = exportado;
   else Object.assign(raiz, exportado);
 })(typeof window !== "undefined" ? window : globalThis);

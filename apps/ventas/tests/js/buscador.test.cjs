@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
-const { crearBuscadorDiferido, moverSeleccion } = require(
+const { crearBuscadorDiferido, moverSeleccion, textoAlAbrir } = require(
   path.join(__dirname, "../../../../static/js/buscador.js"),
 );
 
@@ -94,4 +94,11 @@ test("las flechas recorren la lista sin salirse de sus bordes", () => {
   assert.equal(moverSeleccion(1, 3, "Home"), 0);
   assert.equal(moverSeleccion(0, 3, "End"), 2);
   assert.equal(moverSeleccion(-1, 0, "ArrowDown"), -1);
+});
+
+test("Ver productos muestra todos aunque el buscador tenga texto; clic y flecha usan lo escrito", () => {
+  assert.equal(textoAlAbrir("boton", "zzz"), "");
+  assert.equal(textoAlAbrir("boton", ""), "");
+  assert.equal(textoAlAbrir("flecha", "  asa "), "asa");
+  assert.equal(textoAlAbrir("clic", ""), "");
 });

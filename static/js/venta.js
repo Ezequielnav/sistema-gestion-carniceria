@@ -251,8 +251,10 @@
     if (buscador.vigente(turno)) mostrarResultados(datos.resultados, texto, datos.hay_mas);
   }
 
-  function abrirLista() {
-    filtrar(buscar.value.trim(), buscador.inmediato());
+  function abrirLista(desde) {
+    const texto = textoAlAbrir(desde, buscar.value);
+    if (!texto) buscar.value = "";
+    filtrar(texto, buscador.inmediato());
   }
 
   // DEC-97: la lista se abre a pedido (clic en el buscador vacío, flecha abajo o el botón),
@@ -261,7 +263,7 @@
     if (!buscar.value.trim()) abrirLista();
   });
   verProductos.addEventListener("click", () => {
-    abrirLista();
+    abrirLista("boton");
     buscar.focus();
   });
   buscar.addEventListener("input", () => {
