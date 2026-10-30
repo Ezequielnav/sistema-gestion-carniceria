@@ -66,7 +66,7 @@ class ProductoForm(forms.Form):
         if con_stock:
             self.fields.update(campos_de_stock(es_alta))
         self.fields["categoria"].empty_label = "Sin categoría"
-        # Sin unidad por defecto: la primera opción no es válida y obliga a elegir (PR-03).
+        # Sin unidad por defecto: la primera opción no es válida y obliga a elegir (DEC-79).
         self.fields["unidad_medida"].choices = [("", "Elegí una unidad"), *UnidadMedida.choices]
         for campo in self.fields.values():
             if isinstance(campo.widget, forms.CheckboxInput):

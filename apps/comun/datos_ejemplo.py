@@ -34,8 +34,8 @@ MEDIOS_PAGO = [
 CATEGORIAS = ["Vacuno", "Cerdo", "Pollo", "Embutidos", "Almacén", "Bebidas"]
 
 # (nombre, categoría, plus interno, precio, unidad, controla stock, stock actual, stock mínimo).
-# La carne se vende por kg y sin control de stock (supuesto de PR-01 y PR-03). El stock de los
-# demás es un dato ficticio de partida, no una carga de stock inicial (PR-32).
+# La carne se vende por kg y sin control de stock (DEC-36, DEC-79). El stock de los
+# demás es un dato ficticio de partida, no una carga de stock inicial (DEC-99).
 PRODUCTOS = [
     ("Asado", "Vacuno", "101", "9800.00", UnidadMedida.KG, False, "0", None),
     ("Vacío", "Vacuno", "102", "11500.00", UnidadMedida.KG, False, "0", None),

@@ -31,10 +31,10 @@ class DetalleIngresoInline(RenglonesSoloLecturaInline):
 
 @admin.register(IngresoMercaderia)
 class IngresoMercaderiaAdmin(SoloLecturaAdmin):
-    list_display = ("id", "fecha", "proveedor", "total", "condicion_pago")
+    list_display = ("id", "fecha", "proveedor", "total", "condicion_pago", "estado")
     inlines = (DetalleIngresoInline,)
 
 
 @admin.register(PagoProveedor)
 class PagoProveedorAdmin(SoloLecturaAdmin):
-    list_display = ("fecha_hora", "proveedor", "ingreso", "monto", "medio_pago")
+    list_display = ("fecha_hora", "proveedor", "ingreso", "monto", "medio_pago", "estado")

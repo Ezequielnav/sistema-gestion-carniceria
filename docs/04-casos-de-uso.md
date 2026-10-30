@@ -568,7 +568,7 @@ Incluido en CU-01, CU-04 y CU-07 (cuando el pago sale de caja). Registra un ingr
 
 **Implementación (H2, etapas 2 y 3):** el ingreso de cada venta se registra junto con la venta. Los egresos "otros" se cargan desde la pantalla de Caja: monto mayor a 0, descripción obligatoria, en el medio marcado como efectivo (DEC-55) y sin superar el efectivo esperado (DEC-57). Los egresos "otros" (gastos y retiros en efectivo) llevan el concepto `OTRO` (DEC-43). La pantalla lista los egresos del turno, que no se editan ni se borran (DEC-58).
 
-**Implementación (H2, etapa 4):** la anulación de una venta registra un egreso con concepto `ANULACION`, que referencia la venta, por su total y con su medio de pago (DEC-68). La pantalla de cierre y su reporte listan las ventas anuladas (DEC-77).
+**Implementación (H2, etapa 4):** la anulación de una venta registra un egreso con concepto `ANULACION`, que referencia la venta, por su total y con su medio de pago (DEC-68). La pantalla de cierre y su reporte listan las ventas anuladas (DEC-77) y, desde H3, los pagos a proveedores en efectivo y sus reversas, que también cambian lo esperado.
 
 ### SC-03 Vender a cuenta corriente (a confirmar: PR-12, PR-13)
 

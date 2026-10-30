@@ -60,12 +60,12 @@ class Categoria(ModeloBase):
 class Producto(ModeloBase):
     nombre = models.CharField(max_length=120)
     categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, null=True, blank=True)
-    # Código interno de la carnicería, único si existe (a confirmar: PR-04). Nulo cuando no hay
+    # Código interno de la carnicería, único si existe (DEC-37). Nulo cuando no hay
     # código, para que el único parcial lo ignore.
     plus_interno = models.CharField(max_length=30, null=True, blank=True)  # noqa: DJ001
     precio_venta = campo_monto(validators=[NO_NEGATIVO])
     unidad_medida = models.CharField(max_length=6, choices=UnidadMedida.choices)
-    # false para los productos cárnicos (a confirmar: PR-01).
+    # false para los productos cárnicos (DEC-36).
     controla_stock = models.BooleanField()
     # Lo cambian solo ventas, ingresos y ajustes, con mover_stock (RI-07, DEC-96).
     stock_actual = campo_cantidad(default=0)

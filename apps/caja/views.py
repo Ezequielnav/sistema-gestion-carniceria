@@ -15,6 +15,7 @@ from apps.caja.services import (
     detalle_de_cierre,
     egresos_otros,
     es_de_otro_dia,
+    movimientos_de_pagos_a_proveedores,
     puede_abrir,
     puede_ver_cierre,
     registrar_egreso_otro,
@@ -106,7 +107,12 @@ def cerrar(request):
     return render(
         request,
         "caja/cerrar.html",
-        {"caja": abierta, "form": form, "anulaciones": anulaciones(abierta)},
+        {
+            "caja": abierta,
+            "form": form,
+            "anulaciones": anulaciones(abierta),
+            "pagos_proveedores": movimientos_de_pagos_a_proveedores(abierta),
+        },
     )
 
 
@@ -128,6 +134,7 @@ def cierre(request, pk):
             "detalle": detalle_de_cierre(caja),
             "egresos": egresos_otros(caja),
             "anulaciones": anulaciones(caja),
+            "pagos_proveedores": movimientos_de_pagos_a_proveedores(caja),
             "es_cajera": puede_abrir(request.user),
         },
     )

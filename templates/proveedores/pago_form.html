@@ -28,7 +28,7 @@
           {% if campo.name == "medio_pago" %}
             <p class="mt-1.5 text-xs text-gray-500">
               En efectivo sale de la caja abierta de hoy y queda a tu nombre.
-              {% if efectivo_disponible is None %}Ahora no hay caja abierta: solo se puede pagar por transferencia.{% else %}Efectivo disponible en la caja: <span class="cifras font-medium">$ {{ efectivo_disponible|floatformat:"2g" }}</span>.{% endif %}
+              {% if efectivo_disponible is None %}Ahora no hay una caja abierta de hoy: solo se puede pagar por transferencia.{% else %}Efectivo disponible en la caja: <span class="cifras font-medium">$ {{ efectivo_disponible|floatformat:"2g" }}</span>.{% endif %}
               Por transferencia no hay movimiento de caja.
             </p>
           {% endif %}

@@ -113,6 +113,8 @@ def reactivar(usuario, proveedor):
 # pago con el servicio de CU-07 en la misma operación.
 
 CENTAVO = Decimal("0.01")
+# campo_monto: 12 dígitos con 2 decimales.
+MONTO_FUERA_DE_RANGO = Decimal("10000000000")
 MOTIVO_MAXIMO = 255
 # Tope de la lista del buscador, como en la venta (DEC-97).
 LIMITE_BUSQUEDA = 50
@@ -121,15 +123,6 @@ LIMITE_BUSQUEDA = 50
 def proveedores_para_ingreso():
     """Solo activos: un proveedor dado de baja no recibe ingresos (S-1)."""
     return Proveedor.objects.filter(activo=True).order_by("nombre", "pk")
-
-
-def precio_sugerido(producto, proveedor):
-    """Último precio de compra del producto con ese proveedor, o None (DEC-90)."""
-    return (
-        ProductoProveedor.objects.filter(producto=producto, proveedor=proveedor)
-        .values_list("precio_compra", flat=True)
-        .first()
-    )
 
 
 def precios_sugeridos(usuario, proveedor_id, producto_ids):
@@ -158,6 +151,8 @@ def buscar_para_ingreso(usuario, texto, proveedor_id=None):
 def _validar_precio(producto, precio):
     if precio < 0:
         raise ValidationError(f"El precio de {producto} no puede ser negativo.")
+    if precio >= MONTO_FUERA_DE_RANGO:
+        raise ValidationError(f"El precio de {producto} es demasiado grande.")
     if precio != precio.quantize(CENTAVO):
         raise ValidationError(f"El precio de {producto} admite hasta 2 decimales.")
 
@@ -199,11 +194,13 @@ def registrar_ingreso(
                 validar(producto, valor)
             except ValidationError as error:
                 errores.extend(error.messages)
-    total = sum(subtotal(c, p) for _, c, p in lineas)
-    if condicion == CondicionPago.CONTADO and total <= 0:
-        errores.append("Un ingreso al contado tiene que tener un total mayor a 0.")
     if errores:
         raise ValidationError(errores)
+    total = sum(subtotal(c, p) for _, c, p in lineas)
+    if total >= MONTO_FUERA_DE_RANGO:
+        raise ValidationError("El total del ingreso es demasiado grande.")
+    if condicion == CondicionPago.CONTADO and total <= 0:
+        raise ValidationError("Un ingreso al contado tiene que tener un total mayor a 0.")
     with transaction.atomic():
         ingreso = IngresoMercaderia.objects.create(
             fecha=timezone.localdate(),
@@ -213,7 +210,11 @@ def registrar_ingreso(
             condicion_pago=condicion,
             observacion=observacion,
         )
-        for producto_id, cantidad, precio in lineas:
+        # Primero el pago, que bloquea la caja: mismo orden que la venta (caja y después
+        # productos, por id), para que no se traben entre sí.
+        if condicion == CondicionPago.CONTADO:
+            registrar_pago(usuario, ingreso, total, medio)
+        for producto_id, cantidad, precio in sorted(lineas, key=lambda linea: linea[0]):
             producto = productos[producto_id]
             DetalleIngreso.objects.create(
                 ingreso=ingreso, producto=producto, cantidad=cantidad, precio_unitario=precio
@@ -223,8 +224,6 @@ def registrar_ingreso(
             ProductoProveedor.objects.update_or_create(
                 producto=producto, proveedor=proveedor, defaults={"precio_compra": precio}
             )
-        if condicion == CondicionPago.CONTADO:
-            registrar_pago(usuario, ingreso, total, medio)
     return ingreso
 
 
@@ -240,25 +239,8 @@ def saldo_de_ingreso(ingreso):
     return ingreso.total - pagado
 
 
-def saldo_de_proveedor(proveedor):
-    """Suma de los totales de sus ingresos vigentes menos sus pagos (DEC-81); no se guarda."""
-    deuda = (
-        IngresoMercaderia.objects.filter(
-            proveedor=proveedor, estado=EstadoIngreso.VIGENTE
-        ).aggregate(total=Sum("total"))["total"]
-        or 0
-    )
-    pagado = (
-        PagoProveedor.objects.filter(proveedor=proveedor, estado=EstadoPago.VIGENTE).aggregate(
-            total=Sum("monto")
-        )["total"]
-        or 0
-    )
-    return Decimal(deuda - pagado).quantize(CENTAVO)
-
-
 def saldos_de_proveedores(proveedores):
-    """Saldo de cada proveedor del listado, con dos consultas en lugar de una por fila."""
+    """Saldo de cada proveedor del listado, con dos consultas en lugar de una por fila (DEC-81)."""
     ids = [p.pk for p in proveedores]
     deudas = dict(
         IngresoMercaderia.objects.filter(proveedor_id__in=ids, estado=EstadoIngreso.VIGENTE)
@@ -273,6 +255,11 @@ def saldos_de_proveedores(proveedores):
         .values_list("proveedor_id", "total")
     )
     return {i: Decimal(deudas.get(i, 0) - pagos.get(i, 0)).quantize(CENTAVO) for i in ids}
+
+
+def saldo_de_proveedor(proveedor):
+    """Ingresos vigentes menos pagos vigentes (DEC-81); no se guarda."""
+    return saldos_de_proveedores([proveedor])[proveedor.pk]
 
 
 def listar_ingresos(usuario):
@@ -327,7 +314,7 @@ def anular_ingreso(usuario, ingreso, motivo):
             ]
         )
         # Como DEC-70: vuelve el stock de los productos que hoy lo controlan.
-        for detalle in ingreso.detalleingreso_set.select_related("producto"):
+        for detalle in ingreso.detalleingreso_set.select_related("producto").order_by("producto"):
             mover_stock(detalle.producto, -detalle.cantidad)
     return ingreso
 

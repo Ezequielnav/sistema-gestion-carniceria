@@ -37,7 +37,7 @@ def _producto_editable(pk):
 
 def _id_de(request, nombre):
     valor = request.GET.get(nombre, "")
-    return int(valor) if valor.isdigit() else None
+    return int(valor) if valor.isdecimal() else None
 
 
 @requiere_funcion("Productos")

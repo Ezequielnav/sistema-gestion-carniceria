@@ -6,7 +6,7 @@ from apps.comun.admin import AdminBase, SoloLecturaAdmin
 
 @admin.register(MedioPago)
 class MedioPagoAdmin(AdminBase):
-    list_display = ("nombre", "ingresa_a_caja", "es_efectivo", "activo")
+    list_display = ("nombre", "ingresa_a_caja", "es_efectivo", "es_transferencia", "activo")
 
 
 @admin.register(Caja)

@@ -131,7 +131,8 @@ def registrar_venta(usuario, lineas, medio_pago):
     cantidades = _agrupar(lineas)
     with transaction.atomic():
         caja = _caja_para_vender()
-        productos = Producto.objects.select_for_update().in_bulk(list(cantidades))
+        # Por id, como los ingresos: dos operaciones no se traban con los mismos productos.
+        productos = Producto.objects.select_for_update().order_by("pk").in_bulk(list(cantidades))
         detalles = []
         for producto_id, cantidad in cantidades.items():
             producto = productos.get(producto_id)
@@ -297,6 +298,6 @@ def anular_venta(usuario, venta, motivo):
             ]
         )
         # DEC-70: vuelve el stock de los productos que hoy lo controlan (mover_stock, RI-07).
-        for detalle in venta.detalleventa_set.select_related("producto"):
+        for detalle in venta.detalleventa_set.select_related("producto").order_by("producto"):
             mover_stock(detalle.producto, detalle.cantidad)
     return venta

@@ -338,3 +338,37 @@ def test_las_pantallas_del_ingreso_dan_403_a_quien_no_es_administrador(
         assert client.get(url).status_code == 403, url
     for url in (CONFIRMAR, PRODUCTO, reverse("proveedores:ingreso_anular", args=[ingreso.pk])):
         assert client.post(url, {}).status_code == 403, url
+
+
+# Revisión del cierre de H3: el ingreso no tiene el tope de la venta
+
+
+@pytest.mark.parametrize(
+    ("cantidad", "precio"),
+    [("1000000000", "1"), ("1", "10000000000"), ("99999", "999999999"), ("1E+30", "1")],
+)
+def test_valores_fuera_de_rango_se_rechazan_sin_error_500(
+    client, admin, proveedor, aceite, cantidad, precio
+):
+    client.force_login(admin)
+
+    respuesta = client.post(
+        CONFIRMAR,
+        {
+            "proveedor": proveedor.pk,
+            "lineas": json.dumps([{"producto": aceite.pk, "cantidad": cantidad, "precio": precio}]),
+        },
+    )
+
+    assert respuesta.status_code == 400
+    assert "demasiado grande" in respuesta.json()["errores"][0]
+    assert not IngresoMercaderia.objects.exists()
+
+
+def test_filtros_con_digitos_raros_no_dan_error_500(client, admin, proveedor):
+    client.force_login(admin)
+
+    assert client.get(BUSCAR, {"q": "a", "proveedor": "²"}).status_code == 200
+    assert client.get(BUSCAR, {"ids": "²,1", "proveedor": "1"}).status_code == 200
+    assert client.get(reverse("proveedores:pago_nuevo"), {"ingreso": "²"}).status_code == 200
+    assert client.get(reverse("catalogo:productos"), {"categoria": "²"}).status_code == 200

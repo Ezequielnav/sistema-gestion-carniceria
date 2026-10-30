@@ -140,7 +140,7 @@ def mover_stock(producto, cantidad):
 | ID | Decisión | Por qué |
 |---|---|---|
 | S-1 | CU-13 igual que CU-11: listado de activos con "Incluir dados de baja", alta, modificación, baja con confirmación y "Reactivar" (como DEC-85). El nombre repetido no se bloquea | Mismo patrón que productos (DEC-33, DEC-85); PR-31 sigue abierta para más datos |
-| S-2 | Las pantallas de H3 son solo del Administrador; el menú activa "Proveedores" y "Stock" | Matriz de actores de 04; PR-25 abierta |
+| S-2 | Las pantallas de H3 son solo del Administrador; el menú activa "Proveedores" (CU-06 pasó a "Productos" y también es de la cajera: DEC-103, DEC-105) | Matriz de actores de 04; PR-25 abierta |
 | S-3 | El total del ingreso se calcula como en la venta: subtotal por línea redondeado a 2 decimales y total como suma (DEC-49) | RI-12 y un mismo criterio de redondeo |
 | S-4 | El precio de compra se precarga desde `producto_proveedor` y, al confirmar, se crea o actualiza con el precio del ingreso; anular el ingreso no lo revierte | 05: "último precio conocido; sugiere el precio en CU-05" |
 | S-5 | Producto nuevo desde el ingreso con un diálogo y el servicio de CU-11, como DEC-62 | Mismo patrón que la venta |

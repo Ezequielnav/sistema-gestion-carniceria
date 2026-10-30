@@ -6,6 +6,7 @@ CP-33 a CP-36, CP-90 a CP-92 y CP-102; DEC-80, DEC-81, DEC-92 y DEC-104.
 import datetime
 import json
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -22,6 +23,8 @@ from apps.caja.models import (
     Turno,
 )
 from apps.caja.services import abrir_caja, cerrar_caja
+from apps.catalogo.models import Producto
+from apps.proveedores import services as servicios
 from apps.proveedores.models import (
     CondicionPago,
     EstadoIngreso,
@@ -438,3 +441,62 @@ def test_las_pantallas_de_pagos_dan_403(client, request, admin, ingreso_2000, tr
         reverse("proveedores:pago_anular", args=[pago.pk]),
     ):
         assert client.post(url, {}).status_code == 403, url
+
+
+# Revisión del cierre de H3
+
+
+def test_el_contado_bloquea_la_caja_antes_de_tocar_el_stock(
+    admin, proveedor, producto, transferencia
+):
+    # Mismo orden que la venta (caja y después productos): si no, se pueden trabar.
+    stock_al_pagar = []
+
+    def registrar(*args, **kwargs):
+        stock_al_pagar.append(Producto.objects.get(pk=producto.pk).stock_actual)
+        return original(*args, **kwargs)
+
+    original = servicios.registrar_pago
+    with mock.patch.object(servicios, "registrar_pago", registrar):
+        registrar_ingreso(
+            admin,
+            proveedor,
+            [(producto.pk, Decimal("2"), Decimal("10"))],
+            condicion=CondicionPago.CONTADO,
+            medio=transferencia,
+        )
+
+    assert stock_al_pagar == [Decimal("0")]
+
+
+def test_con_caja_de_otro_dia_no_se_ofrece_efectivo_disponible(
+    client, admin, usuario, efectivo, transferencia
+):
+    Caja.objects.create(
+        fecha=timezone.localdate() - datetime.timedelta(days=1),
+        turno=Turno.TARDE,
+        usuario=usuario,
+        monto_inicial=Decimal("5000"),
+    )
+    client.force_login(admin)
+
+    respuesta = client.get(reverse("proveedores:pago_nuevo"))
+
+    assert respuesta.context["efectivo_disponible"] is None
+    assert "no hay una caja abierta de hoy" in respuesta.content.decode()
+
+
+def test_cp102_el_cierre_lista_el_pago_y_su_reversa(
+    admin, usuario, client, ingreso_2000, efectivo, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("800"), efectivo)
+    anular_pago(admin, pago, "Error")
+    client.force_login(usuario)
+
+    pantalla = client.get(reverse("caja:cerrar"))
+
+    assert [m.concepto for m in pantalla.context["pagos_proveedores"]] == [
+        ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+        ConceptoMovimientoCaja.ANULACION_PAGO,
+    ]
+    assert "Anulación de pago a proveedor" in pantalla.content.decode()

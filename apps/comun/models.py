@@ -45,5 +45,5 @@ def campo_monto(**kwargs):
 
 
 def campo_cantidad(**kwargs):
-    """Cantidades y stock con tres decimales, para productos por kg (PR-03)."""
+    """Cantidades y stock con tres decimales, para productos por kg (DEC-79)."""
     return models.DecimalField(max_digits=12, decimal_places=3, **kwargs)

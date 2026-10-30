@@ -185,9 +185,9 @@ def ingreso_buscar(request):
     Con `ids`, solo los precios de esos productos: al cambiar de proveedor se completan otra vez.
     """
     proveedor = request.GET.get("proveedor", "")
-    proveedor = int(proveedor) if proveedor.isdigit() else None
+    proveedor = int(proveedor) if proveedor.isdecimal() else None
     if "ids" in request.GET:
-        ids = [int(i) for i in request.GET["ids"].split(",") if i.isdigit()]
+        ids = [int(i) for i in request.GET["ids"].split(",") if i.isdecimal()]
         precios = precios_sugeridos(request.user, proveedor, ids)
         return JsonResponse({"precios": {str(k): str(v) for k, v in precios.items()}})
     resultados, hay_mas = buscar_para_ingreso(request.user, request.GET.get("q", ""), proveedor)
@@ -293,7 +293,7 @@ def pagos(request):
 @require_http_methods(["GET", "POST"])
 def pago_nuevo(request):
     inicial = {}
-    if request.method == "GET" and request.GET.get("ingreso", "").isdigit():
+    if request.method == "GET" and request.GET.get("ingreso", "").isdecimal():
         try:
             ingreso = ingreso_con_detalles(request.user, int(request.GET["ingreso"]))
         except ObjectDoesNotExist:

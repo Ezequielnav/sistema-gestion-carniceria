@@ -56,6 +56,15 @@
         </ul>
       {% endif %}
 
+      {% if pagos_proveedores %}
+        {# DEC-80 #}
+        <h2 class="mt-4 font-semibold">Pagos a proveedores</h2>
+        <ul class="mt-1 space-y-0.5">
+          {% for movimiento in pagos_proveedores %}
+            <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
       {% if anulaciones %}
         {# DEC-77 #}
         <h2 class="mt-4 font-semibold">Ventas anuladas</h2>

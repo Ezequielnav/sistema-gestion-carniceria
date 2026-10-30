@@ -167,6 +167,21 @@ def anulaciones(caja):
     )
 
 
+def movimientos_de_pagos_a_proveedores(caja):
+    """Egresos de pagos a proveedores y sus reversas, para explicar lo esperado en el cierre."""
+    return list(
+        MovimientoCaja.objects.filter(
+            caja=caja,
+            concepto__in=[
+                ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+                ConceptoMovimientoCaja.ANULACION_PAGO,
+            ],
+        )
+        .select_related("pago_proveedor__proveedor", "medio_pago")
+        .order_by("fecha_hora", "pk")
+    )
+
+
 def egresos_otros(caja):
     return list(
         MovimientoCaja.objects.filter(
@@ -224,10 +239,10 @@ def transferencia():
 
 
 def efectivo_disponible():
-    """Efectivo esperado de la caja abierta, o None sin caja abierta (para mostrarlo)."""
+    """Efectivo esperado de la caja abierta de hoy, o None si no se puede pagar en efectivo."""
     caja = caja_abierta()
     medio = MedioPago.objects.filter(es_efectivo=True).first()
-    if caja is None or medio is None:
+    if caja is None or medio is None or es_de_otro_dia(caja):
         return None
     return _esperado(caja, medio)
 

@@ -10,6 +10,8 @@ from apps.catalogo.models import AjusteStock, Categoria, MotivoAjuste, Producto,
 from apps.usuarios.models import Rol
 
 MILESIMA = Decimal("0.001")
+# campo_cantidad: 12 dígitos con 3 decimales. El ingreso no tiene el tope de la venta (DEC-76).
+CANTIDAD_FUERA_DE_RANGO = Decimal("1000000000")
 
 # Campos que se cargan desde la pantalla. stock_actual no está: el Administrador lo edita
 # aparte y el servicio lo cambia con mover_stock y un ajuste registrado (DEC-98, RI-17);
@@ -31,6 +33,8 @@ CAMPOS_EDITABLES = [
 
 def _validar_formato(producto, cantidad, que, entera):
     """Entera por unidad y hasta 3 decimales por kg (DEC-48, DEC-79)."""
+    if abs(cantidad) >= CANTIDAD_FUERA_DE_RANGO:
+        raise ValidationError(f"{que.capitalize()} de {producto} es demasiado grande.")
     if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
         raise ValidationError(f"{producto} se vende por unidad: {que} tiene que ser {entera}.")
     if cantidad != cantidad.quantize(MILESIMA):
