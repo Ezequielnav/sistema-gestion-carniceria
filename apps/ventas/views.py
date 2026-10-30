@@ -57,6 +57,8 @@ def _producto(producto):
         "plus": producto.plus_interno or "",
         "precio": str(producto.precio_venta),
         "unidad": producto.unidad_medida,
+        # Para avisar al agregar, con la cantidad disponible; sin control, no avisa (DEC-102).
+        "stock": str(producto.stock_actual) if producto.controla_stock else None,
     }
 
 

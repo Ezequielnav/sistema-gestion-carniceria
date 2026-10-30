@@ -1,10 +1,14 @@
 """CU-13 Gestionar proveedores (CP-99, DEC-87, DEC-88)."""
 
+from decimal import Decimal
+
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.urls import reverse
 
-from apps.proveedores.models import Proveedor
+from apps.catalogo.models import Producto, UnidadMedida
+from apps.catalogo.services import proveedores_para_filtrar
+from apps.proveedores.models import ProductoProveedor, Proveedor
 from apps.proveedores.services import (
     crear_proveedor,
     dar_de_baja,
@@ -156,3 +160,25 @@ def test_el_menu_del_administrador_enlaza_proveedores(client, admin):
 
 def test_sin_sesion_redirige_al_ingreso(client):
     assert client.get(LISTADO).url.startswith(reverse("usuarios:ingresar"))
+
+
+# CP-37: filtro por proveedor de la consulta de stock, por la relación inversa (R-7)
+
+
+def test_cp37_filtro_por_proveedor_en_productos(client, admin, proveedor, producto, categoria):
+    otro_producto = Producto.objects.create(
+        nombre="Sin proveedor",
+        categoria=categoria,
+        precio_venta=Decimal("100"),
+        unidad_medida=UnidadMedida.UNIDAD,
+        controla_stock=True,
+    )
+    ProductoProveedor.objects.create(producto=producto, proveedor=proveedor, precio_compra=10)
+    baja = Proveedor.objects.create(nombre="Dado de baja", activo=False)
+    ProductoProveedor.objects.create(producto=otro_producto, proveedor=baja, precio_compra=10)
+    client.force_login(admin)
+
+    assert proveedores_para_filtrar() == [(proveedor.pk, proveedor.nombre)]
+    respuesta = client.get(reverse("catalogo:productos"), {"proveedor": proveedor.pk})
+    assert [p.nombre for p in respuesta.context["pagina"]] == [producto.nombre]
+    assert proveedor.nombre in respuesta.content.decode()

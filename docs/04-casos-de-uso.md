@@ -190,14 +190,14 @@ flowchart LR
 |---|---|---|---|
 | A1 | Producto no encontrado | La cajera puede crearlo si tiene permiso (CU-11), sin salir de la venta (DEC-62 a DEC-65) | PDF |
 | A2 | Medio de pago = cuenta corriente | Se ejecuta SC-03 | A confirmar: PR-12, PR-13 |
-| A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: al agregar el producto o cambiar su cantidad la pantalla avisa y puede mostrar la cantidad disponible (DEC-102, DEC-103); la venta se permite y el stock puede quedar negativo | Decidido (DEC-46, DEC-102) |
+| A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: al agregar el producto o cambiar su cantidad la pantalla avisa con la cantidad disponible (DEC-102, DEC-103); la venta se permite y el stock puede quedar negativo | Decidido (DEC-46, DEC-102) |
 | A4 | La caja del turno no está abierta | El sistema indica que debe abrir la caja (CU-02) | Propuesta |
 | A5 | La cajera cancela | No se registra nada | Propuesta |
 
 **Decisiones de diseño (DEC-35):** la carne se vende por kg y no descuenta stock (DEC-36); el lector de códigos carga el plus en el campo de búsqueda (DEC-37); la venta va a la única caja abierta (DEC-83, que reemplaza a DEC-39); medios de pago de la tabla `medio_pago`, sin cuenta corriente hasta H4 (DEC-41); un solo medio por venta (DEC-42); ticket no fiscal imprimible desde el navegador (DEC-44); una venta confirmada no se edita: el Administrador la anula con reversa mientras su caja esté abierta (DEC-45). Del spec de CU-01: lista de la venta en el navegador con todo recalculado en el servidor (DEC-47), cantidades enteras por unidad y hasta 3 decimales por kg (DEC-48), subtotal redondeado a 2 decimales (DEC-49), sin venta en una caja de otro día (DEC-50), medio de pago sin valor por defecto (DEC-51), código exacto que agrega el producto (DEC-52), una línea por producto (DEC-53) y ticket con "Imprimir" y "Nueva venta" (DEC-54).
 **Observación del prototipo:** no incluye selección de cliente ni la opción de cuenta corriente (H-11).
 
-**Implementación (H2, etapa 2):** pantalla `/ventas/nueva/`, solo para la cajera (con o sin permiso de alta); el Administrador y los dueños reciben 403. Sin caja abierta, o con la caja abierta de otro día, la pantalla avisa y enlaza a Caja. La búsqueda trae productos activos por nombre o plus; un código exacto agrega el producto. La lista de la venta vive en el navegador y, al confirmar, el servidor recalcula precios, subtotales y total, guarda la venta, sus detalles, el ingreso de caja (SC-02) y el descuento de stock en una sola transacción. Una venta con total 0 se rechaza, porque el ingreso de caja tiene que ser mayor a 0. Los avisos de stock insuficiente no muestran cantidades (la cajera no consulta stock). Después de confirmar se ve el ticket. La venta en curso se guarda en la pestaña (`sessionStorage`) y se recupera al volver a la pantalla; se borra al confirmar o vaciar, y al salir con productos cargados el navegador avisa (DEC-47, etapa 0b de H3).
+**Implementación (H2, etapa 2):** pantalla `/ventas/nueva/`, solo para la cajera (con o sin permiso de alta); el Administrador y los dueños reciben 403. Sin caja abierta, o con la caja abierta de otro día, la pantalla avisa y enlaza a Caja. La búsqueda trae productos activos por nombre o plus; un código exacto agrega el producto. La lista de la venta vive en el navegador y, al confirmar, el servidor recalcula precios, subtotales y total, guarda la venta, sus detalles, el ingreso de caja (SC-02) y el descuento de stock en una sola transacción. Una venta con total 0 se rechaza, porque el ingreso de caja tiene que ser mayor a 0. El aviso de stock insuficiente del ticket no muestra cantidades; la pantalla de venta avisa con la cantidad disponible (etapa 5 de H3, DEC-102). Después de confirmar se ve el ticket. La venta en curso se guarda en la pestaña (`sessionStorage`) y se recupera al volver a la pantalla; se borra al confirmar o vaciar, y al salir con productos cargados el navegador avisa (DEC-47, etapa 0b de H3).
 
 **Implementación (H2, etapa 4):** spec `docs/specs/SPEC-CU-01-etapa4.md`.
 - **Alta durante la venta (A1):** si la búsqueda no trae resultados, la cajera con permiso de alta ve "Crear producto", que abre un diálogo con los mismos campos que `/productos/nuevo/` y precarga lo buscado (solo dígitos, en el plus; si no, en el nombre). El alta usa el servicio de CU-11 (`/ventas/producto/`); con éxito, el producto se agrega a la venta en curso, que no se pierde, y los errores se muestran junto a cada campo. La cajera sin permiso no ve la opción y el alta le da 403 (RN-05).
@@ -346,7 +346,7 @@ flowchart LR
 
 **Flujo normal (PDF)**
 
-1. El usuario abre el módulo Stock.
+1. El usuario abre Productos: la consulta de stock se integra en esa pantalla (DEC-105).
 2. El sistema muestra todos los productos registrados.
 3. El usuario aplica filtros (categoría, proveedor, etc.).
 4. El sistema muestra los productos filtrados con cantidades y alertas de stock mínimo (RN-10).
@@ -358,7 +358,8 @@ flowchart LR
 | A1 | Los filtros no devuelven productos | El sistema muestra "Sin productos para el filtro seleccionado" | Propuesta |
 | A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; hoy los dueños (PR-25) |
 
-**Alcance:** solo productos no cárnicos.
+**Alcance:** el stock y las alertas son solo de productos no cárnicos; el listado también muestra la carne, como "Sin control" (DEC-105).
+**Implementación (H3, etapa 5, DEC-105):** en `/productos/`, para el Administrador y toda cajera: filtros por categoría, por proveedor (los activos con productos, por la relación inversa de `producto_proveedor`, R-7) y "Solo stock bajo", que se pueden combinar con la búsqueda y se conservan al paginar, y la marca "Stock bajo" en cada fila. La alerta se define una sola vez en el servicio de catálogo (R-8). El inicio del Administrador tiene la tarjeta "Stock bajo" con la cantidad de productos, que lleva al listado filtrado.
 **Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; para la cajera queda pendiente (L9, PR-35).
 **Pendientes:** PR-21 (vencimientos), PR-25 (si los dueños consultan el stock).
 
@@ -575,7 +576,7 @@ Extiende CU-01 cuando el medio de pago es cuenta corriente. Selecciona el client
 
 ### SC-04 Avisar stock insuficiente (DEC-46)
 
-Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera al agregar el producto o cambiar su cantidad, y puede mostrar la cantidad disponible (DEC-102, DEC-103), y otra vez en el ticket; la venta se permite y el `stock_actual` puede quedar negativo. Por ahora no se registra un faltante aparte: es un supuesto (DEC-46) y el registro del faltante, que figura en el relevamiento base (RF-27), queda pendiente de PR-37.
+Extiende CU-01 cuando el stock de un producto con control es insuficiente. El sistema avisa a la cajera en la línea, al agregar el producto o cambiar su cantidad, con la cantidad disponible (DEC-102, DEC-103), y otra vez en el ticket; la venta se permite y el `stock_actual` puede quedar negativo. Por ahora no se registra un faltante aparte: es un supuesto (DEC-46) y el registro del faltante, que figura en el relevamiento base (RF-27), queda pendiente de PR-37.
 
 ## 7. Prototipos
 

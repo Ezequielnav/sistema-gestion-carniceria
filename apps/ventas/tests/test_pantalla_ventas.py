@@ -94,15 +94,16 @@ def test_cp82_la_busqueda_devuelve_el_exacto_y_los_resultados(client, usuario, a
         "plus": "101",
         "precio": "9800.00",
         "unidad": "KG",
+        "stock": None,  # sin control de stock: no avisa (DEC-102)
     }
 
     datos = client.get(BUSCAR, {"q": "acei"}).json()
     assert datos["exacto"] is None
     assert [p["id"] for p in datos["resultados"]] == [aceite.pk]
-    assert "stock" not in datos["resultados"][0]
+    assert datos["resultados"][0]["stock"] == "10.000"  # CP-110: para el aviso al agregar
 
 
-def test_cp106_sin_texto_la_cajera_sin_permiso_ve_los_activos_sin_stock(
+def test_cp106_sin_texto_la_cajera_sin_permiso_ve_los_activos(
     client, usuario, caja_hoy, aceite, asado
 ):
     assert not usuario.puede_crear_productos
@@ -111,12 +112,13 @@ def test_cp106_sin_texto_la_cajera_sin_permiso_ve_los_activos_sin_stock(
     pantalla = client.get(NUEVA).content.decode()
     assert 'id="ver-productos"' in pantalla
     assert "js/buscador.js" in pantalla
+    assert "js/aviso_stock.js" in pantalla
 
     datos = client.get(BUSCAR, {"q": ""}).json()
     assert datos["exacto"] is None
     assert datos["hay_mas"] is False
     assert [p["nombre"] for p in datos["resultados"]] == ["Aceite 1 l", "Asado"]
-    assert set(datos["resultados"][0]) == {"id", "nombre", "plus", "precio", "unidad"}
+    assert set(datos["resultados"][0]) == {"id", "nombre", "plus", "precio", "unidad", "stock"}
 
 
 # Confirmación y ticket (CP-10, CP-11, CP-84, DEC-47, DEC-54)
@@ -176,6 +178,9 @@ def test_cp83_el_aviso_de_stock_se_ve_en_el_ticket(client, usuario, caja_hoy, ef
 
     contenido = client.get(respuesta.json()["ticket"]).content.decode()
     assert "Stock insuficiente de Aceite 1 l" in contenido
+    # DEC-46: no se bloquea y el stock queda negativo.
+    aceite.refresh_from_db()
+    assert aceite.stock_actual == Decimal("-2")
 
 
 # Errores (CP-16, CP-17, DEC-51)

@@ -10,12 +10,14 @@ from apps.catalogo.forms import ProductoForm
 from apps.catalogo.models import cantidad_para_editar
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
+    categorias_para_filtrar,
     crear_producto,
     dar_de_baja,
     listar_productos,
     modificar_producto,
     producto_dado_de_baja,
     producto_editable,
+    proveedores_para_filtrar,
     puede_crear,
     puede_modificar,
     puede_ver_stock,
@@ -33,11 +35,25 @@ def _producto_editable(pk):
         raise Http404 from error
 
 
+def _id_de(request, nombre):
+    valor = request.GET.get(nombre, "")
+    return int(valor) if valor.isdigit() else None
+
+
 @requiere_funcion("Productos")
 def productos(request):
+    """CU-11 y consulta de stock de CU-06 en una sola pantalla (DEC-105)."""
     texto = request.GET.get("q", "").strip()
+    categoria = _id_de(request, "categoria")
+    proveedor = _id_de(request, "proveedor")
+    solo_stock_bajo = request.GET.get("stock_bajo") == "1"
     productos, incluir_inactivos = listar_productos(
-        request.user, texto, pedir_inactivos=request.GET.get("inactivos") == "1"
+        request.user,
+        texto,
+        pedir_inactivos=request.GET.get("inactivos") == "1",
+        categoria_id=categoria,
+        proveedor_id=proveedor,
+        solo_stock_bajo=solo_stock_bajo,
     )
     pagina = Paginator(productos, POR_PAGINA).get_page(request.GET.get("pagina"))
     return render(
@@ -50,6 +66,11 @@ def productos(request):
             "puede_crear": puede_crear(request.user),
             "puede_modificar": puede_modificar(request.user),
             "ver_stock": puede_ver_stock(request.user),
+            "categorias": categorias_para_filtrar(),
+            "proveedores": proveedores_para_filtrar(),
+            "categoria": categoria,
+            "proveedor": proveedor,
+            "solo_stock_bajo": solo_stock_bajo,
         },
     )
 

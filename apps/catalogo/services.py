@@ -4,9 +4,9 @@ from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import F, Q
+from django.db.models import BooleanField, ExpressionWrapper, F, Q
 
-from apps.catalogo.models import AjusteStock, MotivoAjuste, Producto, UnidadMedida
+from apps.catalogo.models import AjusteStock, Categoria, MotivoAjuste, Producto, UnidadMedida
 from apps.usuarios.models import Rol
 
 MILESIMA = Decimal("0.001")
@@ -86,6 +86,41 @@ def puede_ver_stock(usuario):
     return usuario.rol in (Rol.ADMINISTRADOR, Rol.CAJERA)
 
 
+# CU-06: única definición de la alerta de stock (R-8, DEC-82, DEC-101). La carne no lleva
+# alerta porque no controla stock (DEC-36) y un producto dado de baja tampoco.
+ALERTA_DE_STOCK = Q(activo=True, controla_stock=True) & (
+    Q(stock_minimo__isnull=False, stock_actual__lte=F("stock_minimo"))
+    | Q(stock_minimo__isnull=True, stock_actual__lte=0)
+)
+
+
+def con_alerta_de_stock(productos):
+    """Agrega a cada producto `alerta_stock`, para marcarlo en el listado."""
+    return productos.annotate(
+        alerta_stock=ExpressionWrapper(ALERTA_DE_STOCK, output_field=BooleanField())
+    )
+
+
+def cantidad_con_stock_bajo():
+    """Para la tarjeta "stock bajo" del inicio del Administrador (DEC-30, DEC-82)."""
+    return Producto.objects.filter(ALERTA_DE_STOCK).count()
+
+
+def categorias_para_filtrar():
+    return Categoria.objects.order_by("nombre")
+
+
+def proveedores_para_filtrar():
+    """(id, nombre) de los proveedores activos con productos, por la relación inversa de
+    `producto_proveedor`: catálogo no importa `proveedores` (R-6, R-7)."""
+    return list(
+        Producto.objects.filter(productoproveedor__proveedor__activo=True)
+        .order_by("productoproveedor__proveedor__nombre")
+        .values_list("productoproveedor__proveedor_id", "productoproveedor__proveedor__nombre")
+        .distinct()
+    )
+
+
 def buscar_productos(texto="", incluir_inactivos=False):
     """Productos por nombre (contiene) o plus interno (exacto), ordenados por nombre."""
     productos = Producto.objects.select_related("categoria").order_by("nombre", "pk")
@@ -97,13 +132,28 @@ def buscar_productos(texto="", incluir_inactivos=False):
     return productos
 
 
-def listar_productos(usuario, texto="", pedir_inactivos=False):
-    """Productos de la pantalla; solo el Administrador puede incluir los dados de baja.
+def listar_productos(
+    usuario,
+    texto="",
+    pedir_inactivos=False,
+    categoria_id=None,
+    proveedor_id=None,
+    solo_stock_bajo=False,
+):
+    """Productos de la pantalla, con la consulta de stock de CU-06 (DEC-105).
 
-    Devuelve los productos y si se incluyeron los dados de baja.
+    Solo el Administrador puede incluir los dados de baja. Devuelve los productos, con su
+    alerta de stock, y si se incluyeron los dados de baja.
     """
     incluir_inactivos = pedir_inactivos and puede_modificar(usuario)
-    return buscar_productos(texto, incluir_inactivos), incluir_inactivos
+    productos = con_alerta_de_stock(buscar_productos(texto, incluir_inactivos))
+    if categoria_id is not None:
+        productos = productos.filter(categoria_id=categoria_id)
+    if proveedor_id is not None:
+        productos = productos.filter(productoproveedor__proveedor_id=proveedor_id)
+    if solo_stock_bajo:
+        productos = productos.filter(ALERTA_DE_STOCK)
+    return productos, incluir_inactivos
 
 
 def producto_editable(pk):

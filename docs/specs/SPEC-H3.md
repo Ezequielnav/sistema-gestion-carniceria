@@ -56,7 +56,7 @@ No están escritos en `/docs`: salen de revisar el código que H3 va a tocar.
 | **pago.** Se elige un ingreso vigente del proveedor con saldo; monto mayor a 0 y no mayor al saldo del ingreso. Los pagos anulados no cuentan para el saldo | RF-31, RF-32, RI-08, RI-14, CU-07 A2, DEC-81 |
 | **pago.** Medios: efectivo o transferencia, tanto en el pago de un ingreso a crédito como en el contado. Efectivo: caja abierta del día, egreso `PAGO_PROVEEDOR` en la misma operación a nombre de quien registra; si supera el efectivo esperado, se rechaza mostrando el máximo. Transferencia: sin movimiento de caja | RF-33, RN-09, RI-09, RI-13, DEC-80, CP-36, CP-90, CP-91 |
 | **pago.** Anulación con motivo, solo el Administrador: por transferencia, siempre; en efectivo, solo si la caja de su egreso sigue abierta, con una reversa `INGRESO` de concepto `ANULACION_PAGO` en esa caja, vinculada al pago, a nombre de quien anula y con el motivo; el egreso original no se toca. El saldo del ingreso vuelve a subir | S-6 |
-| **consulta-stock.** Lista de productos activos con control de stock, con filtros por categoría, proveedor y "solo con alerta"; alerta si `stock_actual <= stock_minimo` o, sin mínimo, si `stock_actual <= 0` (DEC-101); la carne no aparece | RF-25, RF-26, RN-10, DEC-82, CP-37, R-7, R-8 |
+| **consulta-stock.** En `/productos/` (DEC-105), con filtros por categoría, proveedor y "solo con alerta"; alerta si `stock_actual <= stock_minimo` o, sin mínimo, si `stock_actual <= 0` (DEC-101); la carne se lista como "Sin control", sin alerta | RF-25, RF-26, RN-10, DEC-82, CP-37, R-7, R-8 |
 | **consulta-stock.** La tarjeta "stock bajo" del inicio cuenta los productos con alerta y la ve solo el Administrador | DEC-30, DEC-82, R-8 |
 
 **Fuera de H3:** vencimientos (RF-28, PR-21), pedidos a proveedor (RF-34, PR-19), registro de faltantes (RF-27, PR-37), edición de ingresos y pagos (se anulan y se cargan de nuevo, S-6), datos de contacto extra (PR-31), CU-06 para la cajera y los dueños (PR-25).
@@ -157,5 +157,6 @@ def mover_stock(producto, cantidad):
 | 2026-10-29 | Stock inicial en el alta del Administrador, registrado como ajuste | DEC-99 | 1b |
 | 2026-10-29 | Panel: alta y modificación de productos con el servicio de catálogo; `ajuste_stock` de solo lectura | DEC-100 | 1b |
 | 2026-10-29 | Alerta sin mínimo con `stock_actual <= 0` (criterio 11 y regla de consulta-stock) | DEC-101 | 5 |
-| 2026-10-29 | Aviso de stock insuficiente al agregar en la venta, sin cantidades; cambia el comportamiento de la venta (pedido por el alumno) | DEC-102 | 5 |
+| 2026-10-29 | Aviso de stock insuficiente al agregar en la venta; cambia el comportamiento de la venta (pedido por el alumno). Muestra la cantidad disponible desde DEC-103 | DEC-102 | 5 |
 | 2026-10-29 | La cajera consulta el stock en solo lectura (en `/productos/` y en CU-06) y el aviso de la venta puede mostrar la cantidad disponible; cambia S-2 para CU-06 | DEC-103 | 1b y 5 |
+| 2026-10-30 | CU-06 integrada en `/productos/`, sin pantalla ni menú "Stock"; cambia S-2 y R-7 sigue igual | DEC-105 | 5 |

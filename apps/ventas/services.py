@@ -164,7 +164,7 @@ def registrar_venta(usuario, lineas, medio_pago):
             if not producto.controla_stock:
                 continue  # La carne no lleva stock (RI-07, DEC-36).
             if producto.stock_actual < detalle.cantidad:
-                # Sin cantidades; mostrar la disponible es de la etapa 5 (DEC-102, DEC-103).
+                # Con la cantidad disponible avisa la pantalla, al agregar (DEC-102, DEC-103).
                 avisos.append(
                     f"Stock insuficiente de {producto}: la venta se registró y el stock quedó "
                     "negativo. Avisale al administrador."

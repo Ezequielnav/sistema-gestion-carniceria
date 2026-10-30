@@ -18,12 +18,31 @@
     {% endif %}
   </div>
 
-  <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
     <label for="buscar" class="sr-only">Buscar producto</label>
     <input id="buscar" type="search" name="q" value="{{ texto }}" placeholder="Nombre o plus interno" autofocus
            class="campo sm:max-w-sm">
+    {# CU-06: consulta de stock con filtros (DEC-105). #}
+    <label for="filtro-categoria" class="sr-only">Categoría</label>
+    <select id="filtro-categoria" name="categoria" class="campo sm:w-auto">
+      <option value="">Todas las categorías</option>
+      {% for opcion in categorias %}
+        <option value="{{ opcion.pk }}" {% if opcion.pk == categoria %}selected{% endif %}>{{ opcion.nombre }}</option>
+      {% endfor %}
+    </select>
+    <label for="filtro-proveedor" class="sr-only">Proveedor</label>
+    <select id="filtro-proveedor" name="proveedor" class="campo sm:w-auto">
+      <option value="">Todos los proveedores</option>
+      {% for id, nombre in proveedores %}
+        <option value="{{ id }}" {% if id == proveedor %}selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <label class="flex items-center gap-2 text-sm whitespace-nowrap text-gray-700">
+      <input type="checkbox" name="stock_bajo" value="1" class="casilla" {% if solo_stock_bajo %}checked{% endif %}>
+      Solo stock bajo
+    </label>
     {% if puede_modificar %}
-      <label class="flex items-center gap-2 text-sm text-gray-700">
+      <label class="flex items-center gap-2 text-sm whitespace-nowrap text-gray-700">
         <input type="checkbox" name="inactivos" value="1" class="casilla" {% if incluir_inactivos %}checked{% endif %}>
         Incluir dados de baja
       </label>
@@ -70,6 +89,7 @@
                     {% if producto.controla_stock %}
                       {{ producto.stock_actual|cantidad:producto.unidad_medida }}
                       {% if producto.stock_minimo is not None %}<span class="text-xs text-gray-500">mín. {{ producto.stock_minimo|cantidad:producto.unidad_medida }}</span>{% endif %}
+                      {% if producto.alerta_stock %}<span class="mt-1 ml-auto block w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">Stock bajo</span>{% endif %}
                     {% else %}
                       <span class="text-xs text-gray-500">Sin control</span>
                     {% endif %}
@@ -100,10 +120,10 @@
           <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="{% querystring pagina=pagina.previous_page_number %}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="{% querystring pagina=pagina.next_page_number %}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
             {% endif %}
           </span>
         </nav>
@@ -113,7 +133,7 @@
         <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
           {% include "comun/_icono.html" with nombre="paquete" %}
         </span>
-        <p class="mt-3 text-sm font-medium">{% if texto %}No hay productos que coincidan con «{{ texto }}»{% else %}Todavía no hay productos{% endif %}</p>
+        <p class="mt-3 text-sm font-medium">{% if texto %}No hay productos que coincidan con «{{ texto }}»{% elif categoria or proveedor or solo_stock_bajo %}Sin productos para el filtro seleccionado{% else %}Todavía no hay productos{% endif %}</p>
       </div>
     {% endif %}
   </section>

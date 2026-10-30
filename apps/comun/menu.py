@@ -59,15 +59,15 @@ FUNCIONES = [
         url="caja:caja",
     ),
     # DEC-103: toda cajera consulta productos y stock; el alta sigue con permiso (RN-05).
+    # DEC-105: la consulta de stock (CU-06) vive acá, sin función propia en el menú.
     Funcion(
         "Productos",
         "Precios, stock y altas",
-        "CU-11",
+        "CU-06, CU-11",
         frozenset({ADMIN, CAJERA}),
         "paquete",
         url="catalogo:productos",
     ),
-    Funcion("Stock", "Existencias y faltantes", "CU-06", frozenset({ADMIN}), "capas"),
     Funcion(
         "Clientes",
         "Cuentas corrientes y cobros",

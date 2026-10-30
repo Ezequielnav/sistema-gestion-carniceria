@@ -164,7 +164,7 @@ def test_cp53_duenio_no_entra_al_panel_ni_carga_datos(client, categoria):
 # CP-54 (RF-02): la cajera no accede a funciones de administrador
 
 
-@pytest.mark.parametrize("funcion", ["Stock", "Clientes", "Proveedores", "Reportes", "Usuarios"])
+@pytest.mark.parametrize("funcion", ["Clientes", "Proveedores", "Reportes", "Usuarios"])
 def test_cp54_cajera_no_abre_funciones_de_administrador(funcion):
     with pytest.raises(PermissionDenied):
         _pedir(_vista(funcion), _usuario(Rol.CAJERA, puede_crear_productos=True))

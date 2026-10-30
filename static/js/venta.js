@@ -60,6 +60,15 @@
     return td;
   }
 
+  function nombreConAviso(nombre) {
+    const contenido = document.createElement("span");
+    const aviso = document.createElement("span");
+    aviso.className = "aviso-stock mt-1 block hidden text-xs font-normal text-amber-800";
+    aviso.setAttribute("role", "status");
+    contenido.append(nombre, aviso);
+    return contenido;
+  }
+
   function dibujar(enfocar) {
     cuerpo.replaceChildren();
     for (const [id, linea] of lineas) {
@@ -111,7 +120,7 @@
       const fila = document.createElement("tr");
       fila.dataset.producto = id;
       fila.append(
-        celda("px-5 py-3 font-medium", linea.producto.nombre),
+        celda("px-5 py-3 font-medium", nombreConAviso(linea.producto.nombre)),
         celda("px-5 py-3", etiqueta),
         celda("cifras px-5 py-3 text-right whitespace-nowrap", `$ ${pesos.format(Number(linea.producto.precio))}`),
         celda("cifras px-5 py-3 text-right whitespace-nowrap subtotal", ""),
@@ -131,6 +140,10 @@
       const valor = subtotal(linea);
       suma += valor;
       fila.querySelector(".subtotal").textContent = `$ ${pesos.format(valor)}`;
+      // DEC-102: avisa con la cantidad disponible, sin bloquear (DEC-46).
+      const aviso = fila.querySelector(".aviso-stock");
+      aviso.textContent = avisoDeStock(linea.producto, linea.cantidad) || "";
+      aviso.classList.toggle("hidden", !aviso.textContent);
     }
     total.textContent = `$ ${pesos.format(suma)}`;
     persistir();

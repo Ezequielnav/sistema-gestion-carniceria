@@ -43,8 +43,7 @@ def test_dec103_toda_cajera_ve_productos_y_el_alta_sigue_con_permiso(con_permiso
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     assert _nombres(_usuario(Rol.ADMINISTRADOR)) == [
         "Historial de ventas",  # DEC-86; anular, DEC-45
-        "Productos",
-        "Stock",
+        "Productos",  # con la consulta de stock (DEC-105)
         "Clientes",
         "Proveedores",
         "Reportes",
@@ -86,6 +85,26 @@ def test_el_titulo_del_menu_lateral_es_menu_para_todos_los_roles(client, rol):
     assert '<nav aria-label="Menú"' in contenido
     assert ">Menú</p>" in contenido
     assert "Funciones" not in contenido
+
+
+# CP-37 (DEC-30, DEC-82, DEC-105): tarjeta "stock bajo" solo para el Administrador
+
+
+def test_cp37_la_tarjeta_de_stock_bajo_es_del_administrador_y_lleva_al_filtro(client, producto):
+    producto.stock_actual = 0
+    producto.save()
+    enlace = f"{reverse('catalogo:productos')}?stock_bajo=1"
+
+    client.force_login(_usuario(Rol.ADMINISTRADOR))
+    respuesta = client.get(reverse("inicio"))
+    assert respuesta.context["stock_bajo"] == 1
+    assert enlace in respuesta.content.decode()
+
+    for rol in (Rol.CAJERA, Rol.DUENIO):
+        client.force_login(_usuario(rol))
+        respuesta = client.get(reverse("inicio"))
+        assert respuesta.context["stock_bajo"] is None
+        assert enlace not in respuesta.content.decode()
 
 
 # CP-75

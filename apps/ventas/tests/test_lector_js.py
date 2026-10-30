@@ -43,3 +43,15 @@ def test_cp106_lista_del_buscador_sin_romper_el_lector():
     )
 
     assert resultado.returncode == 0, resultado.stdout + resultado.stderr
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node no está instalado")
+def test_cp110_aviso_de_stock_al_agregar_a_la_venta():
+    resultado = subprocess.run(
+        ["node", "--test", str(CARPETA / "aviso_stock.test.cjs")],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert resultado.returncode == 0, resultado.stdout + resultado.stderr
