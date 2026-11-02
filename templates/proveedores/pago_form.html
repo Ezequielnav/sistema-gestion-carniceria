@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block titulo %}Registrar pago{% endblock %}
 {% block encabezado %}Proveedores{% endblock %}
+{% block scripts %}<script src="{% static 'js/sale_de_caja.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
@@ -22,20 +24,30 @@
       {% endif %}
 
       {% for campo in form %}
-        <div>
-          <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
-          {{ campo }}
-          {% if campo.name == "medio_pago" %}
+        {% if campo.name == "sale_de_caja" %}
+          {# DEC-106: solo en efectivo. #}
+          <div data-sale-de-caja data-efectivo="{{ form.id_efectivo|default:'' }}" class="hidden">
+            <label class="flex items-center gap-2 text-sm font-medium text-gray-700">{{ campo }} {{ campo.label }}</label>
             <p class="mt-1.5 text-xs text-gray-500">
-              En efectivo sale de la caja abierta de hoy y queda a tu nombre.
-              {% if efectivo_disponible is None %}Ahora no hay una caja abierta de hoy: solo se puede pagar por transferencia.{% else %}Efectivo disponible en la caja: <span class="cifras font-medium">$ {{ efectivo_disponible|floatformat:"2g" }}</span>.{% endif %}
-              Por transferencia no hay movimiento de caja.
+              Queda como egreso a tu nombre y exige la caja abierta de hoy.
+              {% if efectivo_disponible is None %}Ahora no hay una caja abierta de hoy: desmarcala si el efectivo no sale de ahí.{% else %}Efectivo disponible en la caja: <span class="cifras font-medium">$ {{ efectivo_disponible|floatformat:"2g" }}</span>.{% endif %}
             </p>
-          {% endif %}
-          {% for error in campo.errors %}
-            <p class="mt-1.5 text-sm text-red-700">{{ error }}</p>
-          {% endfor %}
-        </div>
+            {% for error in campo.errors %}
+              <p class="mt-1.5 text-sm text-red-700">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div>
+            <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.name == "medio_pago" %}
+              <p class="mt-1.5 text-xs text-gray-500">Solo el efectivo puede salir de la caja; los demás medios no generan movimiento de caja.</p>
+            {% endif %}
+            {% for error in campo.errors %}
+              <p class="mt-1.5 text-sm text-red-700">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
       {% endfor %}
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

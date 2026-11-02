@@ -327,6 +327,7 @@
       observacion: observacion.value,
       condicion_pago: condicion.value,
       medio_pago: condicion.value === "CONTADO" ? medio.value : "",
+      sale_de_caja: document.getElementById("id_sale_de_caja").checked ? "on" : "",
       lineas: JSON.stringify(lista),
     });
     confirmar.disabled = true;

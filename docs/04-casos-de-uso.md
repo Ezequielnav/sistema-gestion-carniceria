@@ -159,7 +159,7 @@ flowchart LR
 | RN-06 | Los dueños solo consultan, sin modificar datos operativos | 2.2 (PDF) | Confirmado |
 | RN-07 | Si un pago de cliente supera la deuda, se sugiere registrar el excedente como anticipo | CU-04 (PDF) | Confirmado; tratamiento posterior a confirmar (PR-15) |
 | RN-08 | El ingreso de mercadería actualiza el stock y genera deuda o pago al proveedor | CU-05 (PDF) | Confirmado; modalidad decidida (DEC-81, supuesto) |
-| RN-09 | El pago a proveedor valida la disponibilidad en caja | CU-07 (PDF) | Decidido (DEC-80, supuesto): solo para pagos en efectivo |
+| RN-09 | El pago a proveedor valida la disponibilidad en caja | CU-07 (PDF) | Decidido (DEC-80, DEC-106, supuestos): solo para pagos en efectivo que salen de la caja abierta |
 | RN-10 | La consulta de stock muestra alertas de stock mínimo | CU-06 (PDF) | Decidido (DEC-82, ajustado por DEC-101, supuesto): mínimo por producto cargado por el Administrador; sin mínimo, alerta con stock en 0 o menos |
 | RN-11 | Se alerta cuando un cliente tiene deuda vencida | CU-08 (PDF) | Plazo a confirmar (PR-13) |
 
@@ -323,7 +323,7 @@ flowchart LR
 
 **Decisiones de diseño (DEC-78, supuestos del proyecto):**
 
-- **Condición de pago (DEC-81):** `A_CREDITO` deja como deuda el total del ingreso. `CONTADO` pide el medio de pago (efectivo o transferencia) y registra el pago por el total con las reglas de CU-07 (DEC-80), en una sola operación atómica con el ingreso: si el pago se rechaza (por ejemplo, por falta de efectivo en la caja), no se guarda el ingreso.
+- **Condición de pago (DEC-81):** `A_CREDITO` deja como deuda el total del ingreso. `CONTADO` pide el medio de pago y registra el pago por el total con las reglas de CU-07 (DEC-80, DEC-106), en una sola operación atómica con el ingreso: si el pago se rechaza (por ejemplo, por falta de efectivo en la caja), no se guarda el ingreso.
 - **Remito (DEC-81):** el número de remito o de factura se anota como texto libre en `observacion`.
 - **Cantidades (DEC-79):** por `UNIDAD`, enteras; por `KG`, hasta 3 decimales (DEC-48). El tope por línea de la venta (DEC-76) no se aplica al ingreso.
 
@@ -331,7 +331,7 @@ flowchart LR
 - **Carga:** proveedor activo, remito u observación y líneas armadas en el navegador. La búsqueda filtra mientras se escribe, como en la venta (DEC-97), y trae también la carne. El precio se completa con el último precio de compra con ese proveedor y se puede cambiar; si se cambia de proveedor, se vuelven a completar los que no se tocaron (DEC-90). Una línea por producto, como en la venta (DEC-53). "Crear producto" abre un diálogo con el servicio de CU-11, sin stock inicial, y agrega el producto (A1, DEC-91, DEC-99).
 - **Confirmación:** el servidor valida y guarda en una operación el ingreso con la fecha de hoy (DEC-93), los detalles, el stock con `mover_stock` (la carne no lo mueve, DEC-94) y el precio en `producto_proveedor`. El total es la suma de los subtotales redondeados (DEC-89). El precio admite hasta 2 decimales y no puede ser negativo.
 - **Listado y detalle:** listado paginado de a 25 (DEC-95) con total y saldo; el detalle muestra las líneas, el total y el saldo derivado. El listado de proveedores muestra el saldo de cada uno (ingresos vigentes menos pagos, sin guardarlo).
-- **Contado (etapa 4, DEC-81):** la carga ofrece "A crédito" o "Contado"; al contado se elige efectivo o transferencia y el pago por el total se registra con el servicio de CU-07 en la misma operación: si se rechaza (por ejemplo, por falta de efectivo), no se guarda nada.
+- **Contado (etapa 4, DEC-81):** la carga ofrece "A crédito" o "Contado"; al contado se elige el medio (cualquiera activo salvo cuenta corriente) y, en efectivo, si sale de la caja abierta (DEC-106); el pago por el total se registra con el servicio de CU-07 en la misma operación: si se rechaza (por ejemplo, por falta de efectivo), no se guarda nada.
 - **Anulación (DEC-92):** desde el detalle, con motivo obligatorio y confirmación, solo si no tiene pagos vigentes (un contado se anula después de anular su pago). El ingreso queda `ANULADO` con fecha, usuario y motivo (migración `proveedores/0003`), su deuda deja de contar y el stock vuelve, aunque quede negativo; el precio de compra no se revierte.
 
 ### CU-06 Consultar stock
@@ -386,22 +386,22 @@ flowchart LR
 
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
-| A1 | El monto de un pago en efectivo supera el efectivo esperado de la caja | El sistema rechaza el pago y muestra el máximo disponible | PDF; ajustado por DEC-80: solo en efectivo |
+| A1 | El monto de un pago que sale de la caja supera su efectivo esperado | El sistema rechaza el pago y muestra el máximo disponible | PDF; ajustado por DEC-80 y DEC-106: solo si sale de la caja |
 | A2 | El monto supera la deuda | El sistema advierte y pide corregir | Propuesta |
 
 **Decisiones de diseño (DEC-78, supuestos del proyecto):**
 
-- **Medios (DEC-80):** efectivo o transferencia; no se ofrece cuenta corriente (DEC-41).
-- **Efectivo (DEC-80):** exige la caja abierta del día; sin caja abierta, o si la abierta es de otro día, se rechaza. Genera en la misma operación un egreso `PAGO_PROVEEDOR` (SC-02). El Administrador puede registrarlo en la caja abierta por otro usuario; el movimiento queda a nombre de quien lo registra.
-- **Transferencia (DEC-80):** no genera movimiento de caja ni valida disponibilidad.
+- **Medios (DEC-106):** cualquier medio activo salvo cuenta corriente (DEC-41).
+- **Efectivo que sale de la caja (DEC-80, DEC-106):** opción "Sale de la caja abierta", marcada por defecto. Exige la caja abierta del día; sin caja abierta, o si la abierta es de otro día, se rechaza. Genera en la misma operación un egreso `PAGO_PROVEEDOR` (SC-02). El Administrador puede registrarlo en la caja abierta por otro usuario; el movimiento queda a nombre de quien lo registra.
+- **Efectivo que no sale de la caja y demás medios (DEC-106):** no generan movimiento de caja ni validan disponibilidad.
 - **Deuda (DEC-81):** se elige un ingreso del proveedor con saldo pendiente; el saldo del proveedor es la suma de los totales de sus ingresos menos la suma de sus pagos.
 
 **Implementación (H3, etapa 4):** pantallas en `/proveedores/pagos/`, solo del Administrador, con la pestaña "Pagos".
-- **Registro:** "Registrar pago" desde el listado o desde el detalle de un ingreso con saldo, que precarga el ingreso y el saldo. Se elige un ingreso vigente de un proveedor activo con saldo; el monto, mayor a 0, con centavos y no mayor al saldo (RI-08, A2), y el medio: efectivo o transferencia, los dos medios marcados en `medio_pago` (DEC-104).
-- **Efectivo:** la pantalla muestra lo disponible en la caja abierta. El pago va en la caja abierta del día con el egreso `PAGO_PROVEEDOR` a nombre de quien registra, con las funciones públicas de caja (R-3); sin caja, con la de otro día o sin efectivo suficiente se rechaza mostrando el máximo (A1).
-- **Transferencia:** sin movimiento de caja.
-- **Concurrencia:** el pago bloquea el ingreso, como su anulación, y en efectivo después la caja, como el cierre: un pago y un cierre, o un pago y la anulación del ingreso, al mismo tiempo no se cruzan.
-- **Anulación (DEC-92):** desde el detalle del pago, con motivo y confirmación: por transferencia, siempre; en efectivo, solo con la caja de su egreso abierta, con una reversa `INGRESO` `ANULACION_PAGO` en esa caja (el egreso no se toca). El saldo vuelve a subir; un ingreso se puede anular cuando no le quedan pagos vigentes.
+- **Registro:** "Registrar pago" desde el listado o desde el detalle de un ingreso con saldo, que precarga el ingreso y el saldo. Se elige un ingreso vigente de un proveedor activo con saldo; el monto, mayor a 0, con centavos y no mayor al saldo (RI-08, A2), y el medio: cualquiera activo salvo cuenta corriente (DEC-106).
+- **Efectivo:** aparece "Sale de la caja abierta", marcada, con lo disponible en la caja abierta de hoy. Marcada, el pago va en la caja abierta del día con el egreso `PAGO_PROVEEDOR` a nombre de quien registra, con las funciones públicas de caja (R-3); sin caja, con la de otro día o sin efectivo suficiente se rechaza mostrando el máximo (A1). Desmarcada, se registra sin movimiento y sin exigir caja.
+- **Otros medios:** sin movimiento de caja.
+- **Concurrencia:** el pago bloquea el ingreso, como su anulación, y si sale de caja después la caja, como el cierre: un pago y un cierre, o un pago y la anulación del ingreso, al mismo tiempo no se cruzan.
+- **Anulación (DEC-92):** desde el detalle del pago, con motivo y confirmación: si no salió de caja, siempre y sin reversa; si salió, solo con la caja de su egreso abierta, con una reversa `INGRESO` `ANULACION_PAGO` en esa caja (el egreso no se toca). El saldo vuelve a subir; un ingreso se puede anular cuando no le quedan pagos vigentes.
 
 ### CU-08 Gestionar cuentas corrientes
 

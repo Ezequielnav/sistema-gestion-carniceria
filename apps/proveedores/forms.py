@@ -16,9 +16,18 @@ from apps.proveedores.services import (
 )
 
 
-def _medios():
-    """Efectivo y transferencia (DEC-80, DEC-104)."""
-    return MedioPago.objects.filter(pk__in=[m.pk for m in medios_para_pagar()]).order_by("pk")
+def _sale_de_caja():
+    """Solo se muestra en efectivo (DEC-106); marcada por defecto."""
+    return forms.BooleanField(
+        label="Sale de la caja abierta",
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "casilla"}),
+    )
+
+
+def _id_del_efectivo():
+    return MedioPago.objects.filter(es_efectivo=True).values_list("pk", flat=True).first()
 
 
 ETIQUETAS = {"nombre": "Nombre", "telefono": "Teléfono", "email": "Email"}
@@ -68,15 +77,18 @@ class ConfirmarIngresoForm(forms.Form):
         required=False,
         empty_label="Elegí un medio",
     )
+    sale_de_caja = _sale_de_caja()
     # Lista en JSON: [{"producto": id, "cantidad": "1.250", "precio": "1800.00"}].
     lineas = forms.CharField(widget=forms.HiddenInput, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["proveedor"].queryset = proveedores_para_ingreso()
-        self.fields["medio_pago"].queryset = _medios()
-        for campo in self.fields.values():
-            campo.widget.attrs["class"] = "campo"
+        self.fields["medio_pago"].queryset = medios_para_pagar()
+        self.id_efectivo = _id_del_efectivo()
+        for nombre, campo in self.fields.items():
+            if nombre != "sale_de_caja":
+                campo.widget.attrs["class"] = "campo"
 
     def clean_condicion_pago(self):
         return self.cleaned_data["condicion_pago"] or CondicionPago.A_CREDITO
@@ -133,6 +145,7 @@ class PagoForm(forms.Form):
         empty_label="Elegí un medio",
         error_messages={"required": "Elegí el medio de pago."},
     )
+    sale_de_caja = _sale_de_caja()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -141,9 +154,11 @@ class PagoForm(forms.Form):
             .select_related("proveedor")
             .order_by("proveedor__nombre", "fecha", "pk")
         )
-        self.fields["medio_pago"].queryset = _medios()
-        for campo in self.fields.values():
-            campo.widget.attrs["class"] = "campo"
+        self.fields["medio_pago"].queryset = medios_para_pagar()
+        self.id_efectivo = _id_del_efectivo()
+        for nombre, campo in self.fields.items():
+            if nombre != "sale_de_caja":
+                campo.widget.attrs["class"] = "campo"
         self.fields["monto"].widget.attrs.update({"min": "0.01", "step": "0.01"})
 
 

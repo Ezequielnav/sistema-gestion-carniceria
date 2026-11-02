@@ -42,8 +42,6 @@ class MedioPago(ModeloBase):
     ingresa_a_caja = models.BooleanField(default=True)
     # El medio del fondo de cambio y de los egresos "otros" (DEC-55).
     es_efectivo = models.BooleanField(default=False)
-    # El medio de los pagos a proveedores que no salen de caja (DEC-80, DEC-104).
-    es_transferencia = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
 
     class Meta:
@@ -63,18 +61,6 @@ class MedioPago(ModeloBase):
                 condition=Q(es_efectivo=True),
                 name="medio_pago_un_solo_efectivo",
                 violation_error_message="Ya hay otro medio de pago marcado como efectivo.",
-            ),
-            # DEC-104: un solo medio de transferencia, y no puede ser también el efectivo.
-            models.UniqueConstraint(
-                fields=["es_transferencia"],
-                condition=Q(es_transferencia=True),
-                name="medio_pago_una_sola_transferencia",
-                violation_error_message="Ya hay otro medio de pago marcado como transferencia.",
-            ),
-            models.CheckConstraint(
-                condition=Q(es_efectivo=False) | Q(es_transferencia=False),
-                name="medio_pago_efectivo_o_transferencia",
-                violation_error_message="Un medio no puede ser efectivo y transferencia a la vez.",
             ),
         ]
 

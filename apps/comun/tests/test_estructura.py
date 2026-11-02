@@ -52,7 +52,6 @@ CHECKS = {
         "movimiento_caja_anulacion_es_egreso",
         "movimiento_caja_anulacion_pago_es_ingreso",
     ],
-    "medio_pago": ["medio_pago_efectivo_o_transferencia"],
     "venta": [
         "venta_monto_total_no_negativo",
         "venta_estado_valido",
@@ -99,7 +98,6 @@ CHECKS = {
 UNICOS = [
     ("caja", "caja_una_sola_abierta", ["estado"], True),
     ("medio_pago", "medio_pago_un_solo_efectivo", ["es_efectivo"], True),
-    ("medio_pago", "medio_pago_una_sola_transferencia", ["es_transferencia"], True),
     (
         "cierre_caja_detalle",
         "cierre_caja_detalle_caja_medio_unico",

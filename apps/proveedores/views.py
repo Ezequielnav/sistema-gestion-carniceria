@@ -228,6 +228,7 @@ def ingreso_confirmar(request):
             datos["observacion"],
             datos["condicion_pago"],
             datos["medio_pago"],
+            datos["sale_de_caja"],
         )
     except ValidationError as error:
         return JsonResponse({"errores": error.messages}, status=400)
@@ -305,7 +306,11 @@ def pago_nuevo(request):
         datos = form.cleaned_data
         try:
             pago = registrar_pago(
-                request.user, datos["ingreso"], datos["monto"], datos["medio_pago"]
+                request.user,
+                datos["ingreso"],
+                datos["monto"],
+                datos["medio_pago"],
+                sale_de_caja=datos["sale_de_caja"],
             )
         except ValidationError as error:
             form.add_error(None, error)
@@ -343,7 +348,7 @@ def pago(request, pk):
 @requiere_funcion("Proveedores")
 @require_POST
 def pago_anular(request, pk):
-    """Por transferencia, siempre; en efectivo, con la caja del egreso abierta (DEC-92)."""
+    """Si salió de caja, con esa caja abierta (DEC-92); si no, siempre (DEC-106)."""
     pago = _buscar(lambda clave: pago_con_detalles(request.user, clave), pk)
     form = AnularPagoForm(request.POST)
     if form.is_valid():

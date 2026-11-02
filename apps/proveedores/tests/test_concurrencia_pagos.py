@@ -34,8 +34,7 @@ def escenario():
     cajera = crear("cajera_pagos", Rol.CAJERA)
     admin = crear("admin_pagos", Rol.ADMINISTRADOR)
     efectivo = MedioPago.objects.create(nombre="Efectivo", es_efectivo=True)
-    # No ingresa a caja: el cierre no pide contarla.
-    MedioPago.objects.create(nombre="Transferencia", es_transferencia=True, ingresa_a_caja=False)
+    MedioPago.objects.create(nombre="Transferencia")
     caja = abrir_caja(cajera, Turno.MANANA, Decimal("5000.00"))
     producto = Producto.objects.create(
         nombre="Carbón 4 kg",
@@ -46,6 +45,12 @@ def escenario():
     proveedor = Proveedor.objects.create(nombre="Proveedor de prueba")
     ingreso = registrar_ingreso(admin, proveedor, [(producto.pk, Decimal("1"), Decimal("1000"))])
     return cajera, admin, efectivo, caja, ingreso
+
+
+def _contados(efectivo, monto):
+    contados = {m.pk: Decimal("0") for m in MedioPago.objects.all()}
+    contados[efectivo.pk] = Decimal(monto)
+    return contados
 
 
 def _en_hilo(funcion, resultado):
@@ -70,7 +75,7 @@ def test_un_pago_en_efectivo_durante_el_cierre_espera_y_se_rechaza(escenario):
 
     def cerrar_y_retener():
         with transaction.atomic():
-            cerrar_caja(cajera, {efectivo.pk: Decimal("5000.00")})
+            cerrar_caja(cajera, _contados(efectivo, "5000.00"))
             cerrada.set()
             time.sleep(ESPERA)
             cierre["confirmado"] = time.monotonic()
@@ -101,7 +106,7 @@ def test_un_cierre_durante_un_pago_en_efectivo_espera_y_lo_incluye(escenario):
 
     hilo_pago = _en_hilo(pagar_y_retener, pago)
     assert pagado.wait(5)
-    hilo_cierre = _en_hilo(lambda: cerrar_caja(cajera, {efectivo.pk: Decimal("4700.00")}), cierre)
+    hilo_cierre = _en_hilo(lambda: cerrar_caja(cajera, _contados(efectivo, "4700.00")), cierre)
     hilo_pago.join(10)
     hilo_cierre.join(10)
 
@@ -109,12 +114,14 @@ def test_un_cierre_durante_un_pago_en_efectivo_espera_y_lo_incluye(escenario):
     assert cierre["fin"] >= pago["confirmado"]
     caja.refresh_from_db()
     assert caja.estado == EstadoCaja.CERRADA
-    assert CierreCajaDetalle.objects.get(caja=caja).monto_sistema == Decimal("4700.00")
+    assert CierreCajaDetalle.objects.get(caja=caja, medio_pago=efectivo).monto_sistema == Decimal(
+        "4700.00"
+    )
 
 
 def test_un_pago_durante_la_anulacion_del_ingreso_espera_y_se_rechaza(escenario):
     cajera, admin, efectivo, caja, ingreso = escenario
-    transferencia = MedioPago.objects.get(es_transferencia=True)
+    transferencia = MedioPago.objects.get(nombre="Transferencia")
     anulado = threading.Event()
     anulacion, pago = {}, {}
 

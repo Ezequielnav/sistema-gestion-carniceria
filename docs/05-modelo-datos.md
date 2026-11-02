@@ -291,7 +291,6 @@ classDiagram
 | nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (DEC-41) |
 | ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41) |
 | es_efectivo | boolean | S | `true` solo en el medio en efectivo: fondo de cambio y egresos "otros" (DEC-55) |
-| es_transferencia | boolean | S | `true` solo en el medio de transferencia: el otro medio para pagar a proveedores, sin movimiento de caja (DEC-80, DEC-104); no puede ser también el efectivo |
 | activo | boolean | S | |
 
 Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambiar el código.
@@ -470,12 +469,13 @@ Restricción: único (`producto_id`, `proveedor_id`).
 | monto | decimal | S | |
 | medio_pago_id | FK medio_pago | S | |
 | usuario_id | FK usuario | S | |
+| sale_de_caja | boolean | S | `true` si salió de la caja abierta, con su egreso; solo en efectivo (DEC-106) |
 | estado | enum | S | `VIGENTE` o `ANULADO`; un pago no se edita, se anula (DEC-92). Los anulados no cuentan para el saldo |
 | anulado_en | datetime | N | Solo si está anulado |
 | anulado_por_usuario_id | FK usuario | N | Solo si está anulado |
 | motivo_anulacion | text | N | Obligatorio si está anulado |
 
-Los medios válidos son efectivo y transferencia. Un pago en efectivo crea además, en la misma operación, un `movimiento_caja` `EGRESO` con concepto `PAGO_PROVEEDOR` en la caja abierta del día, a nombre de quien registra el pago; por transferencia no hay movimiento de caja (DEC-80, supuesto). CU-07 exige `ingreso_id` aunque el campo admita nulos (DEC-81).
+Los medios válidos son los activos, salvo cuenta corriente (DEC-106, supuesto). Un pago con `sale_de_caja = true`, solo en efectivo, crea además, en la misma operación, un `movimiento_caja` `EGRESO` con concepto `PAGO_PROVEEDOR` en la caja abierta del día, a nombre de quien registra el pago (DEC-80, supuesto); los demás no generan movimiento de caja. CU-07 exige `ingreso_id` aunque el campo admita nulos (DEC-81).
 
 ### 4.4 Clientes y cuentas corrientes
 
@@ -586,7 +586,7 @@ Solo se incorporan si el negocio lo confirma.
 |---|---|
 | `usuario` | `UNIQUE (nombre_usuario)`; `CHECK` de `rol` |
 | `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
-| `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`); índice único parcial `medio_pago_una_sola_transferencia` y `CHECK` de que un medio no sea efectivo y transferencia a la vez (DEC-104, migración `caja/0008`) |
+| `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`) |
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
 | `caja` | Un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01: `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02). `UNIQUE (fecha, turno)` (`caja_unica_por_fecha_turno`) se quitó en la migración `caja/0007` (DEC-83); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
@@ -633,7 +633,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | RI-06 | Un `pago_cliente` genera su `movimiento_cuenta_corriente`; si excede la deuda, el excedente se registra como `ANTICIPO` (a confirmar: PR-15) | CU-04, RN-07 |
 | RI-07 | Las ventas, los ingresos, los cambios de stock del Administrador y sus anulaciones actualizan `stock_actual` solo si `producto.controla_stock = true`, dentro de la misma operación y solo con `mover_stock` (DEC-96) | CU-01, CU-05, CU-11, RNF-10 |
 | RI-08 | La suma de pagos de un ingreso no puede superar su `total` | CU-07 (A2) |
-| RI-09 | Un pago a proveedor en efectivo no puede superar el efectivo esperado de la caja abierta del día (DEC-80) | RN-09 |
+| RI-09 | Un pago a proveedor que sale de la caja no puede superar el efectivo esperado de la caja abierta del día (DEC-80, DEC-106) | RN-09 |
 | RI-10 | La diferencia de caja se calcula siempre como `monto_contado - monto_sistema`; no se guarda | CU-03 |
 | RI-11 | Las claves foráneas no permiten borrar registros referenciados; se usa baja lógica | RNF-09 |
 | RI-12 | Los precios de venta y compra se copian en el detalle al momento de la operación; cambiar el precio de un producto no altera ventas pasadas | CU-01, CU-05 |

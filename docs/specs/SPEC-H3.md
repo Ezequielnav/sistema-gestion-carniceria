@@ -160,3 +160,4 @@ def mover_stock(producto, cantidad):
 | 2026-10-29 | Aviso de stock insuficiente al agregar en la venta; cambia el comportamiento de la venta (pedido por el alumno). Muestra la cantidad disponible desde DEC-103 | DEC-102 | 5 |
 | 2026-10-29 | La cajera consulta el stock en solo lectura (en `/productos/` y en CU-06) y el aviso de la venta puede mostrar la cantidad disponible; cambia S-2 para CU-06 | DEC-103 | 1b y 5 |
 | 2026-10-30 | CU-06 integrada en `/productos/`, sin pantalla ni menú "Stock"; cambia S-2 y R-7 sigue igual | DEC-105 | 5 |
+| 2026-11-02 | Pago con cualquier medio activo salvo cuenta corriente; efectivo con "Sale de la caja abierta" y `pago_proveedor.sale_de_caja`. Reemplaza DEC-104 y esa parte de DEC-80, y cambia las reglas de **pago** de arriba | DEC-106 | 4 |

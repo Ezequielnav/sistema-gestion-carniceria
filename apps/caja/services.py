@@ -227,17 +227,6 @@ def registrar_egreso_otro(usuario, monto, descripcion):
 # Comparten con el egreso "otro" y el cierre el bloqueo de la caja y el control de efectivo.
 
 
-def transferencia():
-    """El medio de pago por transferencia (DEC-104)."""
-    medio = MedioPago.objects.filter(es_transferencia=True).first()
-    if medio is None:
-        raise ValidationError(
-            "No hay un medio de pago marcado como transferencia. Hay que marcarlo en el panel.",
-            code="sin_transferencia",
-        )
-    return medio
-
-
 def efectivo_disponible():
     """Efectivo esperado de la caja abierta de hoy, o None si no se puede pagar en efectivo."""
     caja = caja_abierta()
@@ -248,7 +237,7 @@ def efectivo_disponible():
 
 
 def registrar_egreso_pago_proveedor(pago, usuario):
-    """Egreso `PAGO_PROVEEDOR` de un pago en efectivo, en la caja abierta del día (DEC-80).
+    """Egreso `PAGO_PROVEEDOR` de un pago que sale de la caja abierta del día (DEC-80, DEC-106).
 
     Va dentro de la transacción del pago. A nombre de quien registra, aunque la caja la haya
     abierto otro usuario. Sin caja abierta, con la de otro día (como DEC-50) o sin efectivo
@@ -284,7 +273,7 @@ def registrar_egreso_pago_proveedor(pago, usuario):
 
 
 def egreso_de_pago(pago):
-    """El egreso de caja de un pago en efectivo, o None si fue por transferencia."""
+    """El egreso de caja de un pago, o None si no salió de caja (DEC-106)."""
     return (
         MovimientoCaja.objects.filter(
             pago_proveedor=pago, concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR
@@ -304,8 +293,8 @@ def registrar_reversa_pago_proveedor(pago, usuario, motivo):
     caja = Caja.objects.select_for_update().get(pk=egreso.caja_id)
     if caja.estado != EstadoCaja.ABIERTA:
         raise ValidationError(
-            "La caja de este pago ya se cerró: un pago en efectivo se anula solo con su caja "
-            "abierta.",
+            "La caja de este pago ya se cerró: un pago que salió de caja se anula solo con su "
+            "caja abierta.",
             code="caja_cerrada",
         )
     return MovimientoCaja.objects.create(

@@ -36,6 +36,7 @@ from apps.proveedores.models import (
 from apps.proveedores.services import (
     anular_ingreso,
     anular_pago,
+    impedimento_para_anular_pago,
     ingresos_con_saldo,
     registrar_ingreso,
     registrar_pago,
@@ -48,7 +49,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def transferencia(db):
-    return MedioPago.objects.create(nombre="Transferencia", es_transferencia=True)
+    return MedioPago.objects.create(nombre="Transferencia")
 
 
 @pytest.fixture
@@ -88,18 +89,87 @@ def test_cp33_cp90_pago_por_transferencia_baja_el_saldo_sin_caja(
     assert ingresos_con_saldo() == [ingreso_2000]
 
 
-@pytest.mark.parametrize("medio", ["tarjeta", "cuenta_corriente"])
-def test_cp90_otros_medios_se_rechazan(request, admin, ingreso_2000, transferencia, medio):
-    if medio == "cuenta_corriente":
-        otro = MedioPago.objects.create(nombre="Cuenta corriente", ingresa_a_caja=False)
-    else:
-        otro = request.getfixturevalue(medio)
+def test_cp90_cualquier_medio_activo_sin_movimiento_de_caja(admin, ingreso_2000, tarjeta):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("100"), tarjeta)
 
-    with pytest.raises(ValidationError) as error:
-        registrar_pago(admin, ingreso_2000, Decimal("100"), otro)
+    assert pago.medio_pago == tarjeta and not pago.sale_de_caja
+    assert not MovimientoCaja.objects.exists()
 
-    assert "efectivo o por transferencia" in error.value.messages[0]
+
+def test_cp90_cuenta_corriente_e_inactivos_se_rechazan(admin, ingreso_2000, tarjeta):
+    cuenta_corriente = MedioPago.objects.create(nombre="Cuenta corriente", ingresa_a_caja=False)
+    tarjeta.activo = False
+    tarjeta.save()
+
+    for medio in (cuenta_corriente, tarjeta):
+        with pytest.raises(ValidationError) as error:
+            registrar_pago(admin, ingreso_2000, Decimal("100"), medio)
+        assert "medio_pago" in error.value.message_dict
     assert not PagoProveedor.objects.exists()
+
+
+# DEC-106: efectivo que no sale de la caja abierta
+
+
+def test_dec106_efectivo_desmarcado_sin_caja_ni_movimiento(admin, ingreso_2000, efectivo):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("100"), efectivo, sale_de_caja=False)
+
+    assert not pago.sale_de_caja
+    assert not MovimientoCaja.objects.exists()
+    assert saldo_de_ingreso(ingreso_2000) == Decimal("1900")
+
+
+def test_dec106_efectivo_desmarcado_no_usa_el_tope_de_la_caja(
+    admin, usuario, proveedor, producto, efectivo
+):
+    abrir_caja(usuario, Turno.MANANA, Decimal("10"))
+    ingreso = registrar_ingreso(admin, proveedor, [(producto.pk, Decimal("1"), Decimal("1000"))])
+
+    registrar_pago(admin, ingreso, Decimal("1000"), efectivo, sale_de_caja=False)
+
+    assert not MovimientoCaja.objects.exists()
+
+
+def test_dec106_marcar_sale_de_caja_no_cambia_nada_si_no_es_efectivo(
+    admin, ingreso_2000, tarjeta, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("100"), tarjeta, sale_de_caja=True)
+
+    assert not pago.sale_de_caja and not MovimientoCaja.objects.exists()
+
+
+def test_dec106_marcado_guarda_que_salio_de_caja(admin, ingreso_2000, efectivo, caja_de_hoy):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("100"), efectivo)
+
+    assert pago.sale_de_caja
+    assert MovimientoCaja.objects.get().pago_proveedor == pago
+
+
+def test_dec106_anular_efectivo_que_no_salio_de_caja_es_sin_reversa_y_siempre(
+    admin, usuario, ingreso_2000, efectivo, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("100"), efectivo, sale_de_caja=False)
+    cerrar_caja(usuario, {efectivo.pk: Decimal("3000.00")})
+
+    assert impedimento_para_anular_pago(pago) is None
+    anular_pago(admin, pago, "Error")
+
+    pago.refresh_from_db()
+    assert pago.estado == EstadoPago.ANULADO and not MovimientoCaja.objects.exists()
+
+
+def test_dec106_contado_en_efectivo_sin_salir_de_caja(admin, proveedor, producto, efectivo):
+    registrar_ingreso(
+        admin,
+        proveedor,
+        [(producto.pk, Decimal("1"), Decimal("1000"))],
+        condicion=CondicionPago.CONTADO,
+        medio=efectivo,
+        sale_de_caja=False,
+    )
+
+    assert not PagoProveedor.objects.get().sale_de_caja
+    assert not MovimientoCaja.objects.exists()
 
 
 # CP-34, CP-35 (RI-08, RI-14)
@@ -253,8 +323,9 @@ def test_cp92_si_el_pago_se_rechaza_no_se_guarda_nada(
     assert producto.stock_actual == 0
 
 
-def test_el_contado_pide_un_medio_valido(admin, proveedor, producto, tarjeta):
-    for medio in (None, tarjeta):
+def test_el_contado_pide_un_medio_valido(admin, proveedor, producto):
+    cuenta_corriente = MedioPago.objects.create(nombre="Cuenta corriente", ingresa_a_caja=False)
+    for medio in (None, cuenta_corriente):
         with pytest.raises(ValidationError):
             registrar_ingreso(
                 admin,
@@ -363,16 +434,6 @@ def test_pagos_y_anulaciones_son_solo_del_administrador(
     assert PagoProveedor.objects.count() == 1
 
 
-# DEC-104: medio de transferencia
-
-
-def test_dec104_un_solo_medio_de_transferencia_y_no_puede_ser_efectivo(transferencia):
-    with pytest.raises(IntegrityError), transaction.atomic():
-        MedioPago.objects.create(nombre="Otra transferencia", es_transferencia=True)
-    with pytest.raises(IntegrityError), transaction.atomic():
-        MedioPago.objects.create(nombre="Mixto", es_efectivo=True, es_transferencia=True)
-
-
 # Pantallas
 
 
@@ -385,7 +446,13 @@ def test_registrar_pago_desde_la_pantalla(client, admin, ingreso_2000, transfere
     assert {m.nombre for m in form.fields["medio_pago"].queryset} == {"Efectivo", "Transferencia"}
 
     sin_caja = client.post(
-        url, {"ingreso": ingreso_2000.pk, "monto": "500", "medio_pago": efectivo.pk}
+        url,
+        {
+            "ingreso": ingreso_2000.pk,
+            "monto": "500",
+            "medio_pago": efectivo.pk,
+            "sale_de_caja": "on",
+        },
     )
     assert "No hay una caja abierta." in sin_caja.content.decode()
 
@@ -406,6 +473,23 @@ def test_registrar_pago_desde_la_pantalla(client, admin, ingreso_2000, transfere
     assert anulado.url == respuesta.url
     pago.refresh_from_db()
     assert pago.estado == EstadoPago.ANULADO
+
+
+def test_dec106_efectivo_desmarcado_desde_la_pantalla(client, admin, ingreso_2000, efectivo):
+    client.force_login(admin)
+    url = reverse("proveedores:pago_nuevo")
+    pantalla = client.get(url)
+    assert pantalla.context["form"]["sale_de_caja"].value() is True
+    assert f'data-efectivo="{efectivo.pk}"' in pantalla.content.decode()
+
+    # Una casilla sin marcar no viaja en el POST.
+    respuesta = client.post(
+        url, {"ingreso": ingreso_2000.pk, "monto": "500", "medio_pago": efectivo.pk}
+    )
+
+    assert client.get(respuesta.url).status_code == 200
+    assert "sin movimiento de caja" in client.get(respuesta.url).content.decode()
+    assert not MovimientoCaja.objects.exists()
 
 
 def test_ingreso_al_contado_desde_la_pantalla(client, admin, proveedor, producto, transferencia):

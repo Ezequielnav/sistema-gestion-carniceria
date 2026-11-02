@@ -12,13 +12,11 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
-from apps.caja.models import EstadoCaja
+from apps.caja.models import EstadoCaja, MedioPago
 from apps.caja.services import (
-    efectivo,
     egreso_de_pago,
     registrar_egreso_pago_proveedor,
     registrar_reversa_pago_proveedor,
-    transferencia,
 )
 from apps.catalogo.models import Producto
 from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
@@ -158,7 +156,13 @@ def _validar_precio(producto, precio):
 
 
 def registrar_ingreso(
-    usuario, proveedor, lineas, observacion="", condicion=CondicionPago.A_CREDITO, medio=None
+    usuario,
+    proveedor,
+    lineas,
+    observacion="",
+    condicion=CondicionPago.A_CREDITO,
+    medio=None,
+    sale_de_caja=True,
 ):
     """En una operación, ingreso, detalles, stock y precio de compra; al contado, también el
     pago por el total (DEC-81): si el pago se rechaza, no se guarda nada (CP-92).
@@ -213,7 +217,7 @@ def registrar_ingreso(
         # Primero el pago, que bloquea la caja: mismo orden que la venta (caja y después
         # productos, por id), para que no se traben entre sí.
         if condicion == CondicionPago.CONTADO:
-            registrar_pago(usuario, ingreso, total, medio)
+            registrar_pago(usuario, ingreso, total, medio, sale_de_caja=sale_de_caja)
         for producto_id, cantidad, precio in sorted(lineas, key=lambda linea: linea[0]):
             producto = productos[producto_id]
             DetalleIngreso.objects.create(
@@ -319,26 +323,18 @@ def anular_ingreso(usuario, ingreso, motivo):
     return ingreso
 
 
-# CU-07 Registrar pago a proveedor (DEC-80, DEC-81, DEC-92)
+# CU-07 Registrar pago a proveedor (DEC-80, DEC-81, DEC-92, DEC-106)
 
 
 def medios_para_pagar():
-    """Efectivo y transferencia, los únicos medios para pagar a proveedores (DEC-80, DEC-104)."""
-    medios = []
-    for buscar in (efectivo, transferencia):
-        try:
-            medio = buscar()
-        except ValidationError:
-            continue
-        if medio.activo:
-            medios.append(medio)
-    return medios
+    """Medios activos, salvo cuenta corriente, que no ingresa a caja (DEC-41, DEC-106)."""
+    return MedioPago.objects.filter(activo=True, ingresa_a_caja=True).order_by("pk")
 
 
 def _validar_medio(medio):
-    if medio is None or medio not in medios_para_pagar():
+    if medio is None or not medios_para_pagar().filter(pk=medio.pk).exists():
         raise ValidationError(
-            {"medio_pago": "A los proveedores se les paga en efectivo o por transferencia."}
+            {"medio_pago": "Elegí un medio de pago activo; cuenta corriente no se puede usar."}
         )
 
 
@@ -357,13 +353,13 @@ def ingresos_con_saldo():
     ]
 
 
-def registrar_pago(usuario, ingreso, monto, medio, proveedor=None):
-    """Pago de un ingreso con saldo: en efectivo, con su egreso de caja; por transferencia,
-    sin movimiento de caja (DEC-80). El monto no supera el saldo (RI-08) y el proveedor es
-    el del ingreso (RI-14).
+def registrar_pago(usuario, ingreso, monto, medio, proveedor=None, sale_de_caja=True):
+    """Pago de un ingreso con saldo. En efectivo y si sale de la caja abierta, con su egreso;
+    en otro caso, sin movimiento de caja ni caja abierta (DEC-106). El monto no supera el
+    saldo (RI-08) y el proveedor es el del ingreso (RI-14).
 
     Bloquea el ingreso, como la anulación, para que dos pagos o un pago y una anulación no se
-    crucen; en efectivo, después bloquea la caja (siempre en ese orden).
+    crucen; si sale de caja, después bloquea la caja (siempre en ese orden).
     """
     _exigir_permiso(usuario)
     _validar_medio(medio)
@@ -394,8 +390,9 @@ def registrar_pago(usuario, ingreso, monto, medio, proveedor=None):
             monto=monto,
             medio_pago=medio,
             usuario=usuario,
+            sale_de_caja=sale_de_caja and medio.es_efectivo,
         )
-        if medio.es_efectivo:
+        if pago.sale_de_caja:
             registrar_egreso_pago_proveedor(pago, usuario)
     return pago
 
@@ -416,22 +413,21 @@ def pago_con_detalles(usuario, pk):
 
 
 def impedimento_para_anular_pago(pago):
-    """Por qué no se puede anular, o None: ya anulado o en efectivo con su caja cerrada."""
+    """Por qué no se puede anular, o None: ya anulado o salió de una caja ya cerrada."""
     if pago.estado == EstadoPago.ANULADO:
         return "El pago ya está anulado."
-    egreso = egreso_de_pago(pago)
-    if egreso is not None and egreso.caja.estado != EstadoCaja.ABIERTA:
+    if pago.sale_de_caja and egreso_de_pago(pago).caja.estado != EstadoCaja.ABIERTA:
         return (
-            "La caja de este pago ya se cerró: un pago en efectivo se anula solo con su caja "
-            "abierta."
+            "La caja de este pago ya se cerró: un pago que salió de caja se anula solo con su "
+            "caja abierta."
         )
     return None
 
 
 def anular_pago(usuario, pago, motivo):
-    """Anula con motivo: por transferencia, siempre; en efectivo, con una reversa
-    `ANULACION_PAGO` en la caja de su egreso, si sigue abierta (DEC-92). El saldo vuelve a
-    subir; el pago y su egreso no se tocan."""
+    """Anula con motivo. Si salió de caja, con una reversa `ANULACION_PAGO` en la caja de su
+    egreso, si sigue abierta (DEC-92); si no, siempre y sin reversa (DEC-106). El saldo vuelve
+    a subir; el pago y su egreso no se tocan."""
     _exigir_permiso(usuario)
     motivo = (motivo or "").strip()
     if not motivo:
@@ -443,7 +439,7 @@ def anular_pago(usuario, pago, motivo):
         pago = PagoProveedor.objects.select_for_update().get(pk=pago.pk)
         if pago.estado == EstadoPago.ANULADO:
             raise ValidationError("El pago ya está anulado.")
-        if egreso_de_pago(pago) is not None:
+        if pago.sale_de_caja:
             registrar_reversa_pago_proveedor(pago, usuario, motivo)
         pago.estado = EstadoPago.ANULADO
         pago.anulado_en = timezone.now()

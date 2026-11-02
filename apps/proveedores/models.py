@@ -170,6 +170,8 @@ class PagoProveedor(ModeloBase):
     monto = campo_monto(validators=[validar_positivo])
     medio_pago = models.ForeignKey("caja.MedioPago", on_delete=models.PROTECT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    # Solo un pago en efectivo puede salir de la caja abierta; así tiene egreso (DEC-106).
+    sale_de_caja = models.BooleanField(default=False)
     estado = models.CharField(max_length=7, choices=EstadoPago.choices, default=EstadoPago.VIGENTE)
     anulado_en = models.DateTimeField(null=True, blank=True)
     anulado_por_usuario = models.ForeignKey(

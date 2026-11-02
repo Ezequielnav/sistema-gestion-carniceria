@@ -87,7 +87,7 @@ def test_cp113_flujo_completo_de_h3(client, efectivo, categoria):
     assert [p.nombre for p in filtrado.context["pagina"]] == ["Yerba 1 kg"]
     respuesta = client.post(
         reverse("proveedores:pago_nuevo"),
-        {"ingreso": ingreso.pk, "monto": "5000", "medio_pago": efectivo.pk},
+        {"ingreso": ingreso.pk, "monto": "5000", "medio_pago": efectivo.pk, "sale_de_caja": "on"},
     )
     assert respuesta.status_code == 302
     assert saldo_de_ingreso(ingreso) == 0 and saldo_de_proveedor(proveedor) == 0

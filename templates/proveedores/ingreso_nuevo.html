@@ -3,7 +3,7 @@
 
 {% block titulo %}Nuevo ingreso{% endblock %}
 {% block encabezado %}Proveedores{% endblock %}
-{% block scripts %}<script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/ingreso.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/sale_de_caja.js' %}" defer></script><script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/ingreso.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
   <a href="{% url 'proveedores:ingresos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a ingresos</a>
@@ -31,7 +31,10 @@
         <div id="bloque-medio" class="hidden">
           <label for="{{ form.medio_pago.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.medio_pago.label }}</label>
           {{ form.medio_pago }}
-          <p class="mt-1.5 text-xs text-gray-500">En efectivo sale de la caja abierta de hoy; si no alcanza, no se guarda el ingreso.</p>
+          <div data-sale-de-caja data-efectivo="{{ form.id_efectivo|default:'' }}" class="mt-2 hidden">
+            <label class="flex items-center gap-2 text-sm font-medium text-gray-700">{{ form.sale_de_caja }} {{ form.sale_de_caja.label }}</label>
+            <p class="mt-1.5 text-xs text-gray-500">Exige la caja abierta de hoy; si el efectivo no alcanza, no se guarda el ingreso.</p>
+          </div>
         </div>
         <div class="sm:col-span-2">
           <label for="buscar" class="mb-1.5 block text-sm font-medium text-gray-700">Buscar producto</label>

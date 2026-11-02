@@ -76,7 +76,7 @@
 | RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado; modalidad decidida (DEC-81, supuesto): `A_CREDITO` deja la deuda y `CONTADO` registra el pago en la misma operación |
 | RF-31 | El Administrador debe poder registrar pagos a proveedores con proveedor, monto, fecha, medio de pago y productos asociados | Base (2.1, CU-07) | Alta | Confirmado |
 | RF-32 | El sistema debe listar los proveedores con deudas pendientes y actualizar su saldo al registrar un pago | Base (CU-07) | Alta | Confirmado |
-| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | Decidido (DEC-80, supuesto): solo el pago en efectivo sale de la caja abierta del día; por transferencia no toca la caja |
+| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | Decidido (DEC-80, DEC-106, supuestos): solo el pago en efectivo marcado "Sale de la caja abierta" toca la caja; los demás medios no (DEC-106) |
 | RF-34 | El sistema debe permitir gestionar pedidos a proveedores | Propuesta (H-07) | Baja | A confirmar (PR-19) |
 
 ### 2.6 Clientes y cuentas corrientes

@@ -17,7 +17,7 @@
       <div><dt class="text-gray-500">Proveedor</dt><dd class="font-medium">{{ pago.proveedor }}</dd></div>
       <div><dt class="text-gray-500">Ingreso</dt><dd>{% if pago.ingreso %}<a href="{% url 'proveedores:ingreso' pago.ingreso_id %}" class="underline underline-offset-2">N.º {{ pago.ingreso_id }}</a>{% else %}—{% endif %}</dd></div>
       <div><dt class="text-gray-500">Monto</dt><dd class="cifras font-medium">$ {{ pago.monto|floatformat:"2g" }}</dd></div>
-      <div><dt class="text-gray-500">Medio</dt><dd>{{ pago.medio_pago }}{% if egreso %} · caja {{ egreso.caja.fecha|date:"d/m/Y" }} {{ egreso.caja.get_turno_display|lower }} ({{ egreso.caja.get_estado_display|lower }}){% endif %}</dd></div>
+      <div><dt class="text-gray-500">Medio</dt><dd>{{ pago.medio_pago }}{% if egreso %} · caja {{ egreso.caja.fecha|date:"d/m/Y" }} {{ egreso.caja.get_turno_display|lower }} ({{ egreso.caja.get_estado_display|lower }}){% else %} · sin movimiento de caja{% endif %}</dd></div>
       <div><dt class="text-gray-500">Fecha</dt><dd class="cifras">{{ pago.fecha_hora|date:"d/m/Y H:i" }}</dd></div>
       <div><dt class="text-gray-500">Registró</dt><dd>{{ pago.usuario.nombre_completo }}</dd></div>
       {% if pago.estado == "ANULADO" %}
