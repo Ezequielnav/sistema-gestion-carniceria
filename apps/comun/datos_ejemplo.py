@@ -22,7 +22,7 @@ USUARIOS = [
     ("duenio", "Daniel Dueño", Rol.DUENIO, False),
 ]
 
-# (nombre, ingresa a caja). Lista a confirmar (PR-08).
+# (nombre, ingresa a caja). Cuenta corriente es el único que no ingresa (DEC-41, R-6).
 MEDIOS_PAGO = [
     ("Efectivo", True),
     ("Tarjeta", True),
@@ -50,11 +50,13 @@ PRODUCTOS = [
     ("Agua mineral 2 l", "Bebidas", "602", "1500.00", UnidadMedida.UNIDAD, True, "8", None),
 ]
 
-# (nombre, teléfono, límite de crédito, condiciones). Límite a confirmar (PR-12).
+# (nombre, teléfono, dirección, límite de crédito, observaciones). Límite opcional: vacío es
+# sin límite y 0, sin crédito habilitado (DEC-108, DEC-115, DEC-117).
 CLIENTES = [
-    ("Juan Pérez", "381 555-0101", "50000.00", "Paga a fin de mes"),
-    ("María Gómez", "381 555-0102", None, ""),
-    ("Comedor Los Álamos", "381 555-0103", "150000.00", "Pedido semanal"),
+    ("Juan Pérez", "381 555-0101", "San Martín 123", "50000.00", "Paga a fin de mes"),
+    ("María Gómez", "381 555-0102", "", None, ""),
+    ("Comedor Los Álamos", "381 555-0103", "Av. Mate de Luna 456", "150000.00", "Pedido semanal"),
+    ("Pedro Ruiz", "381 555-0104", "", "0.00", "Sin crédito hasta regularizar"),
 ]
 
 # (nombre, teléfono, email)
@@ -131,10 +133,11 @@ def cargar(clave):
             Cliente,
             nombre,
             telefono=telefono,
+            direccion=direccion,
             limite_credito=_decimal(limite),
-            condiciones=condiciones,
+            observaciones=observaciones,
         )
-        for nombre, telefono, limite, condiciones in CLIENTES
+        for nombre, telefono, direccion, limite, observaciones in CLIENTES
     )
     creados["proveedores"] = sum(
         _por_nombre(Proveedor, nombre, telefono=telefono, email=email)

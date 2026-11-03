@@ -117,15 +117,17 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
 
-Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa.
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`).
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
 | CP-40 | Pago de cliente menor o igual a la deuda | RF-36, RF-37, RN-04 | El saldo baja y se registra el ingreso en caja | Confirmado |
 | CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06 | Se rechaza y se muestra el saldo como máximo a cobrar; no hay `ANTICIPO` | Decidido (DEC-111, supuesto); se automatiza en H4 |
-| CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = saldo inicial + ventas fiadas - pagos, con sus anulaciones (DEC-113, DEC-119); no hay saldo guardado | Confirmado |
+| CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = saldo inicial + ventas fiadas - pagos, con sus anulaciones (DEC-113, DEC-119); no hay saldo guardado | Confirmado; automatizado (H4, etapa 1), también el saldo de toda una lista en una sola consulta (R-7) |
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
-| CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto); se automatiza en H4 |
+| CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto). El cálculo, automatizado en el servicio (H4, etapa 1): 30 días no vence, 31 sí; la alerta en pantalla se prueba en las etapas 2, 3 y 5 |
+| CP-119 | Deuda vencida con cobros imputados a lo más antiguo | DEC-109, DEC-119 | Ventas de $ 1.000 (hace 40 días) y $ 500 (hace 5) con un cobro de $ 600: saldo $ 900 y vencida $ 400. Ventas y cobros anulados no cuentan; el saldo inicial vence por su fecha de origen; la deuda vencida de toda una lista sale de una sola consulta (R-7) | Decidido (supuesto); automatizado (H4, etapa 1) |
+| CP-122 | Saldo inicial y su anulación | DEC-119, RI-18, DEC-114 | Solo el Administrador lo carga (monto mayor a 0 con 2 decimales, fecha de origen no posterior a hoy y motivo) y lo anula con motivo; sin validar el límite; uno vigente por cliente; la anulación deja `ANULACION_SALDO_INICIAL`, se rechaza si el saldo actual es menor al monto y después se puede cargar otro; la cajera y los dueños reciben 403 | Decidido (supuesto); servicio automatizado (H4, etapa 1); la pantalla, en la etapa 5 |
 
 ### 4.5 Productos, usuarios y permisos (CU-10 a CU-14)
 
@@ -163,7 +165,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 
 | ID | Caso | Regla | Resultado esperado |
 |---|---|---|---|
-| CP-70 | `movimiento_caja` con ninguna o más de una referencia a venta/pago | RI-13 | La base rechaza el registro. Una `ANULACION` sin venta, como ingreso o repetida para la misma venta también se rechaza (DEC-68) |
+| CP-70 | `movimiento_caja` con ninguna o más de una referencia a venta/pago | RI-13 | La base rechaza el registro. Una `ANULACION` sin venta, como ingreso o repetida para la misma venta también se rechaza (DEC-68), y lo mismo una `ANULACION_COBRO` sin cobro, como ingreso o repetida (DEC-113, H4) |
 | CP-86 | `venta` con estado inválido o con datos de anulación que no coinciden con el estado | DEC-67 | La base rechaza el registro |
 | CP-71 | Montos negativos y cantidades menores o iguales a cero en la base | RI-16 | La base los rechaza (restricción `CHECK`, no solo validación de formulario) |
 | CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores, no quedan migraciones sin aplicar y los modelos no tienen cambios sin migrar |
@@ -190,14 +192,14 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-08 | CP-30, CP-32, CP-92 | RI-08 | CP-34 |
 | RN-09 | CP-36, CP-91 | RI-09 | CP-36 |
 | RN-10 | CP-37 | RI-10 | CP-04 |
-| RN-11 | CP-44 | RI-11 | CP-57, CP-58 |
+| RN-11 | CP-44, CP-119 | RI-11 | CP-57, CP-58 |
 | RNF-07 | CP-51 | RI-12 | CP-15, CP-31 |
 | RNF-09 | CP-05 | RI-13 | CP-70 |
 | RNF-10 | CP-14, CP-85, CP-88 | RI-14 | CP-35 |
 | — | — | RI-15 | CP-42, CP-43 |
 | — | — | RI-16 | CP-16, CP-71 |
 | — | — | RI-17 | CP-107, CP-108 |
-| — | — | RI-18 | CP-122 (propuesto en `specs/SPEC-H4.md`, se agrega al implementarlo) |
+| — | — | RI-18 | CP-122 |
 
 ## 6. Recorridos manuales
 

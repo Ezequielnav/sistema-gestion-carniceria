@@ -1,7 +1,7 @@
 """Menú de funciones por rol (RF-02, H1.4).
 
 Solo incluye lo confirmado (C) en la matriz de actores de 04 (sección 2). Los casos
-marcados "a confirmar" (PR-14, los dueños en PR-25) se agregan cuando el negocio los confirme.
+marcados "a confirmar" (los dueños, PR-25) se agregan cuando el negocio los confirme.
 """
 
 from dataclasses import dataclass

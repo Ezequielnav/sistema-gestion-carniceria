@@ -23,7 +23,7 @@ class CondicionPago(models.TextChoices):
 
 class Proveedor(ModeloBase):
     nombre = models.CharField(max_length=120)
-    # Datos de contacto a confirmar (PR-31).
+    # Datos de contacto de H3, que DEC-117 (PR-31) mantiene.
     telefono = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
     activo = models.BooleanField(default=True)

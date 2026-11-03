@@ -293,7 +293,7 @@ classDiagram
 |---|---|---|---|
 | id | int | S | |
 | nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (DEC-41) |
-| ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41) |
+| ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41), que es el único medio con `false`; el efectivo siempre ingresa a caja (R-6, migración `caja/0010`) |
 | es_efectivo | boolean | S | `true` solo en el medio en efectivo: fondo de cambio y egresos "otros" (DEC-55) |
 | activo | boolean | S | |
 
@@ -490,8 +490,8 @@ Los medios válidos son los activos, salvo cuenta corriente (DEC-106, supuesto).
 | id | int | S | |
 | nombre | string | S | Repetido permitido (DEC-117) |
 | telefono | string | N | DEC-117 |
-| direccion | string | N | DEC-117 (se agrega con una migración en H4) |
-| observaciones | text | N | Texto libre: notas y condiciones de crédito, sin efecto en el cálculo (DEC-112, DEC-117). Reemplaza a `condiciones`, que se renombra con una migración en H4 sin perder datos |
+| direccion | string | N | DEC-117 (migración `clientes/0006`) |
+| observaciones | text | N | Texto libre: notas y condiciones de crédito, sin efecto en el cálculo (DEC-112, DEC-117). Reemplaza a `condiciones`, renombrado sin perder datos (migración `clientes/0005`) |
 | limite_credito | decimal | N | Se muestra "Sin límite" si está vacío y "Sin crédito habilitado" si es 0 (DEC-115). Opcional, mayor o igual a 0, lo define el Administrador; vacío = sin límite. Una venta a cuenta corriente que deja el saldo por encima del límite se rechaza (DEC-108, supuesto) |
 | activo | boolean | S | |
 
@@ -513,7 +513,7 @@ El campo `estadoCuentaCorriente` del modelo base se elimina: el saldo se deriva 
 | anulado_por_usuario_id | FK usuario | N | Quien anuló (el Administrador). Solo si `estado = ANULADO` |
 | motivo_anulacion | string | N | Obligatorio si `estado = ANULADO`; vacío si no |
 
-El monto no puede superar el saldo del cliente al cobrar (DEC-111). `entra_a_caja` y los datos de anulación se agregan con una migración en H4.
+El monto no puede superar el saldo del cliente al cobrar (DEC-111). `entra_a_caja` y los datos de anulación se agregaron en la migración `clientes/0006`.
 
 **movimiento_cuenta_corriente** (propuesta; libro de la cuenta corriente)
 
@@ -530,7 +530,7 @@ El monto no puede superar el saldo del cliente al cobrar (DEC-111). `entra_a_caj
 | fecha_origen | date | N | Obligatoria si `tipo = SALDO_INICIAL` y vacía si no; no posterior a la carga. Es la fecha que cuenta para la deuda vencida (DEC-119) |
 | motivo | string | N | Obligatorio si `tipo = SALDO_INICIAL` o `ANULACION_SALDO_INICIAL` (DEC-119) |
 
-`fecha_vencimiento` se quita: la deuda vencida se calcula al consultar con el plazo de la configuración (DEC-109). Los cambios de tipos y referencias se hacen con una migración en H4.
+`fecha_vencimiento` se quita: la deuda vencida se calcula al consultar con el plazo de la configuración (DEC-109). Los cambios de tipos y referencias están en las migraciones `clientes/0005` y `0006`; `clientes/0005` se detiene sin tocar nada si la base tiene anticipos o fechas de vencimiento cargadas. `motivo` admite hasta 255 caracteres.
 
 ## 5. Datos derivados (no se guardan)
 
@@ -603,11 +603,11 @@ Solo se incorporan si el negocio lo confirma.
 |---|---|
 | `usuario` | `UNIQUE (nombre_usuario)`; `CHECK` de `rol` |
 | `medio_pago`, `categoria` | `UNIQUE (lower(nombre))`: único sin distinguir mayúsculas, para que "Efectivo" y "efectivo" no queden como dos registros (DEC-31) |
-| `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`) |
+| `medio_pago` | Índice único parcial `medio_pago_un_solo_efectivo`: un solo medio con `es_efectivo = true` (DEC-55, migración `caja/0005`). Índice único parcial `medio_pago_una_sola_cuenta_corriente`: un solo medio con `ingresa_a_caja = false`, y `CHECK (ingresa_a_caja OR NOT es_efectivo)` (R-6, DEC-122, migración `caja/0010`) |
 | `producto` | `UNIQUE (plus_interno)` si no es nulo; `CHECK (plus_interno IS NULL OR plus_interno <> '')` (sin código se guarda nulo, nunca texto vacío); `CHECK (precio_venta >= 0)`; `CHECK (stock_minimo >= 0)`; `CHECK` de `unidad_medida` |
 | `caja` | Un índice único parcial que admite una sola caja con `estado = 'ABIERTA'` (RI-01: `caja_una_sola_abierta`, desde la migración `caja/0004` de CU-02). `UNIQUE (fecha, turno)` (`caja_unica_por_fecha_turno`) se quitó en la migración `caja/0007` (DEC-83); `CHECK (cerrada_en IS NULL OR estado = 'CERRADA')`; `CHECK` de `turno` y `estado`; `CHECK (monto_inicial >= 0)` |
 | `cierre_caja_detalle` | `UNIQUE (caja_id, medio_pago_id)`; `CHECK (monto_contado >= 0)` |
-| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto`; `CHECK (concepto <> 'ANULACION' OR tipo = 'EGRESO')` y `UNIQUE (venta_id)` si `concepto = 'ANULACION'` (DEC-68); `CHECK (concepto <> 'ANULACION_PAGO' OR tipo = 'INGRESO')` y `UNIQUE (pago_proveedor_id, concepto)` si hay pago: un egreso y a lo sumo una reversa por pago (DEC-92) |
+| `movimiento_caja` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `concepto` y referencias (RI-13); `CHECK` de `tipo` y `concepto`; `CHECK (concepto <> 'ANULACION' OR tipo = 'EGRESO')` y `UNIQUE (venta_id)` si `concepto = 'ANULACION'` (DEC-68); `CHECK (concepto <> 'ANULACION_PAGO' OR tipo = 'INGRESO')` y `UNIQUE (pago_proveedor_id, concepto)` si hay pago: un egreso y a lo sumo una reversa por pago (DEC-92); `CHECK (concepto <> 'ANULACION_COBRO' OR tipo = 'EGRESO')` y `UNIQUE (pago_cliente_id, concepto)` si hay cobro: un ingreso y a lo sumo una reversa por cobro (DEC-113, migración `caja/0010`) |
 | `venta` y `detalle_venta` | `CHECK` de `estado`; `CHECK` de que `anulada_en`, `anulada_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADA'` (DEC-67); `CHECK (monto_total >= 0)`; `CHECK (cantidad > 0)`; `CHECK (precio_unitario >= 0)`; `CHECK (subtotal >= 0)` |
 | `movimiento_cuenta_corriente` | `CHECK (monto > 0)`; `CHECK` de coherencia entre `tipo` y referencias (`VENTA_FIADA` y `ANULACION_VENTA` con `venta_id`; `PAGO` y `ANULACION_PAGO` con `pago_cliente_id`; `SALDO_INICIAL` sin referencias, con `fecha_origen` y `motivo`; `ANULACION_SALDO_INICIAL` con `saldo_inicial_id` y `motivo`); `CHECK` de `tipo`; `UNIQUE (saldo_inicial_id)` si no es nulo; `UNIQUE (venta_id, tipo)` y `UNIQUE (pago_cliente_id, tipo)` si no son nulos: una venta genera como mucho su cargo y su anulación, y un cobro, su pago y su anulación (DEC-113) |
 | `pago_cliente`, `pago_proveedor` | `CHECK (monto > 0)`, coherente con `movimiento_caja` y `movimiento_cuenta_corriente`, que exigen monto positivo (más estricto que RI-16). `pago_proveedor`: `CHECK` de `estado` y de que `anulado_en`, `anulado_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADO'` (DEC-92). `pago_cliente`: `CHECK` de `estado` y de que `anulado_en`, `anulado_por_usuario_id` y `motivo_anulacion` estén si y solo si `estado = 'ANULADO'` (DEC-113) |
@@ -659,7 +659,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | RI-15 | El `cliente_id` de un `movimiento_cuenta_corriente` coincide con el de la venta o el pago que lo origina, y el de una `ANULACION_SALDO_INICIAL`, con el de su saldo inicial (DEC-119) | Normalización |
 | RI-16 | Los montos y precios son mayores o iguales a cero y las cantidades de venta, ingreso y detalle son mayores a cero | RNF-10 |
 | RI-17 | Cuando el Administrador cambia el stock al crear o modificar un producto, en la misma operación `stock_actual` queda igual al valor cargado (`stock_nuevo >= 0`, formato de DEC-79) y se guarda un `ajuste_stock` con el stock anterior y el nuevo; los ajustes no se editan ni se borran (DEC-98) | CU-11, RNF-10 |
-| RI-18 | Un cliente tiene a lo sumo un `SALDO_INICIAL` vigente (sin su `ANULACION_SALDO_INICIAL`); lo carga y lo anula solo el Administrador, y la anulación se rechaza si el saldo actual es menor a su monto (DEC-119). Se valida en el servicio, con el cliente bloqueado | CU-08 |
+| RI-18 | Un cliente tiene a lo sumo un `SALDO_INICIAL` vigente (sin su `ANULACION_SALDO_INICIAL`); lo carga y lo anula solo el Administrador, y la anulación se rechaza si el saldo actual es menor a su monto (DEC-119). Se valida en el servicio, con el cliente bloqueado: un índice no puede saber si otro movimiento anula al saldo inicial. La base asegura la parte que sí puede: una sola anulación por saldo inicial (`UNIQUE (saldo_inicial_id)`) y los datos según el tipo | CU-08 |
 
 ## 9. Cambios respecto del modelo de clases del documento base
 
@@ -705,7 +705,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | Brecha | Impacto en el modelo |
 |---|---|
 | PR-02 (reportes de Kendra) | Define si se importan totales; la venta de carne ya está decidida (DEC-36) |
-| PR-12 a PR-16 | Cerradas como supuestos (DEC-108 a DEC-112): `limite_credito` opcional, sin `fecha_vencimiento` (plazo en la configuración), sin `ANTICIPO`, sin recargos y `pago_cliente.entra_a_caja`. Con DEC-113 suman `ANULACION_VENTA`, `ANULACION_PAGO`, `ANULACION_COBRO` y el estado de `pago_cliente`; con DEC-119, `SALDO_INICIAL`, `ANULACION_SALDO_INICIAL`, `fecha_origen`, `motivo` y `saldo_inicial_id`. Se aplican con migraciones en H4 |
+| PR-12 a PR-16 | Cerradas como supuestos (DEC-108 a DEC-112): `limite_credito` opcional, sin `fecha_vencimiento` (plazo en la configuración), sin `ANTICIPO`, sin recargos y `pago_cliente.entra_a_caja`. Con DEC-113 suman `ANULACION_VENTA`, `ANULACION_PAGO`, `ANULACION_COBRO` y el estado de `pago_cliente`; con DEC-119, `SALDO_INICIAL`, `ANULACION_SALDO_INICIAL`, `fecha_origen`, `motivo` y `saldo_inicial_id`. Aplicados en las migraciones `clientes/0005` y `0006` y `caja/0010` (H4, etapa 1) |
 | PR-19 | Define si existe `pedido_proveedor`. `condicion_pago` y el remito se decidieron en DEC-81 (supuesto) |
 | PR-21 | Define `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes. `stock_minimo` se decidió en DEC-82 (supuesto) |
 | PR-31 (datos de contacto) | Cerrada como supuesto (DEC-117): `cliente` suma `direccion` y `condiciones` pasa a `observaciones`; proveedor sin cambios; sin identificación fiscal |

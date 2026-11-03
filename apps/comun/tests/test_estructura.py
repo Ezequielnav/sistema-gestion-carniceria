@@ -51,7 +51,9 @@ CHECKS = {
         "movimiento_caja_referencia_segun_concepto",
         "movimiento_caja_anulacion_es_egreso",
         "movimiento_caja_anulacion_pago_es_ingreso",
+        "movimiento_caja_anulacion_cobro_es_egreso",
     ],
+    "medio_pago": ["medio_pago_efectivo_ingresa_a_caja"],
     "venta": [
         "venta_monto_total_no_negativo",
         "venta_estado_valido",
@@ -86,11 +88,16 @@ CHECKS = {
         "pago_proveedor_datos_de_anulacion_segun_estado",
     ],
     "cliente": ["cliente_limite_credito_no_negativo"],
-    "pago_cliente": ["pago_cliente_monto_positivo"],
+    "pago_cliente": [
+        "pago_cliente_monto_positivo",
+        "pago_cliente_estado_valido",
+        "pago_cliente_datos_de_anulacion_segun_estado",
+    ],
     "movimiento_cuenta_corriente": [
         "movimiento_cuenta_corriente_monto_positivo",
         "movimiento_cuenta_corriente_tipo_valido",
         "movimiento_cuenta_corriente_referencia_segun_tipo",
+        "movimiento_cuenta_corriente_datos_de_saldo_inicial",
     ],
 }
 
@@ -98,6 +105,7 @@ CHECKS = {
 UNICOS = [
     ("caja", "caja_una_sola_abierta", ["estado"], True),
     ("medio_pago", "medio_pago_un_solo_efectivo", ["es_efectivo"], True),
+    ("medio_pago", "medio_pago_una_sola_cuenta_corriente", ["ingresa_a_caja"], True),
     (
         "cierre_caja_detalle",
         "cierre_caja_detalle_caja_medio_unico",
@@ -111,9 +119,32 @@ UNICOS = [
         ["pago_proveedor_id", "concepto"],
         True,
     ),
+    (
+        "movimiento_caja",
+        "movimiento_caja_un_movimiento_por_cobro_y_concepto",
+        ["pago_cliente_id", "concepto"],
+        True,
+    ),
     ("producto", "producto_plus_interno_unico", ["plus_interno"], True),
     ("producto_proveedor", "producto_proveedor_unico", ["producto_id", "proveedor_id"], False),
-    ("movimiento_cuenta_corriente", "movimiento_cuenta_corriente_venta_unica", ["venta_id"], True),
+    (
+        "movimiento_cuenta_corriente",
+        "movimiento_cuenta_corriente_venta_y_tipo_unicos",
+        ["venta_id", "tipo"],
+        True,
+    ),
+    (
+        "movimiento_cuenta_corriente",
+        "movimiento_cuenta_corriente_pago_y_tipo_unicos",
+        ["pago_cliente_id", "tipo"],
+        True,
+    ),
+    (
+        "movimiento_cuenta_corriente",
+        "movimiento_cuenta_corriente_una_anulacion_por_saldo_inicial",
+        ["saldo_inicial_id"],
+        True,
+    ),
 ]
 
 # Índices de 05 (7.5) que no salen de una clave única: (tabla, columnas, parcial).
@@ -240,19 +271,40 @@ def test_cp73_toda_clave_foranea_existe_en_la_base_y_protege_el_borrado(modelo):
         )
 
 
-# R-6 (DEC-96): proveedores depende de catálogo y caja, nunca al revés.
-
-
-@pytest.mark.parametrize("app", ["catalogo", "caja"])
-def test_r6_catalogo_y_caja_no_importan_proveedores(app):
+def _importaciones(app, incluir_pruebas=True):
     carpeta = Path(apps.get_app_config(app).path)
     importaciones = []
     for archivo in carpeta.rglob("*.py"):
+        if not incluir_pruebas and "tests" in archivo.relative_to(carpeta).parts:
+            continue
         arbol = ast.parse(archivo.read_text(encoding="utf-8"))
         for nodo in ast.walk(arbol):
             if isinstance(nodo, ast.ImportFrom) and nodo.module:
                 importaciones.append((archivo.name, nodo.module))
             elif isinstance(nodo, ast.Import):
                 importaciones += [(archivo.name, alias.name) for alias in nodo.names]
+    return importaciones
+
+
+# R-6 (DEC-96): proveedores depende de catálogo y caja, nunca al revés.
+
+
+@pytest.mark.parametrize("app", ["catalogo", "caja"])
+def test_r6_catalogo_y_caja_no_importan_proveedores(app):
+    importaciones = _importaciones(app)
 
     assert not [i for i in importaciones if i[1].startswith("apps.proveedores")]
+
+
+# R-4 de H4 (DEC-131): ventas → clientes → caja. Las pruebas de caja pueden armar ventas para
+# probar el cierre, por eso se revisa solo el código del módulo.
+
+
+@pytest.mark.parametrize(
+    ("app", "prohibido"),
+    [("clientes", "apps.ventas"), ("caja", "apps.ventas"), ("caja", "apps.clientes")],
+)
+def test_r4_clientes_y_caja_no_importan_hacia_arriba(app, prohibido):
+    importaciones = _importaciones(app, incluir_pruebas=False)
+
+    assert not [i for i in importaciones if i[1].startswith(prohibido)]

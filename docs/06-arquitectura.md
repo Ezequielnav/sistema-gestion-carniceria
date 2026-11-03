@@ -140,6 +140,9 @@ flowchart LR
     proveedores --> catalogo
     proveedores --> caja
     proveedores --> usuarios
+    ventas --> clientes
+    clientes --> caja
+    clientes --> usuarios
     comun --> caja
     comun --> catalogo
     comun --> ventas
@@ -147,6 +150,8 @@ flowchart LR
 ```
 
 `caja` y `catalogo` nunca importan servicios de `ventas` ni de `proveedores` (DEC-96). El stock y las cantidades se cambian y validan solo en `catalogo` (`mover_stock`, `validar_cantidad`), y la consulta de stock (CU-06) filtra por proveedor por la relación inversa de `producto_proveedor`, sin usar servicios de `proveedores`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
+
+Con H4 (DEC-131, R-4 del spec de H4) la cadena de la cuenta corriente va en un solo sentido: `ventas` → `clientes` → `caja`. `clientes` concentra saldo, disponible, deuda vencida, límite de crédito y saldo inicial (R-3) y nunca importa `ventas`; `caja` no importa `clientes` ni `ventas`. Una prueba de estructura (`apps/comun/tests/test_estructura.py`) lo verifica sobre el código de cada módulo, sin sus pruebas, que sí pueden armar ventas para probar la caja.
 
 ## 4. Módulos y su relación con el modelo
 
@@ -200,7 +205,7 @@ sistema-gestion-carniceria/
 └── .claude/settings.json      permisos de Claude Code
 ```
 
-Hoy `proveedores` y `clientes` solo tienen modelos (sus servicios y pantallas llegan en H3 y H4), y `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
+`proveedores` tiene sus servicios y pantallas desde H3. `clientes` tiene desde la etapa 1 de H4 el servicio de cuenta corriente (saldo, deuda vencida y saldo inicial); sus pantallas llegan en las etapas siguientes de H4. `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
 
 ## 5. Entorno local
 

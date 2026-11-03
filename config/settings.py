@@ -108,6 +108,10 @@ LOGOUT_REDIRECT_URL = "usuarios:ingresar"
 # Cierre de sesión por inactividad: a confirmar (PR-34). Mientras tanto, el valor por defecto
 # de Django (la sesión dura dos semanas).
 
+# Cuenta corriente: un cargo con más de estos días sin cubrir es deuda vencida. Plazo único
+# para todos los clientes; supuesto del proyecto (DEC-109, PR-13).
+PLAZO_VENCIMIENTO_CUENTA_CORRIENTE_DIAS = 30
+
 
 # Panel de administración con Unfold (DEC-30). Rojo de marca (desde 500, un tono más oscuro
 # que el rojo de Tailwind para coincidir con el logo del sistema); grises por defecto del tema.

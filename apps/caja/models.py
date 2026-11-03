@@ -23,7 +23,7 @@ class TipoMovimientoCaja(models.TextChoices):
 
 
 class ConceptoMovimientoCaja(models.TextChoices):
-    """Gastos y retiros (DEC-43) y reversa de anulación (DEC-68); PR-10 cerrada."""
+    """Gastos y retiros (DEC-43) y reversas de anulaciones (DEC-68, DEC-92, DEC-113)."""
 
     VENTA = "VENTA", "Venta"
     PAGO_CLIENTE = "PAGO_CLIENTE", "Pago de cliente"
@@ -33,6 +33,8 @@ class ConceptoMovimientoCaja(models.TextChoices):
     ANULACION = "ANULACION", "Anulación de venta"
     # Reversa de un pago a proveedor en efectivo anulado (DEC-92).
     ANULACION_PAGO = "ANULACION_PAGO", "Anulación de pago a proveedor"
+    # Reversa de un cobro a cliente anulado que entró a caja (DEC-113).
+    ANULACION_COBRO = "ANULACION_COBRO", "Anulación de cobro"
 
 
 class MedioPago(ModeloBase):
@@ -61,6 +63,18 @@ class MedioPago(ModeloBase):
                 condition=Q(es_efectivo=True),
                 name="medio_pago_un_solo_efectivo",
                 violation_error_message="Ya hay otro medio de pago marcado como efectivo.",
+            ),
+            # Cuenta corriente es el único medio que no ingresa a caja (DEC-41, R-6).
+            models.UniqueConstraint(
+                fields=["ingresa_a_caja"],
+                condition=Q(ingresa_a_caja=False),
+                name="medio_pago_una_sola_cuenta_corriente",
+                violation_error_message="Ya hay otro medio de pago que no ingresa a caja.",
+            ),
+            models.CheckConstraint(
+                condition=Q(ingresa_a_caja=True) | Q(es_efectivo=False),
+                name="medio_pago_efectivo_ingresa_a_caja",
+                violation_error_message="El efectivo ingresa a caja.",
             ),
         ]
 
@@ -154,7 +168,7 @@ class MovimientoCaja(ModeloBase):
     tipo = models.CharField(max_length=7, choices=TipoMovimientoCaja.choices)
     monto = campo_monto(validators=[validar_positivo])
     medio_pago = models.ForeignKey(MedioPago, on_delete=models.PROTECT)
-    concepto = models.CharField(max_length=14, choices=ConceptoMovimientoCaja.choices)
+    concepto = models.CharField(max_length=15, choices=ConceptoMovimientoCaja.choices)
     venta = models.ForeignKey("ventas.Venta", on_delete=models.PROTECT, null=True, blank=True)
     pago_cliente = models.ForeignKey(
         "clientes.PagoCliente", on_delete=models.PROTECT, null=True, blank=True
@@ -184,7 +198,12 @@ class MovimientoCaja(ModeloBase):
                 condition=(
                     Q(concepto__in=[ConceptoMovimientoCaja.VENTA, ConceptoMovimientoCaja.ANULACION])
                     & _solo_referencia(venta=True)
-                    | Q(concepto=ConceptoMovimientoCaja.PAGO_CLIENTE)
+                    | Q(
+                        concepto__in=[
+                            ConceptoMovimientoCaja.PAGO_CLIENTE,
+                            ConceptoMovimientoCaja.ANULACION_COBRO,
+                        ]
+                    )
                     & _solo_referencia(pago_cliente=True)
                     | Q(
                         concepto__in=[
@@ -220,6 +239,18 @@ class MovimientoCaja(ModeloBase):
                 condition=Q(pago_proveedor__isnull=False),
                 name="movimiento_caja_un_movimiento_por_pago_y_concepto",
                 violation_error_message="El pago ya tiene ese movimiento de caja.",
+            ),
+            # DEC-113: la reversa de un cobro es un egreso; un cobro tiene un ingreso y una reversa.
+            models.CheckConstraint(
+                condition=~Q(concepto=ConceptoMovimientoCaja.ANULACION_COBRO)
+                | Q(tipo=TipoMovimientoCaja.EGRESO),
+                name="movimiento_caja_anulacion_cobro_es_egreso",
+            ),
+            models.UniqueConstraint(
+                fields=["pago_cliente", "concepto"],
+                condition=Q(pago_cliente__isnull=False),
+                name="movimiento_caja_un_movimiento_por_cobro_y_concepto",
+                violation_error_message="El cobro ya tiene ese movimiento de caja.",
             ),
         ]
         indexes = [
