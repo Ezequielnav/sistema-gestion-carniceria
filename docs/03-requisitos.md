@@ -47,7 +47,7 @@
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
-| RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | Decidido (DEC-108, DEC-109, supuestos): límite opcional que bloquea; la deuda vencida solo alerta |
+| RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | Decidido (DEC-108, DEC-109, supuestos): límite opcional que bloquea; la deuda vencida solo alerta. Implementado en H4, etapa 3 |
 | RF-19 | El sistema debe permitir pagar una venta con más de un medio de pago | Propuesta (H-09) | Baja | Descartado (DEC-42): un solo medio por venta |
 | RF-20 | El sistema debe registrar la venta de carne con el nivel de detalle que defina el negocio | Propuesta (H-01) | Alta | Decidido (DEC-36): por producto y por kg |
 | RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77); la cajera ve las ventas de la caja sin anular (DEC-84) |

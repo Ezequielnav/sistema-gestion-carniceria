@@ -105,9 +105,7 @@ def validar_limite(cliente, monto):
     if cliente.limite_credito is None:
         return
     if cliente.limite_credito == 0:
-        raise ValidationError(
-            f"{cliente} no tiene crédito habilitado (DEC-115).", code="sin_credito"
-        )
+        raise ValidationError(f"{cliente} no tiene crédito habilitado.", code="sin_credito")
     saldo_actual = saldo(cliente)
     libre = disponible(cliente, saldo_actual)
     if monto > libre:
@@ -130,6 +128,51 @@ def validar_saldo_suficiente(cliente, monto, que):
             f"({pesos(monto)}).",
             code="saldo_insuficiente",
         )
+
+
+# SC-03 Vender a cuenta corriente (DEC-108, DEC-113, DEC-114). La venta llama a estas
+# funciones dentro de su transacción, después de bloquear la caja (DEC-128).
+
+
+def bloquear_cliente(cliente_id):
+    """El cliente con su fila bloqueada hasta terminar la operación (DEC-128). Así dos ventas,
+    o una venta y un cobro, no validan límite y saldo con el mismo dato viejo."""
+    return Cliente.objects.select_for_update().get(pk=cliente_id)
+
+
+def registrar_cargo(venta):
+    """La deuda de una venta a cuenta corriente: `VENTA_FIADA` por su total, sin caja (R-2).
+
+    Se rechaza si el cliente está dado de baja (DEC-116) o si pasa su límite (DEC-108). El
+    cliente tiene que venir bloqueado con `bloquear_cliente`.
+    """
+    cliente = venta.cliente
+    if not cliente.activo:
+        raise ValidationError(
+            f"{cliente} está dado de baja: no compra a cuenta corriente.", code="cliente_inactivo"
+        )
+    validar_limite(cliente, venta.monto_total)
+    return MovimientoCuentaCorriente.objects.create(
+        cliente=cliente,
+        fecha_hora=venta.fecha_hora,
+        tipo=Tipo.VENTA_FIADA,
+        monto=venta.monto_total,
+        venta=venta,
+    )
+
+
+def registrar_anulacion_de_cargo(venta):
+    """L1: anular una venta a cuenta corriente revierte su deuda con `ANULACION_VENTA`, en lugar
+    del egreso de caja (DEC-113). Se rechaza si el saldo actual es menor al total (DEC-114)."""
+    cliente = bloquear_cliente(venta.cliente_id)
+    validar_saldo_suficiente(cliente, venta.monto_total, "la venta")
+    return MovimientoCuentaCorriente.objects.create(
+        # RI-15: el mismo cliente que la venta.
+        cliente=cliente,
+        tipo=Tipo.ANULACION_VENTA,
+        monto=venta.monto_total,
+        venta=venta,
+    )
 
 
 # Deuda vencida (DEC-109): los cobros se imputan a los cargos más antiguos; lo que queda sin

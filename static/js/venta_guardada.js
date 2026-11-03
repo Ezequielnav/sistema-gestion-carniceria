@@ -6,11 +6,12 @@
 
   function crearVentaGuardada(almacen, clave) {
     return {
-      // lineas: [{ producto, cantidad }]; medio: id del medio de pago elegido o "".
-      guardar(lineas, medio) {
+      // lineas: [{ producto, cantidad }]; medio: id del medio de pago elegido o "";
+      // cliente: el de la cuenta corriente (SC-03, DEC-123) o null.
+      guardar(lineas, medio, cliente = null) {
         try {
           if (lineas.length === 0) almacen.removeItem(clave);
-          else almacen.setItem(clave, JSON.stringify({ lineas, medio }));
+          else almacen.setItem(clave, JSON.stringify({ lineas, medio, cliente }));
         } catch {
           // Sin almacenamiento disponible: no se guarda.
         }
@@ -22,7 +23,9 @@
           const lineas = datos.lineas.filter(
             (l) => l && l.producto && Number.isInteger(l.producto.id) && typeof l.cantidad === "string",
           );
-          return lineas.length ? { lineas, medio: typeof datos.medio === "string" ? datos.medio : "" } : null;
+          if (!lineas.length) return null;
+          const cliente = datos.cliente && Number.isInteger(datos.cliente.id) ? datos.cliente : null;
+          return { lineas, medio: typeof datos.medio === "string" ? datos.medio : "", cliente };
         } catch {
           return null;
         }

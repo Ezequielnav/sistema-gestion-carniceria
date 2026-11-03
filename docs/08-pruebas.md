@@ -74,8 +74,8 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado; automatizado (H2, etapa 2) |
 | CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado; automatizado (H2, etapa 2) |
 | CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro; también si la caja abierta es de otro día | Decidido (DEC-83, DEC-50); automatizado (H2, etapa 2) |
-| CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | Decidido (DEC-108, supuesto); se automatiza en H4 |
-| CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | Decidido (DEC-108, supuesto); se automatiza en H4 |
+| CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` por el total y no genera ingreso en caja; el stock baja como en cualquier venta | Decidido (DEC-108, supuesto); automatizado (H4, etapa 3) |
+| CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza, en el servicio y en la pantalla, sin guardar nada | Decidido (DEC-108, supuesto); automatizado (H4, etapa 3) |
 | CP-20 | Venta de carne | RF-20, RF-16 | Se registra por producto y por kg con su precio; el stock no cambia | Decidido (DEC-36); automatizado (H2, etapa 2) |
 | CP-21 | Venta con más de un medio de pago | RF-19 | No se permite: un solo medio por venta | Decidido (DEC-42); automatizado (H2, etapa 2) |
 | CP-82 | Buscar con el código del lector | RF-11 | Un código que coincide exacto con un plus agrega el producto a la venta | Decidido (DEC-37); automatizado (H2, etapa 2) |
@@ -117,7 +117,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
 
-Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`).
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`). Etapa 3: SC-03 y L1 (`apps/ventas/tests/test_cuenta_corriente.py`, `test_concurrencia_cuenta_corriente.py` y `cuenta_corriente.test.cjs`).
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
@@ -126,6 +126,8 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = saldo inicial + ventas fiadas - pagos, con sus anulaciones (DEC-113, DEC-119); no hay saldo guardado | Confirmado; automatizado (H4, etapa 1), también el saldo de toda una lista en una sola consulta (R-7) |
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
 | CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto). El cálculo, automatizado en el servicio (H4, etapa 1): 30 días no vence, 31 sí; la alerta en pantalla se prueba en las etapas 2, 3 y 5 |
+| CP-115 | Límite de crédito en la venta a cuenta corriente | DEC-108, DEC-115, S-9 | Llegar justo al límite se acepta y pasarlo se rechaza mostrando saldo y disponible, sin guardar venta, deuda ni cambio de stock; sin límite no hay tope; con límite 0 se rechaza ("sin crédito habilitado"); un cliente dado de baja no compra a cuenta corriente. La pantalla avisa antes de confirmar y el servidor vuelve a validar. Dos ventas del mismo cliente a la vez: la segunda espera a la primera y se rechaza por el límite | Decidido (supuestos); automatizado (H4, etapa 3), con dos hilos para la concurrencia |
+| CP-116 | Anular una venta a cuenta corriente | L1, DEC-113, DEC-114, S-11 | Solo el Administrador, con motivo y su caja abierta: la venta queda anulada, se registra `ANULACION_VENTA` por su total, no hay egreso de caja y vuelve el stock. Se rechaza si el saldo actual del cliente es menor al total; los cobros no quedan atados a una venta. El detalle explica el efecto en la cuenta corriente y muestra el rechazo | Decidido (supuestos); automatizado (H4, etapa 3) |
 | CP-119 | Deuda vencida con cobros imputados a lo más antiguo | DEC-109, DEC-119 | Ventas de $ 1.000 (hace 40 días) y $ 500 (hace 5) con un cobro de $ 600: saldo $ 900 y vencida $ 400. Ventas y cobros anulados no cuentan; el saldo inicial vence por su fecha de origen; la deuda vencida de toda una lista sale de una sola consulta (R-7) | Decidido (supuesto); automatizado (H4, etapa 1) |
 | CP-114 | Gestionar clientes y elegir cliente | RF-35, RF-41, DEC-115 a DEC-118, S-1, S-7 | El Administrador da de alta (solo el nombre es obligatorio; límite vacío o mayor o igual a 0 con 2 decimales), modifica, da de baja (con aviso del saldo, que no se borra) y reactiva; busca por nombre o teléfono, filtra "Solo con deuda vencida" y pagina de a 25; el listado muestra saldo, límite ("Sin límite", "Sin crédito habilitado") y deuda vencida sin una consulta por cliente. La cajera y los dueños reciben 403 y no ven "Clientes". SC-01: el Administrador y la cajera eligen entre los activos (en el cobro, también los dados de baja que deben), hasta 50 con aviso si hay más; los dueños reciben 403 | Decidido (supuestos); automatizado (H4, etapa 2) |
 | CP-122 | Saldo inicial y su anulación | DEC-119, RI-18, DEC-114 | Solo el Administrador lo carga (monto mayor a 0 con 2 decimales, fecha de origen no posterior a hoy y motivo) y lo anula con motivo; sin validar el límite; uno vigente por cliente; la anulación deja `ANULACION_SALDO_INICIAL`, se rechaza si el saldo actual es menor al monto y después se puede cargar otro; la cajera y los dueños reciben 403 | Decidido (supuesto); servicio automatizado (H4, etapa 1); la pantalla, en la etapa 5 |
@@ -187,7 +189,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-02 | CP-03 | RI-02 | CP-05, CP-85 |
 | RN-03 | CP-05 | RI-03 | CP-10 |
 | RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
-| RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19 |
+| RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19, CP-115, CP-116 |
 | RN-06 | CP-53 | RI-06 | CP-41 |
 | RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85, CP-107 |
 | RN-08 | CP-30, CP-32, CP-92 | RI-08 | CP-34 |

@@ -20,6 +20,9 @@
 
   // producto id -> { producto, cantidad (texto) }
   const lineas = new Map();
+  // SC-03 (DEC-123): el cliente elegido con SC-01 cuando el medio es cuenta corriente.
+  let cliente = null;
+  let totalActual = 0;
 
   // La venta en curso se guarda en la pestaña, por usuario, hasta confirmarla o vaciarla.
   let almacen = null;
@@ -33,7 +36,11 @@
     : { guardar() {}, leer: () => null, borrar() {} };
 
   function persistir() {
-    guardada.guardar([...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })), medio.value);
+    guardada.guardar(
+      [...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })),
+      medio.value,
+      cliente,
+    );
   }
 
   function subtotal(linea) {
@@ -146,6 +153,8 @@
       aviso.classList.toggle("hidden", !aviso.textContent);
     }
     total.textContent = `$ ${pesos.format(suma)}`;
+    totalActual = suma;
+    cuentaCorriente.dibujar();
     persistir();
   }
 
@@ -366,7 +375,153 @@
     });
   }
 
-  medio.addEventListener("change", persistir);
+  // SC-03: con el medio cuenta corriente se elige el cliente (SC-01). El servidor vuelve a
+  // validar cliente, límite y saldo al confirmar (DEC-47, DEC-108).
+  const cuentaCorriente = (function () {
+    const bloque = document.getElementById("cuenta-corriente");
+    if (!bloque) return { dibujar() {}, mostrar() {}, refrescar() {}, activo: () => false };
+    const elegir = document.getElementById("elegir-cliente");
+    const buscarCliente = document.getElementById("buscar-cliente");
+    const lista = document.getElementById("clientes");
+    const elegido = document.getElementById("cliente-elegido");
+    const campos = {
+      nombre: document.getElementById("cliente-nombre"),
+      saldo: document.getElementById("cliente-saldo"),
+      limite: document.getElementById("cliente-limite"),
+      disponible: document.getElementById("cliente-disponible"),
+      disponibleTitulo: document.getElementById("cliente-disponible-titulo"),
+      vencida: document.getElementById("cliente-vencida"),
+      aviso: document.getElementById("cliente-aviso"),
+    };
+    let espera = null;
+    let consulta = 0;
+
+    async function consultarClientes(texto) {
+      const respuesta = await fetch(`${raiz.dataset.clientes}?q=${encodeURIComponent(texto)}`, {
+        headers: { Accept: "application/json" },
+      });
+      return respuesta.json();
+    }
+
+    function mostrarLista(clientes, hayMas) {
+      const items = clientes.map((c) => {
+        const item = document.createElement("li");
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "flex w-full justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none";
+        const nombre = document.createElement("span");
+        nombre.className = "font-medium";
+        nombre.textContent = c.nombre;
+        const telefono = document.createElement("span");
+        telefono.className = "cifras text-gray-500";
+        telefono.textContent = c.telefono;
+        boton.append(nombre, telefono);
+        boton.addEventListener("click", () => elegirCliente(c));
+        item.append(boton);
+        return item;
+      });
+      if (!clientes.length) {
+        const vacio = document.createElement("li");
+        vacio.className = "px-3 py-2 text-sm text-gray-500";
+        vacio.textContent = "No hay clientes que coincidan.";
+        items.push(vacio);
+      } else if (hayMas) {
+        const mas = document.createElement("li");
+        mas.className = "px-3 py-2 text-xs text-gray-500";
+        mas.textContent = "Seguí escribiendo para ver más.";
+        items.push(mas);
+      }
+      lista.replaceChildren(...items);
+      lista.classList.remove("hidden");
+    }
+
+    function filtrarClientes() {
+      clearTimeout(espera);
+      const texto = buscarCliente.value.trim();
+      if (!texto) {
+        lista.classList.add("hidden");
+        return;
+      }
+      // Como el buscador de productos: espera 250 ms sin teclas (DEC-97).
+      espera = setTimeout(async () => {
+        const turno = ++consulta;
+        const datos = await consultarClientes(texto);
+        if (turno === consulta) mostrarLista(datos.resultados, datos.hay_mas);
+      }, 250);
+    }
+
+    function elegirCliente(c) {
+      cliente = c;
+      buscarCliente.value = "";
+      lista.classList.add("hidden");
+      mostrarErrores([]);
+      dibujar();
+      persistir();
+      confirmar.focus();
+    }
+
+    function dibujar() {
+      const visible = activo();
+      bloque.classList.toggle("hidden", !visible);
+      elegir.classList.toggle("hidden", Boolean(cliente));
+      elegido.classList.toggle("hidden", !cliente);
+      if (!visible || !cliente) return;
+      const resumen = resumenDeCliente(cliente, totalActual);
+      campos.nombre.textContent = cliente.nombre;
+      campos.saldo.textContent = resumen.saldo;
+      campos.limite.textContent = resumen.limite;
+      campos.disponible.textContent = resumen.disponible || "";
+      campos.disponible.classList.toggle("hidden", !resumen.disponible);
+      campos.disponibleTitulo.classList.toggle("hidden", !resumen.disponible);
+      campos.vencida.textContent = resumen.vencida || "";
+      campos.vencida.classList.toggle("hidden", !resumen.vencida);
+      campos.aviso.textContent = resumen.aviso || "";
+      campos.aviso.classList.toggle("hidden", !resumen.aviso);
+    }
+
+    function activo() {
+      return medio.value !== "" && medio.value === raiz.dataset.cuentaCorriente;
+    }
+
+    // Una venta guardada en la pestaña trae el cliente con datos de antes: se vuelven a pedir.
+    async function refrescar() {
+      if (!cliente) return;
+      const anterior = cliente;
+      const datos = await consultarClientes(anterior.nombre);
+      const actual = datos.resultados.find((c) => c.id === anterior.id) || null;
+      if (cliente === anterior) {
+        cliente = actual;
+        dibujar();
+        persistir();
+      }
+    }
+
+    buscarCliente.addEventListener("input", filtrarClientes);
+    buscarCliente.addEventListener("keydown", (evento) => {
+      if (evento.key === "Escape") lista.classList.add("hidden");
+    });
+    document.getElementById("cambiar-cliente").addEventListener("click", () => {
+      cliente = null;
+      dibujar();
+      persistir();
+      buscarCliente.focus();
+    });
+
+    return {
+      dibujar,
+      mostrar() {
+        dibujar();
+        if (activo() && !cliente) buscarCliente.focus();
+      },
+      refrescar,
+      activo,
+    };
+  })();
+
+  medio.addEventListener("change", () => {
+    cuentaCorriente.mostrar();
+    persistir();
+  });
 
   // Avisa antes de salir de la pantalla con productos cargados.
   window.addEventListener("beforeunload", (evento) => {
@@ -380,6 +535,7 @@
     lineas.clear();
     guardada.borrar();
     medio.value = "";
+    cliente = null;
     cerrarLista();
     mostrarErrores([]);
     dibujar();
@@ -395,6 +551,8 @@
       csrfmiddlewaretoken: csrf,
       medio_pago: medio.value,
       lineas: JSON.stringify(lista),
+      // Solo con cuenta corriente; con otro medio el servidor no lo usa (SC-03).
+      cliente: cuentaCorriente.activo() && cliente ? String(cliente.id) : "",
     });
     confirmar.disabled = true;
     try {
@@ -421,6 +579,8 @@
   if (previa) {
     for (const linea of previa.lineas) lineas.set(linea.producto.id, linea);
     if ([...medio.options].some((opcion) => opcion.value === previa.medio)) medio.value = previa.medio;
+    cliente = previa.cliente;
   }
   dibujar();
+  cuentaCorriente.refrescar();
 })();
