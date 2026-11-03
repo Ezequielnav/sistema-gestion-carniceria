@@ -205,7 +205,7 @@ sistema-gestion-carniceria/
 └── .claude/settings.json      permisos de Claude Code
 ```
 
-`proveedores` tiene sus servicios y pantallas desde H3. `clientes` tiene desde la etapa 1 de H4 el servicio de cuenta corriente (saldo, deuda vencida y saldo inicial); sus pantallas llegan en las etapas siguientes de H4. `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
+`proveedores` tiene sus servicios y pantallas desde H3. `clientes` tiene desde la etapa 1 de H4 el servicio de cuenta corriente (saldo, deuda vencida y saldo inicial); desde la etapa 2, la gestión de clientes (CU-12) y la búsqueda para elegir un cliente (SC-01); el estado de cuenta, la venta a cuenta corriente y el cobro llegan en las etapas siguientes de H4. `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
 
 ## 5. Entorno local
 

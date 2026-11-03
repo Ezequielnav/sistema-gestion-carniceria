@@ -1,4 +1,5 @@
-"""Cuenta corriente de clientes (H4): saldo, disponible, deuda vencida y saldo inicial.
+"""Clientes y cuenta corriente (H4): CU-12, SC-01, saldo, disponible, deuda vencida y saldo
+inicial.
 
 R-3 (DEC-131): este módulo concentra las reglas de la cuenta corriente; la venta (SC-03) y el
 cobro (CU-04) las usan desde acá. El saldo no se guarda: sale de los movimientos (DEC-21).
@@ -42,6 +43,11 @@ def puede_gestionar(usuario):
 def _exigir_administrador(usuario, accion):
     if not puede_gestionar(usuario):
         raise PermissionDenied(f"Solo el administrador {accion}.")
+
+
+def puede_elegir(usuario):
+    """SC-01: el Administrador y la cajera eligen un cliente en la venta y el cobro (DEC-116)."""
+    return usuario.is_authenticated and usuario.rol in (Rol.ADMINISTRADOR, Rol.CAJERA)
 
 
 # Saldo y disponible (DEC-21, DEC-108, DEC-111, DEC-115)
@@ -278,3 +284,135 @@ def anular_saldo_inicial(usuario, saldo_inicial, motivo):
             saldo_inicial=saldo_inicial,
             motivo=motivo,
         )
+
+
+# CU-12 Gestionar clientes (DEC-116 a DEC-118; S-1, S-7). Mismo patrón que CU-13.
+
+CAMPOS_EDITABLES = ["nombre", "telefono", "direccion", "limite_credito", "observaciones"]
+# Tope de la lista de SC-01, como el buscador de la venta (DEC-97).
+LIMITE_BUSQUEDA = 50
+
+
+def _por_texto(clientes, texto):
+    """Por nombre o teléfono, sin distinguir mayúsculas (DEC-118)."""
+    texto = (texto or "").strip()
+    if texto:
+        clientes = clientes.filter(Q(nombre__icontains=texto) | Q(telefono__icontains=texto))
+    return clientes
+
+
+def listar_clientes(usuario, texto="", incluir_inactivos=False, solo_vencidos=False, hoy=None):
+    """Ordenados por nombre; los dados de baja solo si se piden. "Solo con deuda vencida"
+    calcula la deuda de los que coinciden con una sola consulta (S-7, R-7)."""
+    _exigir_administrador(usuario, "gestiona clientes")
+    clientes = Cliente.objects.order_by("nombre", "pk")
+    if not incluir_inactivos:
+        clientes = clientes.filter(activo=True)
+    clientes = _por_texto(clientes, texto)
+    if solo_vencidos:
+        vencidas = deudas_vencidas_de_clientes(list(clientes), hoy)
+        clientes = clientes.filter(pk__in=[pk for pk, monto in vencidas.items() if monto > 0])
+    return clientes
+
+
+def con_cuenta(clientes, hoy=None):
+    """Agrega a cada cliente saldo, deuda vencida y el texto del límite (DEC-115), con una
+    consulta para los saldos y otra para la deuda vencida de toda la lista (R-7)."""
+    clientes = list(clientes)
+    saldos = saldos_de_clientes(clientes)
+    vencidas = deudas_vencidas_de_clientes(clientes, hoy)
+    for cliente in clientes:
+        cliente.saldo = saldos[cliente.pk]
+        cliente.deuda_vencida = vencidas[cliente.pk]
+        cliente.texto_limite = texto_limite(cliente)
+        cliente.disponible = disponible(cliente, cliente.saldo)
+    return clientes
+
+
+def cliente_editable(pk):
+    """Cliente activo; uno dado de baja primero se reactiva. Cliente.DoesNotExist si no."""
+    return Cliente.objects.get(pk=pk, activo=True)
+
+
+def cliente_dado_de_baja(pk):
+    """Cliente inactivo, para reactivarlo. Cliente.DoesNotExist si no lo es."""
+    return Cliente.objects.get(pk=pk, activo=False)
+
+
+def _guardar(cliente, datos):
+    for campo in CAMPOS_EDITABLES:
+        valor = datos.get(campo)
+        if campo == "limite_credito":
+            # Vacío = sin límite; 0 = sin crédito habilitado (DEC-108, DEC-115).
+            cliente.limite_credito = valor
+        else:
+            setattr(cliente, campo, (valor or "").strip())
+    cliente.full_clean()
+    cliente.save()
+    return cliente
+
+
+def crear_cliente(usuario, datos):
+    _exigir_administrador(usuario, "da de alta clientes")
+    return _guardar(Cliente(), datos)
+
+
+def modificar_cliente(usuario, cliente, datos):
+    _exigir_administrador(usuario, "modifica clientes")
+    return _guardar(cliente, datos)
+
+
+def dar_de_baja(usuario, cliente):
+    """Baja lógica: sus movimientos no cambian (RI-11) y la deuda sigue, con su saldo para
+    cobrar (DEC-116, S-1). Un cliente dado de baja no compra a cuenta corriente."""
+    _exigir_administrador(usuario, "da de baja clientes")
+    cliente.activo = False
+    cliente.save(update_fields=["activo", "actualizado_en"])
+    return cliente
+
+
+def reactivar(usuario, cliente):
+    """Vuelve a activar un cliente dado de baja (S-1, como DEC-85 y DEC-87)."""
+    _exigir_administrador(usuario, "reactiva clientes")
+    cliente.activo = True
+    cliente.save(update_fields=["activo", "actualizado_en"])
+    return cliente
+
+
+# SC-01 Elegir cliente (DEC-116, DEC-118): lo usan la venta (SC-03) y el cobro (CU-04).
+
+
+def _para_elegir(cliente):
+    return {
+        "id": cliente.pk,
+        "nombre": cliente.nombre,
+        "telefono": cliente.telefono,
+        "activo": cliente.activo,
+        "saldo": str(cliente.saldo),
+        "limite": cliente.texto_limite,
+        "disponible": None if cliente.disponible is None else str(cliente.disponible),
+        "deuda_vencida": str(cliente.deuda_vencida),
+    }
+
+
+def buscar_para_elegir(usuario, texto, para_cobro=False, hoy=None):
+    """Clientes activos por nombre o teléfono, con saldo, límite, disponible y deuda vencida.
+
+    En el cobro también aparecen los dados de baja que todavía deben (DEC-116). Devuelve hasta
+    LIMITE_BUSQUEDA y si hay más, como el buscador de la venta (DEC-97).
+    """
+    if not puede_elegir(usuario):
+        raise PermissionDenied("Solo el administrador y la cajera eligen clientes.")
+    clientes = _por_texto(Cliente.objects.order_by("nombre", "pk"), texto)
+    if para_cobro:
+        con_deuda = [
+            pk
+            for pk, monto in saldos_de_clientes(list(clientes.filter(activo=False))).items()
+            if monto > 0
+        ]
+        clientes = clientes.filter(Q(activo=True) | Q(pk__in=con_deuda))
+    else:
+        clientes = clientes.filter(activo=True)
+    encontrados = list(clientes[: LIMITE_BUSQUEDA + 1])
+    hay_mas = len(encontrados) > LIMITE_BUSQUEDA
+    return [_para_elegir(c) for c in con_cuenta(encontrados[:LIMITE_BUSQUEDA], hoy)], hay_mas

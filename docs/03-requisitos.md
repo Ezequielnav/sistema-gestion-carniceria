@@ -83,7 +83,7 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-35 | El sistema debe permitir gestionar clientes (alta, baja, modificación) | Propuesta (H-04) | Alta | Decidido (DEC-116 a DEC-118, supuestos): solo el Administrador; nombre obligatorio y teléfono, dirección y observaciones opcionales; buscador y paginación |
+| RF-35 | El sistema debe permitir gestionar clientes (alta, baja, modificación) | Propuesta (H-04) | Alta | Decidido (DEC-116 a DEC-118, supuestos): solo el Administrador; nombre obligatorio y teléfono, dirección y observaciones opcionales; buscador y paginación. Implementado en H4, etapa 2 |
 | RF-36 | El Administrador debe poder registrar el pago de un cliente de cuenta corriente: ver saldo, ingresar monto y medio de pago | Base (CU-04) | Alta | Confirmado; también cobra la cajera (DEC-110, supuesto) |
 | RF-37 | Al registrar un pago de cliente, el sistema debe disminuir el saldo adeudado y registrar el ingreso en caja | Base (CU-04) | Alta | Confirmado; el Administrador puede registrarlo sin caja (DEC-110, supuesto) |
 | RF-38 | Si el pago supera la deuda, el sistema debe sugerir registrar el excedente como anticipo | Base (CU-04, A1) | Baja | Descartado (DEC-111, supuesto): sin saldo a favor; un cobro mayor al saldo se rechaza |

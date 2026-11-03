@@ -74,6 +74,7 @@ FUNCIONES = [
         "CU-04, CU-08, CU-12",
         frozenset({ADMIN}),
         "personas",
+        url="clientes:clientes",  # S-2 (DEC-121); estado de cuenta y cobro en las etapas 4 y 5
     ),
     Funcion(
         "Proveedores",

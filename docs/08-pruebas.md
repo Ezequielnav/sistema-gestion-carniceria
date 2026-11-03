@@ -117,7 +117,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
 
-Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`).
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`).
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
@@ -127,6 +127,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
 | CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto). El cálculo, automatizado en el servicio (H4, etapa 1): 30 días no vence, 31 sí; la alerta en pantalla se prueba en las etapas 2, 3 y 5 |
 | CP-119 | Deuda vencida con cobros imputados a lo más antiguo | DEC-109, DEC-119 | Ventas de $ 1.000 (hace 40 días) y $ 500 (hace 5) con un cobro de $ 600: saldo $ 900 y vencida $ 400. Ventas y cobros anulados no cuentan; el saldo inicial vence por su fecha de origen; la deuda vencida de toda una lista sale de una sola consulta (R-7) | Decidido (supuesto); automatizado (H4, etapa 1) |
+| CP-114 | Gestionar clientes y elegir cliente | RF-35, RF-41, DEC-115 a DEC-118, S-1, S-7 | El Administrador da de alta (solo el nombre es obligatorio; límite vacío o mayor o igual a 0 con 2 decimales), modifica, da de baja (con aviso del saldo, que no se borra) y reactiva; busca por nombre o teléfono, filtra "Solo con deuda vencida" y pagina de a 25; el listado muestra saldo, límite ("Sin límite", "Sin crédito habilitado") y deuda vencida sin una consulta por cliente. La cajera y los dueños reciben 403 y no ven "Clientes". SC-01: el Administrador y la cajera eligen entre los activos (en el cobro, también los dados de baja que deben), hasta 50 con aviso si hay más; los dueños reciben 403 | Decidido (supuestos); automatizado (H4, etapa 2) |
 | CP-122 | Saldo inicial y su anulación | DEC-119, RI-18, DEC-114 | Solo el Administrador lo carga (monto mayor a 0 con 2 decimales, fecha de origen no posterior a hoy y motivo) y lo anula con motivo; sin validar el límite; uno vigente por cliente; la anulación deja `ANULACION_SALDO_INICIAL`, se rechaza si el saldo actual es menor al monto y después se puede cargar otro; la cajera y los dueños reciben 403 | Decidido (supuesto); servicio automatizado (H4, etapa 1); la pantalla, en la etapa 5 |
 
 ### 4.5 Productos, usuarios y permisos (CU-10 a CU-14)

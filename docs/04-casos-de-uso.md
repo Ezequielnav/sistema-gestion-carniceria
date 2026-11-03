@@ -530,6 +530,7 @@ flowchart LR
 **Flujo normal (alta):** el Administrador ingresa los datos del cliente y el sistema lo guarda. También permite modificar, dar de baja y reactivar.
 
 **Decisiones de diseño (DEC-107):** solo el Administrador da de alta y modifica clientes; la cajera elige uno existente en la venta (SC-03) y en el cobro (CU-04), sin alta (DEC-116). Nombre obligatorio; teléfono, dirección y observaciones opcionales, con las condiciones de crédito dentro de "Observaciones"; el nombre repetido no se bloquea (DEC-117). Límite de crédito opcional (DEC-108), que se muestra como "Sin límite" si está vacío y "Sin crédito habilitado" si es 0 (DEC-115). Listado con buscador por nombre o teléfono y paginación de a 25, para decenas a pocos cientos de clientes (DEC-118). La deuda que ya existía se carga como saldo inicial desde el estado de cuenta (CU-08, DEC-119).
+**Implementación (H4, etapa 2):** pantalla `/clientes/`, solo del Administrador (DEC-116; la cajera y los dueños reciben 403 y no la ven en el menú, S-2). Igual que CU-13 (S-1): listado de activos paginado de a 25 con búsqueda por nombre o teléfono, "Solo con deuda vencida" e "Incluir dados de baja", que se conservan al paginar; cada fila muestra teléfono, dirección, el límite con el texto de DEC-115, el saldo y, si la tiene, la marca "Vencida" con el monto (S-7). Saldos y deuda vencida de la página salen de dos consultas, no de una por cliente (R-7). Alta y modificación con nombre obligatorio y teléfono, dirección, límite y observaciones opcionales; baja lógica con confirmación, que avisa el saldo si el cliente debe (la deuda sigue y se le puede cobrar); "Reactivar" (POST) en el listado de dados de baja. Un cliente dado de baja no se edita: primero se reactiva. Las reglas y los permisos están también en el servicio.
 
 ### CU-13 Gestionar proveedores
 
@@ -565,6 +566,8 @@ Se integró a CU-11 Gestionar productos: el stock se cambia al crear o modificar
 ### SC-01 Verificar cliente
 
 Incluido en CU-04, CU-08 y SC-03. El usuario busca al cliente por nombre o teléfono entre los activos y lo elige (DEC-118); el sistema muestra su saldo, su límite (DEC-115) y la alerta de deuda vencida si la tiene (DEC-109). Si no existe, solo el Administrador puede crearlo (CU-12, DEC-116); la cajera no tiene esa opción. En el cobro también se puede elegir un cliente dado de baja con saldo (DEC-116).
+
+**Implementación (H4, etapa 2):** el servicio `buscar_para_elegir` y `GET /clientes/buscar/?q=` (con `para=cobro` para sumar los dados de baja que deben) devuelven hasta 50 clientes con nombre, teléfono, saldo, límite (DEC-115), disponible y deuda vencida, y si hay más (como DEC-97). Lo usan el Administrador y la cajera (la vista acepta las funciones "Clientes" y "Ventas"; desde la etapa 4, también la del cobro); los dueños reciben 403. La elección en pantalla se arma en la venta (etapa 3) y en el cobro (etapa 4).
 
 ### SC-02 Registrar movimiento de caja
 
