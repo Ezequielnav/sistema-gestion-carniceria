@@ -47,7 +47,7 @@
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
-| RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | A confirmar (PR-12, PR-13) |
+| RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | Decidido (DEC-108, DEC-109, supuestos): límite opcional que bloquea; la deuda vencida solo alerta |
 | RF-19 | El sistema debe permitir pagar una venta con más de un medio de pago | Propuesta (H-09) | Baja | Descartado (DEC-42): un solo medio por venta |
 | RF-20 | El sistema debe registrar la venta de carne con el nivel de detalle que defina el negocio | Propuesta (H-01) | Alta | Decidido (DEC-36): por producto y por kg |
 | RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77); la cajera ve las ventas de la caja sin anular (DEC-84) |
@@ -72,7 +72,7 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar (PR-31). Implementado en H3, etapa 2 (DEC-87, DEC-88): nombre, teléfono y email |
+| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad. Implementado en H3, etapa 2 (DEC-87, DEC-88): nombre, teléfono y email, que DEC-117 (PR-31, supuesto) mantiene |
 | RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado; modalidad decidida (DEC-81, supuesto): `A_CREDITO` deja la deuda y `CONTADO` registra el pago en la misma operación |
 | RF-31 | El Administrador debe poder registrar pagos a proveedores con proveedor, monto, fecha, medio de pago y productos asociados | Base (2.1, CU-07) | Alta | Confirmado |
 | RF-32 | El sistema debe listar los proveedores con deudas pendientes y actualizar su saldo al registrar un pago | Base (CU-07) | Alta | Confirmado |
@@ -83,13 +83,13 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-35 | El sistema debe permitir gestionar clientes (alta, baja, modificación) | Propuesta (H-04) | Alta | A confirmar (PR-11) |
-| RF-36 | El Administrador debe poder registrar el pago de un cliente de cuenta corriente: ver saldo, ingresar monto y medio de pago | Base (CU-04) | Alta | Confirmado (quién cobra: PR-14) |
-| RF-37 | Al registrar un pago de cliente, el sistema debe disminuir el saldo adeudado y registrar el ingreso en caja | Base (CU-04) | Alta | Confirmado |
-| RF-38 | Si el pago supera la deuda, el sistema debe sugerir registrar el excedente como anticipo | Base (CU-04, A1) | Baja | A confirmar (PR-15) |
-| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado |
-| RF-40 | El sistema debe mostrar una alerta cuando un cliente tenga deuda vencida | Base (CU-08) | Media | A confirmar (PR-13) |
-| RF-41 | El Administrador debe poder editar límites y condiciones de crédito de un cliente, si tiene permiso | Base (CU-08) | Media | A confirmar (PR-12, PR-16) |
+| RF-35 | El sistema debe permitir gestionar clientes (alta, baja, modificación) | Propuesta (H-04) | Alta | Decidido (DEC-116 a DEC-118, supuestos): solo el Administrador; nombre obligatorio y teléfono, dirección y observaciones opcionales; buscador y paginación |
+| RF-36 | El Administrador debe poder registrar el pago de un cliente de cuenta corriente: ver saldo, ingresar monto y medio de pago | Base (CU-04) | Alta | Confirmado; también cobra la cajera (DEC-110, supuesto) |
+| RF-37 | Al registrar un pago de cliente, el sistema debe disminuir el saldo adeudado y registrar el ingreso en caja | Base (CU-04) | Alta | Confirmado; el Administrador puede registrarlo sin caja (DEC-110, supuesto) |
+| RF-38 | Si el pago supera la deuda, el sistema debe sugerir registrar el excedente como anticipo | Base (CU-04, A1) | Baja | Descartado (DEC-111, supuesto): sin saldo a favor; un cobro mayor al saldo se rechaza |
+| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado; incluye el saldo inicial (DEC-119, supuesto) |
+| RF-40 | El sistema debe mostrar una alerta cuando un cliente tenga deuda vencida | Base (CU-08) | Media | Decidido (DEC-109, supuesto): plazo único de 30 días, solo alerta |
+| RF-41 | El Administrador debe poder editar límites y condiciones de crédito de un cliente, si tiene permiso | Base (CU-08) | Media | Decidido (DEC-108, DEC-112, DEC-117, supuestos): límite opcional; las condiciones van en "Observaciones", texto libre, sin recargos |
 
 ### 2.7 Reportes
 
@@ -105,7 +105,7 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-47 | El sistema debe permitir cargar datos históricos desde las planillas actuales | Propuesta | Baja | A confirmar (PR-28) |
+| RF-47 | El sistema debe permitir cargar datos históricos desde las planillas actuales | Propuesta | Baja | A confirmar (PR-28). La deuda de los clientes al empezar no depende de RF-47: se carga como saldo inicial (DEC-119) |
 
 ## 3. Requisitos no funcionales
 
@@ -132,7 +132,7 @@
 
 | Caso de uso | Requisitos relacionados |
 |---|---|
-| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48, RF-49 |
+| CU-01 Registrar venta (SC-03 para cuenta corriente) | RF-06, RF-11 a RF-20, RF-27, RF-48, RF-49 |
 | CU-02 Abrir caja por turno | RF-04, RF-05, RF-10 |
 | CU-03 Cerrar caja por turno | RF-06, RF-07, RF-08, RF-09 |
 | CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38 |
@@ -154,7 +154,6 @@ Los requisitos "A confirmar" dependen de las brechas de [01-relevamiento.md](01-
 
 | Requisito | Brecha | Qué se necesita saber |
 |---|---|---|
-| RF-18, RF-40, RF-41 | PR-12, PR-13 | Límites de crédito y plazo de vencimiento |
 | RF-34 | PR-19 | Si los pedidos a proveedores se gestionan en el sistema |
 | RF-03, RF-45 | PR-25 | Quién es el Administrador y qué ven los dueños |
 | RF-46 | PR-27 | Reportes automáticos o a pedido |

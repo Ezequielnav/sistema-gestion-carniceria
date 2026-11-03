@@ -74,8 +74,8 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-15 | Cambiar el precio de un producto después de venderlo | RI-12 | La venta anterior conserva el precio original | Confirmado; automatizado (H2, etapa 2) |
 | CP-16 | Cantidad cero o negativa, precio negativo | RI-16 | Se rechaza | Confirmado; automatizado (H2, etapa 2) |
 | CP-17 | Venta sin caja abierta | CU-01 A4, RF-15 | Se rechaza con mensaje claro; también si la caja abierta es de otro día | Decidido (DEC-83, DEC-50); automatizado (H2, etapa 2) |
-| CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | A confirmar (PR-12, PR-13) |
-| CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | A confirmar (PR-12) |
+| CP-18 | Venta a cuenta corriente con cliente | RI-05, RF-18 | Genera `VENTA_FIADA` y no genera ingreso en caja | Decidido (DEC-108, supuesto); se automatiza en H4 |
+| CP-19 | Venta a cuenta corriente sin cliente | RI-05 | Se rechaza | Decidido (DEC-108, supuesto); se automatiza en H4 |
 | CP-20 | Venta de carne | RF-20, RF-16 | Se registra por producto y por kg con su precio; el stock no cambia | Decidido (DEC-36); automatizado (H2, etapa 2) |
 | CP-21 | Venta con más de un medio de pago | RF-19 | No se permite: un solo medio por venta | Decidido (DEC-42); automatizado (H2, etapa 2) |
 | CP-82 | Buscar con el código del lector | RF-11 | Un código que coincide exacto con un plus agrega el producto a la venta | Decidido (DEC-37); automatizado (H2, etapa 2) |
@@ -115,15 +115,17 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 | CP-113 | Flujo completo de H3 | RF-22, RF-23, RF-25, RF-31, RF-33, RN-08, RN-09, RN-10 | Proveedor, ingreso a crédito, venta con aviso de stock, tarjeta "Stock bajo", pago en efectivo que sale de caja y cierre de caja, por las pantallas y con dos roles: el stock, el saldo y lo esperado coinciden, y el cierre lista el pago | Automatizado (H3, etapa 6) |
 | CP-107 | Cambiar el stock al modificar un producto | RF-50, RI-07, RI-17, DEC-98 | El Administrador cambia el stock en `/productos/` o en el panel: el stock queda en el valor cargado y se registra el ajuste con usuario, fecha, anterior, nuevo y el motivo elegido (por defecto "Modificación manual"); sin cambio no hay ajuste; una venta hecha mientras se editaba no se deshace; negativo, con decimales por `UNIDAD` o con más de 3 decimales se rechaza junto al campo; sin control de stock no se cambia; solo el Administrador | Decidido (DEC-98, supuesto); automatizado (H3, etapa 1b) |
 
-### 4.4 Clientes y cuentas corrientes (CU-04, CU-08)
+### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
+
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa.
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
 | CP-40 | Pago de cliente menor o igual a la deuda | RF-36, RF-37, RN-04 | El saldo baja y se registra el ingreso en caja | Confirmado |
-| CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06, RF-38 | El excedente se registra como `ANTICIPO` | A confirmar (PR-15) |
-| CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = ventas fiadas - pagos; no hay saldo guardado | Confirmado |
+| CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06 | Se rechaza y se muestra el saldo como máximo a cobrar; no hay `ANTICIPO` | Decidido (DEC-111, supuesto); se automatiza en H4 |
+| CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = saldo inicial + ventas fiadas - pagos, con sus anulaciones (DEC-113, DEC-119); no hay saldo guardado | Confirmado |
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
-| CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta | A confirmar (PR-13) |
+| CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto); se automatiza en H4 |
 
 ### 4.5 Productos, usuarios y permisos (CU-10 a CU-14)
 
@@ -195,6 +197,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | — | — | RI-15 | CP-42, CP-43 |
 | — | — | RI-16 | CP-16, CP-71 |
 | — | — | RI-17 | CP-107, CP-108 |
+| — | — | RI-18 | CP-122 (propuesto en `specs/SPEC-H4.md`, se agrega al implementarlo) |
 
 ## 6. Recorridos manuales
 
@@ -254,8 +257,6 @@ Para un proyecto individual alcanza con **GitHub Issues**, con las etiquetas `bu
 
 | Pendiente | Efecto |
 |---|---|
-| PR-12, PR-13 (crédito y vencimiento) | CP-18, CP-19, CP-44 |
-| PR-15 (excedente de pago) | CP-41 |
 | PR-22 (unicidad de productos) | CP-59 |
 | PR-37 (registro de faltantes de stock) | RF-27 no tiene prueba: mientras tanto se prueba el supuesto DEC-46 (CP-83) |
 | PR-36 (máximo por línea) | CP-87 prueba el supuesto DEC-76 (100 kg o unidades); se ajusta al responder |
