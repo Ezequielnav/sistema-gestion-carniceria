@@ -1,12 +1,11 @@
 """Menú de funciones por rol (RF-02, H1.4).
 
 Solo incluye lo confirmado (C) en la matriz de actores de 04 (sección 2). Los casos
-marcados "a confirmar" (PR-14, PR-25) se agregan cuando el negocio los confirme.
+marcados "a confirmar" (PR-14, los dueños en PR-25) se agregan cuando el negocio los confirme.
 """
 
 from dataclasses import dataclass
 
-from apps.catalogo.services import puede_crear
 from apps.usuarios.models import Rol
 
 
@@ -20,8 +19,6 @@ class Funcion:
     icono: str = ""
     # Nombre de la URL; vacío mientras el caso de uso no está construido.
     url: str = ""
-    # Solo para la cajera con permiso de alta de productos (RN-05).
-    requiere_alta_productos: bool = False
 
 
 ADMIN = Rol.ADMINISTRADOR
@@ -38,12 +35,20 @@ FUNCIONES = [
         url="ventas:nueva",
     ),
     Funcion(
-        "Ventas del turno",
-        "Revisar y anular ventas de la caja abierta",
-        "CU-01 (DEC-45)",
-        frozenset({ADMIN}),
+        "Ventas de la caja",
+        "Revisar las ventas de la caja abierta",
+        "CU-01 (DEC-84)",
+        frozenset({CAJERA}),
         "carrito",
         url="ventas:lista",
+    ),
+    Funcion(
+        "Historial de ventas",
+        "Buscar ventas y anular las de la caja abierta",
+        "CU-01 (DEC-45, DEC-86)",
+        frozenset({ADMIN}),
+        "carrito",
+        url="ventas:historial",
     ),
     Funcion(
         "Caja",
@@ -53,16 +58,16 @@ FUNCIONES = [
         "billetera",
         url="caja:caja",
     ),
+    # DEC-103: toda cajera consulta productos y stock; el alta sigue con permiso (RN-05).
+    # DEC-105: la consulta de stock (CU-06) vive acá, sin función propia en el menú.
     Funcion(
         "Productos",
-        "Precios, categorías y altas",
-        "CU-11",
+        "Precios, stock y altas",
+        "CU-06, CU-11",
         frozenset({ADMIN, CAJERA}),
         "paquete",
         url="catalogo:productos",
-        requiere_alta_productos=True,
     ),
-    Funcion("Stock", "Existencias y faltantes", "CU-06", frozenset({ADMIN}), "capas"),
     Funcion(
         "Clientes",
         "Cuentas corrientes y cobros",
@@ -72,10 +77,11 @@ FUNCIONES = [
     ),
     Funcion(
         "Proveedores",
-        "Ingresos de mercadería y pagos",
+        "Proveedores, ingresos y pagos",
         "CU-05, CU-07, CU-13",
         frozenset({ADMIN}),
         "camion",
+        url="proveedores:proveedores",  # DEC-88; ingresos y pagos en las etapas 3 y 4
     ),
     Funcion("Reportes", "Ventas, caja y saldos", "CU-09", frozenset({ADMIN, DUENIO}), "grafico"),
     Funcion("Usuarios", "Cuentas y roles", "CU-14", frozenset({ADMIN}), "usuario"),
@@ -83,12 +89,8 @@ FUNCIONES = [
 
 
 def puede_usar(usuario, funcion):
-    """Si el rol del usuario tiene la función (RF-02; RN-05 para la cajera)."""
-    if not usuario.is_authenticated or usuario.rol not in funcion.roles:
-        return False
-    if funcion.requiere_alta_productos and usuario.rol == CAJERA:
-        return puede_crear(usuario)  # RN-05, misma regla que el servicio de CU-11
-    return True
+    """Si el rol del usuario tiene la función (RF-02)."""
+    return usuario.is_authenticated and usuario.rol in funcion.roles
 
 
 def funciones_para(usuario):

@@ -137,13 +137,16 @@ flowchart LR
     caja --> usuarios
     catalogo --> usuarios
     ventas --> usuarios
+    proveedores --> catalogo
+    proveedores --> caja
+    proveedores --> usuarios
     comun --> caja
     comun --> catalogo
     comun --> ventas
     comun --> usuarios
 ```
 
-`caja` y `catalogo` nunca importan servicios de `ventas`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
+`caja` y `catalogo` nunca importan servicios de `ventas` ni de `proveedores` (DEC-96). El stock y las cantidades se cambian y validan solo en `catalogo` (`mover_stock`, `validar_cantidad`), y la consulta de stock (CU-06) filtra por proveedor por la relación inversa de `producto_proveedor`, sin usar servicios de `proveedores`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
 
 ## 4. Módulos y su relación con el modelo
 
@@ -154,7 +157,7 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | `usuarios` | `usuario` | CU-10, CU-14 |
 | `caja` | `caja`, `cierre_caja_detalle`, `movimiento_caja`, `medio_pago` | CU-02, CU-03, SC-02 |
 | `ventas` | `venta`, `detalle_venta` | CU-01, SC-03, SC-04 |
-| `catalogo` | `categoria`, `producto` | CU-06, CU-11 |
+| `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11 |
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
 | `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |
@@ -166,7 +169,7 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 sistema-gestion-carniceria/
 ├── README.md
 ├── docs/                      documentación (fuente de verdad)
-│   └── specs/                 specs de cada caso de uso o etapa (SPEC-CU-xx)
+│   └── specs/                 specs de cada caso de uso, etapa o hito (SPEC-CU-xx, SPEC-H3)
 ├── config/                    configuración del proyecto
 ├── .github/workflows/         GitHub Actions: ruff y pytest en cada Pull Request
 ├── apps/
@@ -261,7 +264,7 @@ CU-11 se elige para el hito porque no depende de otros casos de uso y ejercita t
 | Dinero y cantidades | `DecimalField` con dos decimales para montos; nunca `float` |
 | Transacciones | Cada servicio que toca varias tablas usa una transacción atómica (RNF-10) |
 | Zona horaria | Guardar en UTC y mostrar en hora local |
-| Panel de administración de Django | Útil para el alta inicial de datos y para el administrador, pero la cajera usa pantallas propias. Usa el tema django-unfold con el estilo del sistema (DEC-30). Desde H1 todos los modelos están registrados; el primer administrador se crea con `createsuperuser` (ver `README.md`). Los registros operativos (cajas, cierres, movimientos de caja, ventas, pagos, ingresos y movimientos de cuenta corriente) se consultan en el panel pero no se cargan, modifican ni borran ahí: se crean solo desde su caso de uso, que aplica las reglas en una transacción (DEC-31). Los formularios repiten los límites de la base (no negativo, mayor a 0) para mostrar el error junto al campo |
+| Panel de administración de Django | Útil para el alta inicial de datos y para el administrador, pero la cajera usa pantallas propias. Usa el tema django-unfold con el estilo del sistema (DEC-30). Desde H1 todos los modelos están registrados, salvo los renglones de venta y de ingreso, que se ven dentro de su venta o su ingreso en una tabla de solo lectura; el primer administrador se crea con `createsuperuser` (ver `README.md`). Los registros operativos (cajas, cierres, movimientos de caja, ventas, pagos, ingresos y movimientos de cuenta corriente) se consultan en el panel pero no se cargan, modifican ni borran ahí: se crean solo desde su caso de uso, que aplica las reglas en una transacción (DEC-31). La ficha de una venta separa los bloques "Venta" y "Anulación"; el segundo aparece solo si la venta está anulada. Los formularios repiten los límites de la base (no negativo, mayor a 0) para mostrar el error junto al campo |
 | Datos de ejemplo | Un comando que carga datos ficticios, para desarrollar y probar sin datos reales |
 | Formato del código | Una herramienta automática de formato y análisis, ejecutada antes de cada commit: `ruff` (configurado en `pyproject.toml`) |
 | Reglas de negocio | Cada regla RN-xx o RI-xx con al menos una prueba automática |
@@ -289,7 +292,7 @@ Por decisión del alumno, en esta etapa no se preparan archivos de despliegue. C
 - Despliegue desde el repositorio de GitHub.
 - Variables de entorno para claves y configuración.
 - Costo acorde al presupuesto del negocio (PR-33).
-- Archivos estáticos versionados (por ejemplo, con un hash en el nombre, como hace `ManifestStaticFilesStorage` de Django), para que el navegador no siga usando un JavaScript o CSS viejo después de una actualización. Pendiente: en el recorrido de la etapa 4 de H2 el navegador tenía en caché el `venta.js` anterior y no mostraba "Crear producto" hasta recargarlo sin caché (registro de recorridos de 08).
+- Archivos estáticos versionados (por ejemplo, con un hash en el nombre, como hace `ManifestStaticFilesStorage` de Django), para que el navegador no siga usando un JavaScript o CSS viejo después de una actualización. Pendiente: en el recorrido de la etapa 4 de H2 el navegador tenía en caché el `venta.js` anterior y no mostraba "Crear producto" hasta recargarlo sin caché (registro de recorridos de 08). En desarrollo, el `runserver` del proyecto (`apps/comun/management/commands/runserver.py`) sirve los estáticos con `Cache-Control: no-cache` solo con `DEBUG`, para que el navegador vuelva a pedir cada archivo; no reemplaza al versionado del despliegue.
 
 El proveedor y el costo se verifican con los planes vigentes al decidir. Si la cátedra solo exige una demostración local (PA-05), el despliegue puede no ser parte de la entrega.
 
@@ -303,7 +306,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | Copias de seguridad automáticas | Junto con el despliegue |
 | Versionado de archivos estáticos (sección 9) | Junto con el despliegue |
 | Reportes PDF y Excel | Al llegar a CU-09 |
-| Libro de movimientos de stock | Si aparecen diferencias de stock (ver [05-modelo-datos.md](05-modelo-datos.md)) |
+| Libro de movimientos de stock | Si aparecen diferencias de stock que los ajustes registrados (DEC-98) no alcanzan a explicar (ver [05-modelo-datos.md](05-modelo-datos.md)) |
 | API con JWT y aplicación móvil | Si hace falta un cliente que no sea el navegador |
 | Modo sin conexión | Según PR-29 |
 | Impresora térmica de tickets | El ticket se imprime desde el navegador (DEC-44); una impresora térmica sirve sin integración |

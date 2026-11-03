@@ -3,8 +3,8 @@ from decimal import Decimal, InvalidOperation
 
 from django import forms
 
-from apps.caja.models import MedioPago
-from apps.ventas.services import medios_de_pago_para_venta
+from apps.caja.models import MedioPago, Turno
+from apps.ventas.services import cajas_para_filtrar, medios_de_pago_para_venta
 
 
 class ConfirmarVentaForm(forms.Form):
@@ -48,3 +48,40 @@ class AnularVentaForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 3, "class": "campo"}),
         error_messages={"required": "Escribí por qué se anula la venta."},
     )
+
+
+class CajaChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, caja):
+        return (
+            f"{caja.fecha:%d/%m/%Y} {caja.get_turno_display().lower()}, "
+            f"caja N.º {caja.pk} ({caja.get_estado_display().lower()})"
+        )
+
+
+class HistorialVentasForm(forms.Form):
+    """Filtros del historial de ventas (DEC-86). La consulta la hace el servicio."""
+
+    desde = forms.DateField(
+        label="Desde", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    hasta = forms.DateField(
+        label="Hasta", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    turno = forms.ChoiceField(
+        label="Turno", required=False, choices=[("", "Todos"), *Turno.choices]
+    )
+    caja = CajaChoiceField(label="Caja", queryset=None, required=False, empty_label="Todas")
+    todas = forms.BooleanField(label="Todas las ventas", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["caja"].queryset = cajas_para_filtrar()
+        for nombre, campo in self.fields.items():
+            campo.widget.attrs["class"] = "casilla" if nombre == "todas" else "campo"
+
+    def clean(self):
+        datos = super().clean()
+        desde, hasta = datos.get("desde"), datos.get("hasta")
+        if desde and hasta and desde > hasta:
+            self.add_error("hasta", "La fecha hasta no puede ser anterior a la fecha desde.")
+        return datos

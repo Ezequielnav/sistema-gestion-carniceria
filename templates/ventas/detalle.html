@@ -1,16 +1,18 @@
 {% extends "base.html" %}
+{% load cantidades %}
 
 {% block titulo %}Venta N.º {{ venta.pk }}{% endblock %}
-{% block encabezado %}Ventas del turno{% endblock %}
+{% block encabezado %}{% if puede_anular %}Historial de ventas{% else %}Ventas de la caja{% endif %}{% endblock %}
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <a href="{% url 'ventas:lista' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a las ventas del turno</a>
+    <a href="{% url volver %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver {% if puede_anular %}al historial de ventas{% else %}a las ventas de la caja{% endif %}</a>
     <h2 class="mt-2 flex items-center gap-3 text-2xl font-semibold tracking-tight">
       Venta N.º {{ venta.pk }}
       {% if venta.estado == "ANULADA" %}<span class="rounded-full bg-red-50 px-2.5 py-0.5 text-sm font-medium text-red-700">Anulada</span>{% endif %}
     </h2>
     <p class="mt-1 text-sm text-gray-500">{{ venta.fecha_hora|date:"d/m/Y H:i" }} · {{ venta.usuario.get_full_name }} · {{ venta.medio_pago }}</p>
+    <a href="{% url 'ventas:ticket' venta.pk %}" class="mt-2 inline-block text-sm font-medium text-red-700 hover:underline">Ver ticket</a>
 
     <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
       <table class="w-full text-sm">
@@ -26,7 +28,7 @@
           {% for detalle in detalles %}
             <tr>
               <td class="px-5 py-3">{{ detalle.producto.nombre }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|floatformat:"-3" }}{% if detalle.producto.unidad_medida == "KG" %} kg{% endif %}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
               <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
               <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>
@@ -48,6 +50,7 @@
         <p class="mt-1">Motivo: {{ venta.motivo_anulacion }}</p>
         <p class="mt-1">Se registró el egreso que devuelve $ {{ venta.monto_total|floatformat:"2g" }} en {{ venta.medio_pago }} y volvió el stock de los productos que lo controlan.</p>
       </div>
+    {% elif not puede_anular %}
     {% elif not puede_anularse %}
       <p class="mt-6 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">La caja de esta venta está cerrada: ya no se puede anular.</p>
     {% else %}

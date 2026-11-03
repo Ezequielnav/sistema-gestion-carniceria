@@ -1,10 +1,10 @@
 """Reglas de CU-01 Registrar venta, y el resumen del inicio."""
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Count, F, Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from apps.caja.models import Caja, EstadoCaja, MedioPago
@@ -15,12 +15,12 @@ from apps.caja.services import (
     registrar_reversa_venta,
 )
 from apps.catalogo.models import Producto, UnidadMedida
-from apps.catalogo.services import buscar_productos
+from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
+from apps.comun.models import subtotal
 from apps.usuarios.models import Rol
 from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
 
 CENTAVO = Decimal("0.01")
-MILESIMA = Decimal("0.001")
 # Máximo por línea, en kg o unidades: supuesto del proyecto, no confirmado por el negocio
 # (DEC-76, pendiente de relevamiento PR-36). Frena errores como un código en el peso (DF-01).
 CANTIDAD_MAXIMA = Decimal("100")
@@ -51,35 +51,31 @@ def medios_de_pago_para_venta():
     return MedioPago.objects.filter(activo=True, ingresa_a_caja=True).order_by("pk")
 
 
-def buscar_para_venta(texto, limite=20):
-    """Activos por nombre o plus, y el que coincide exacto con el plus (DEC-37, DEC-52)."""
+# Tope de la lista del buscador (DEC-97); el resto se encuentra escribiendo.
+LIMITE_BUSQUEDA = 50
+
+
+def buscar_para_venta(texto, limite=LIMITE_BUSQUEDA):
+    """Activos por nombre o plus, el que coincide exacto con el plus y si quedan más.
+
+    El texto vacío trae la lista de activos para elegir (DEC-97); el código exacto agrega
+    el producto (DEC-37, DEC-52).
+    """
     texto = texto.strip()
-    if not texto:
-        return None, []
-    exacto = Producto.objects.filter(activo=True, plus_interno=texto).first()
-    return exacto, list(buscar_productos(texto)[:limite])
-
-
-def subtotal(cantidad, precio):
-    """Cantidad × precio, redondeado a centavos con la mitad hacia arriba (DEC-49)."""
-    return (cantidad * precio).quantize(CENTAVO, rounding=ROUND_HALF_UP)
+    exacto = Producto.objects.filter(activo=True, plus_interno=texto).first() if texto else None
+    productos = list(buscar_productos(texto)[: limite + 1])
+    return exacto, productos[:limite], len(productos) > limite
 
 
 def _validar_cantidad(producto, cantidad):
-    """Mayor a 0 (RI-16) y hasta el máximo (DEC-76); entera por unidad y hasta 3 decimales
-    por kg (DEC-48)."""
-    if cantidad <= 0:
-        raise ValidationError(f"La cantidad de {producto} tiene que ser mayor a 0.")
+    """Tope por línea de la venta (DEC-76) y la regla de catálogo (RI-16, DEC-48)."""
     if cantidad > CANTIDAD_MAXIMA:
         unidad = "kg" if producto.unidad_medida == UnidadMedida.KG else "unidades"
         raise ValidationError(
             f"La cantidad de {producto} supera el máximo de {CANTIDAD_MAXIMA} {unidad} por "
             "línea. Revisá que no se haya cargado un código en la cantidad."
         )
-    if producto.unidad_medida == UnidadMedida.UNIDAD and cantidad != cantidad.to_integral_value():
-        raise ValidationError(f"{producto} se vende por unidad: la cantidad tiene que ser entera.")
-    if cantidad != cantidad.quantize(MILESIMA):
-        raise ValidationError(f"La cantidad de {producto} admite hasta 3 decimales.")
+    validar_cantidad(producto, cantidad)
 
 
 def _verificar_caja(caja):
@@ -135,7 +131,8 @@ def registrar_venta(usuario, lineas, medio_pago):
     cantidades = _agrupar(lineas)
     with transaction.atomic():
         caja = _caja_para_vender()
-        productos = Producto.objects.select_for_update().in_bulk(list(cantidades))
+        # Por id, como los ingresos: dos operaciones no se traban con los mismos productos.
+        productos = Producto.objects.select_for_update().order_by("pk").in_bulk(list(cantidades))
         detalles = []
         for producto_id, cantidad in cantidades.items():
             producto = productos.get(producto_id)
@@ -168,14 +165,12 @@ def registrar_venta(usuario, lineas, medio_pago):
             if not producto.controla_stock:
                 continue  # La carne no lleva stock (RI-07, DEC-36).
             if producto.stock_actual < detalle.cantidad:
-                # Sin cantidades: la cajera no consulta stock (DEC-33).
+                # Con la cantidad disponible avisa la pantalla, al agregar (DEC-102, DEC-103).
                 avisos.append(
                     f"Stock insuficiente de {producto}: la venta se registró y el stock quedó "
                     "negativo. Avisale al administrador."
                 )
-            Producto.objects.filter(pk=producto.pk).update(
-                stock_actual=F("stock_actual") - detalle.cantidad
-            )
+            mover_stock(producto, -detalle.cantidad)
     return venta, avisos
 
 
@@ -213,6 +208,13 @@ def puede_anular(usuario):
     return usuario.rol == Rol.ADMINISTRADOR
 
 
+def puede_ver_venta(usuario, venta):
+    """Detalle y ticket: el Administrador, siempre; la cajera, si la caja está abierta (DEC-84)."""
+    if usuario.rol == Rol.ADMINISTRADOR:
+        return True
+    return usuario.rol == Rol.CAJERA and venta.caja.estado == EstadoCaja.ABIERTA
+
+
 def ventas_de_la_caja_abierta():
     """Las ventas de la caja abierta, de la última a la primera (DEC-71)."""
     caja = caja_abierta()
@@ -224,6 +226,37 @@ def ventas_de_la_caja_abierta():
         .order_by("-fecha_hora", "-pk")
     )
     return caja, list(ventas)
+
+
+def cajas_para_filtrar():
+    """Cajas del filtro del historial, de la más nueva a la más vieja (DEC-86)."""
+    return Caja.objects.order_by("-fecha", "-abierta_en", "-pk")
+
+
+def historial_de_ventas(desde=None, hasta=None, turno="", caja=None, todas=False):
+    """Ventas del historial del Administrador, de la última a la primera (DEC-86).
+
+    Sin filtros ni "todas", trae las de la caja abierta si hay una; si no, todas. Las fechas
+    y el turno son los de la caja. No reemplaza a los reportes de CU-09.
+    Devuelve las ventas y la caja abierta cuando se usó como valor por defecto.
+    """
+    ventas = Venta.objects.select_related("caja", "usuario", "medio_pago").order_by(
+        "-fecha_hora", "-pk"
+    )
+    if not (desde or hasta or turno or caja or todas):
+        abierta = caja_abierta()
+        if abierta is not None:
+            return ventas.filter(caja=abierta), abierta
+        return ventas, None
+    if desde:
+        ventas = ventas.filter(caja__fecha__gte=desde)
+    if hasta:
+        ventas = ventas.filter(caja__fecha__lte=hasta)
+    if turno:
+        ventas = ventas.filter(caja__turno=turno)
+    if caja:
+        ventas = ventas.filter(caja=caja)
+    return ventas, None
 
 
 def anular_venta(usuario, venta, motivo):
@@ -264,10 +297,7 @@ def anular_venta(usuario, venta, motivo):
                 "actualizado_en",
             ]
         )
-        # DEC-70: vuelve el stock de los productos que hoy lo controlan.
-        detalles = venta.detalleventa_set.filter(producto__controla_stock=True)
-        for detalle in detalles.select_related("producto"):
-            Producto.objects.filter(pk=detalle.producto_id).update(
-                stock_actual=F("stock_actual") + detalle.cantidad
-            )
+        # DEC-70: vuelve el stock de los productos que hoy lo controlan (mover_stock, RI-07).
+        for detalle in venta.detalleventa_set.select_related("producto").order_by("producto"):
+            mover_stock(detalle.producto, detalle.cantidad)
     return venta

@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.http import Http404
 from django.shortcuts import redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.caja.forms import AbrirCajaForm, CierreForm, EgresoForm
@@ -16,6 +15,7 @@ from apps.caja.services import (
     detalle_de_cierre,
     egresos_otros,
     es_de_otro_dia,
+    movimientos_de_pagos_a_proveedores,
     puede_abrir,
     puede_ver_cierre,
     registrar_egreso_otro,
@@ -45,9 +45,9 @@ def caja(request):
     """CU-02: estado de la caja y, si no hay ninguna abierta, el formulario de apertura."""
     _solo_cajera(request)
     abierta = caja_abierta()
-    libres = turnos_libres(timezone.localdate())
+    libres = turnos_libres()
     form = None
-    if abierta is None and libres:
+    if abierta is None:
         form = AbrirCajaForm(request.POST or None, turnos=libres)
         if request.method == "POST" and form.is_valid():
             try:
@@ -107,7 +107,12 @@ def cerrar(request):
     return render(
         request,
         "caja/cerrar.html",
-        {"caja": abierta, "form": form, "anulaciones": anulaciones(abierta)},
+        {
+            "caja": abierta,
+            "form": form,
+            "anulaciones": anulaciones(abierta),
+            "pagos_proveedores": movimientos_de_pagos_a_proveedores(abierta),
+        },
     )
 
 
@@ -129,6 +134,7 @@ def cierre(request, pk):
             "detalle": detalle_de_cierre(caja),
             "egresos": egresos_otros(caja),
             "anulaciones": anulaciones(caja),
+            "pagos_proveedores": movimientos_de_pagos_a_proveedores(caja),
             "es_cajera": puede_abrir(request.user),
         },
     )

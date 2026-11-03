@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ingresos de mercadería{% endblock %}
+{% block encabezado %}Proveedores{% endblock %}
+
+{% block contenido %}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight">Ingresos de mercadería</h2>
+      <p class="mt-1 text-sm text-gray-500">Mercadería que entró, con su deuda con el proveedor.</p>
+    </div>
+    <a href="{% url 'proveedores:ingreso_nuevo' %}"
+       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+      Nuevo ingreso
+    </a>
+  </div>
+  {% include "proveedores/_pestanas.html" with activa="ingresos" %}
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de ingresos">
+    {% if pagina.object_list %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">N.º</th>
+              <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
+              <th scope="col" class="px-5 py-3 font-medium">Proveedor</th>
+              <th scope="col" class="px-5 py-3 font-medium">Remito</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Saldo</th>
+              <th scope="col" class="px-5 py-3"><span class="sr-only">Detalle</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for ingreso in pagina %}
+              <tr class="{% if ingreso.estado == 'ANULADO' %}bg-gray-50 text-gray-500{% endif %}">
+                <td class="cifras px-5 py-3">{{ ingreso.pk }}</td>
+                <td class="cifras px-5 py-3 whitespace-nowrap">{{ ingreso.fecha|date:"d/m/Y" }}</td>
+                <td class="px-5 py-3">
+                  <span class="font-medium">{{ ingreso.proveedor }}</span>
+                  {% if ingreso.estado == "ANULADO" %}
+                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3 text-gray-600">{{ ingreso.observacion|default:"—" }}</td>
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ ingreso.total|floatformat:"2g" }}</td>
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ ingreso.saldo|floatformat:"2g" }}</td>
+                <td class="px-5 py-3 text-right whitespace-nowrap">
+                  <a href="{% url 'proveedores:ingreso' ingreso.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ver<span class="sr-only"> el ingreso N.º {{ ingreso.pk }}</span></a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if pagina.has_other_pages %}
+        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
+          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+          <span class="flex gap-2">
+            {% if pagina.has_previous %}
+              <a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+            {% endif %}
+            {% if pagina.has_next %}
+              <a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+            {% endif %}
+          </span>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="px-5 py-12 text-center">
+        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          {% include "comun/_icono.html" with nombre="camion" %}
+        </span>
+        <p class="mt-3 text-sm font-medium">Todavía no hay ingresos de mercadería</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

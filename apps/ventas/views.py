@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -8,18 +9,25 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import crear_producto, puede_crear
 from apps.comun.permisos import requiere_funcion
-from apps.ventas.forms import AnularVentaForm, ConfirmarVentaForm
+from apps.ventas.forms import AnularVentaForm, ConfirmarVentaForm, HistorialVentasForm
 from apps.ventas.services import (
     anular_venta,
     buscar_para_venta,
     detalles_de_venta,
+    historial_de_ventas,
     obtener_venta,
     problema_para_vender,
+    puede_anular,
     puede_vender,
+    puede_ver_venta,
     registrar_venta,
     se_puede_anular,
     ventas_de_la_caja_abierta,
 )
+
+POR_PAGINA = 25
+# Detalle y ticket: la cajera desde su caja y el Administrador desde el historial (DEC-84, DEC-86).
+VER_VENTAS = ("Ventas de la caja", "Historial de ventas")
 
 
 def _solo_cajera(request):
@@ -34,6 +42,14 @@ def _venta(pk):
         raise Http404 from error
 
 
+def _venta_visible(request, pk):
+    """La venta, si el usuario puede ver su detalle y su ticket (DEC-84, L4)."""
+    venta = _venta(pk)
+    if not puede_ver_venta(request.user, venta):
+        raise PermissionDenied
+    return venta
+
+
 def _producto(producto):
     return {
         "id": producto.pk,
@@ -41,6 +57,8 @@ def _producto(producto):
         "plus": producto.plus_interno or "",
         "precio": str(producto.precio_venta),
         "unidad": producto.unidad_medida,
+        # Para avisar al agregar, con la cantidad disponible; sin control, no avisa (DEC-102).
+        "stock": str(producto.stock_actual) if producto.controla_stock else None,
     }
 
 
@@ -64,13 +82,17 @@ def nueva(request):
 @requiere_funcion("Ventas")
 @require_GET
 def buscar(request):
-    """Búsqueda por nombre o plus y coincidencia exacta del lector (DEC-37, DEC-52)."""
+    """Búsqueda por nombre o plus y coincidencia exacta del lector (DEC-37, DEC-52).
+
+    Sin texto, trae los activos para elegir (DEC-97).
+    """
     _solo_cajera(request)
-    exacto, resultados = buscar_para_venta(request.GET.get("q", ""))
+    exacto, resultados, hay_mas = buscar_para_venta(request.GET.get("q", ""))
     return JsonResponse(
         {
             "exacto": _producto(exacto) if exacto else None,
             "resultados": [_producto(p) for p in resultados],
+            "hay_mas": hay_mas,
         }
     )
 
@@ -115,26 +137,57 @@ def confirmar(request):
     return JsonResponse({"ticket": reverse("ventas:ticket", args=[venta.pk])})
 
 
-@requiere_funcion("Ventas")
+@requiere_funcion(*VER_VENTAS)
 @require_GET
 def ticket(request, pk):
-    """Comprobante no fiscal para imprimir desde el navegador (DEC-44, DEC-54)."""
-    _solo_cajera(request)
-    venta = _venta(pk)
+    """Comprobante no fiscal para imprimir desde el navegador (DEC-44, DEC-54, DEC-84)."""
+    venta = _venta_visible(request, pk)
     return render(
-        request, "ventas/ticket.html", {"venta": venta, "detalles": detalles_de_venta(venta)}
+        request,
+        "ventas/ticket.html",
+        {
+            "venta": venta,
+            "detalles": detalles_de_venta(venta),
+            "puede_vender": puede_vender(request.user),
+        },
     )
 
 
-# Anulación: pantallas del Administrador (DEC-45, DEC-71)
+# Ventas de la caja (cajera, DEC-84) e historial de ventas (Administrador, DEC-86).
+# Anular, solo el Administrador (DEC-45).
 
 
-@requiere_funcion("Ventas del turno")
+@requiere_funcion("Ventas de la caja")
 @require_GET
 def lista(request):
-    """Ventas de la caja abierta, con su estado (DEC-71)."""
+    """Ventas de la caja abierta, con su estado, sin anular (DEC-84)."""
     caja, ventas = ventas_de_la_caja_abierta()
     return render(request, "ventas/lista.html", {"caja": caja, "ventas": ventas})
+
+
+@requiere_funcion("Historial de ventas")
+@require_GET
+def historial(request):
+    """Ventas con filtros, paginadas; por defecto, las de la caja abierta (DEC-86)."""
+    if not puede_anular(request.user):
+        raise PermissionDenied
+    form = HistorialVentasForm(request.GET or None)
+    filtros = form.cleaned_data if form.is_bound and form.is_valid() else {}
+    ventas, caja_por_defecto = historial_de_ventas(**filtros)
+    pagina = Paginator(ventas, POR_PAGINA).get_page(request.GET.get("pagina"))
+    consulta = request.GET.copy()
+    consulta.pop("pagina", None)
+    return render(
+        request,
+        "ventas/historial.html",
+        {
+            "form": form,
+            "pagina": pagina,
+            "caja_por_defecto": caja_por_defecto,
+            "filtrado": any(filtros.values()),
+            "consulta": consulta.urlencode(),
+        },
+    )
 
 
 def _detalle(request, venta, form, status=200):
@@ -145,22 +198,26 @@ def _detalle(request, venta, form, status=200):
             "venta": venta,
             "detalles": detalles_de_venta(venta),
             "form": form,
+            "puede_anular": puede_anular(request.user),
+            "volver": "ventas:historial" if puede_anular(request.user) else "ventas:lista",
             "puede_anularse": se_puede_anular(venta),
         },
         status=status,
     )
 
 
-@requiere_funcion("Ventas del turno")
+@requiere_funcion(*VER_VENTAS)
 @require_GET
 def detalle(request, pk):
-    return _detalle(request, _venta(pk), AnularVentaForm())
+    return _detalle(request, _venta_visible(request, pk), AnularVentaForm())
 
 
-@requiere_funcion("Ventas del turno")
+@requiere_funcion("Historial de ventas")
 @require_POST
 def anular(request, pk):
     """Anula con motivo y revierte caja y stock en el servicio (DEC-45, DEC-66)."""
+    if not puede_anular(request.user):
+        raise PermissionDenied
     venta = _venta(pk)
     form = AnularVentaForm(request.POST)
     if form.is_valid():

@@ -4,18 +4,24 @@ from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
 from django.http import Http404
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.catalogo.forms import ProductoForm
+from apps.catalogo.models import cantidad_para_editar
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
+    categorias_para_filtrar,
     crear_producto,
     dar_de_baja,
     listar_productos,
     modificar_producto,
+    producto_dado_de_baja,
     producto_editable,
+    proveedores_para_filtrar,
     puede_crear,
     puede_modificar,
+    puede_ver_stock,
+    reactivar,
 )
 from apps.comun.permisos import requiere_funcion
 
@@ -29,11 +35,25 @@ def _producto_editable(pk):
         raise Http404 from error
 
 
+def _id_de(request, nombre):
+    valor = request.GET.get(nombre, "")
+    return int(valor) if valor.isdecimal() else None
+
+
 @requiere_funcion("Productos")
 def productos(request):
+    """CU-11 y consulta de stock de CU-06 en una sola pantalla (DEC-105)."""
     texto = request.GET.get("q", "").strip()
+    categoria = _id_de(request, "categoria")
+    proveedor = _id_de(request, "proveedor")
+    solo_stock_bajo = request.GET.get("stock_bajo") == "1"
     productos, incluir_inactivos = listar_productos(
-        request.user, texto, pedir_inactivos=request.GET.get("inactivos") == "1"
+        request.user,
+        texto,
+        pedir_inactivos=request.GET.get("inactivos") == "1",
+        categoria_id=categoria,
+        proveedor_id=proveedor,
+        solo_stock_bajo=solo_stock_bajo,
     )
     pagina = Paginator(productos, POR_PAGINA).get_page(request.GET.get("pagina"))
     return render(
@@ -45,6 +65,12 @@ def productos(request):
             "incluir_inactivos": incluir_inactivos,
             "puede_crear": puede_crear(request.user),
             "puede_modificar": puede_modificar(request.user),
+            "ver_stock": puede_ver_stock(request.user),
+            "categorias": categorias_para_filtrar(),
+            "proveedores": proveedores_para_filtrar(),
+            "categoria": categoria,
+            "proveedor": proveedor,
+            "solo_stock_bajo": solo_stock_bajo,
         },
     )
 
@@ -67,11 +93,12 @@ def _guardar_con(request, form, operacion, mensaje):
 def nuevo(request):
     if not puede_crear(request.user):
         raise PermissionDenied
-    form = ProductoForm(request.POST or None)
+    # DEC-99: el stock inicial es solo del Administrador; la cajera arranca en 0 (DEC-103).
+    form = ProductoForm(request.POST or None, con_stock=puede_modificar(request.user))
     respuesta = _guardar_con(
         request,
         form,
-        lambda datos: crear_producto(request.user, datos),
+        lambda datos: crear_producto(request.user, datos, datos.get("stock")),
         "Se dio de alta «{producto}».",
     )
     return respuesta or render(request, "catalogo/producto_form.html", {"form": form})
@@ -82,13 +109,25 @@ def nuevo(request):
 def editar(request, pk):
     if not puede_modificar(request.user):
         raise PermissionDenied
-    # Un producto dado de baja se reactiva solo desde el panel (DEC-33).
+    # Un producto dado de baja no se edita: primero se reactiva (DEC-33, DEC-85).
     producto = _producto_editable(pk)
-    form = ProductoForm(request.POST or None, initial=model_to_dict(producto, CAMPOS_EDITABLES))
+    inicial = model_to_dict(producto, CAMPOS_EDITABLES)
+    # Por unidad, stock y mínimo se muestran enteros ("7", no "7,000"; DEC-48).
+    stock = cantidad_para_editar(producto.stock_actual, producto.unidad_medida)
+    minimo = cantidad_para_editar(producto.stock_minimo, producto.unidad_medida)
+    inicial.update(stock=stock, stock_mostrado=stock, stock_minimo=minimo)
+    form = ProductoForm(request.POST or None, initial=inicial, con_stock=True, es_alta=False)
     respuesta = _guardar_con(
         request,
         form,
-        lambda datos: modificar_producto(request.user, producto, datos),
+        lambda datos: modificar_producto(
+            request.user,
+            producto,
+            datos,
+            stock=datos.get("stock"),
+            stock_mostrado=datos.get("stock_mostrado"),
+            motivo=datos.get("motivo_ajuste") or None,
+        ),
         "Se guardaron los cambios de «{producto}».",
     )
     if respuesta:
@@ -110,3 +149,18 @@ def baja(request, pk):
         messages.success(request, f"Se dio de baja «{producto}».")
         return redirect("catalogo:productos")
     return render(request, "catalogo/producto_baja.html", {"producto": producto})
+
+
+@requiere_funcion("Productos")
+@require_POST
+def reactivar_producto(request, pk):
+    """Reactiva un producto dado de baja desde el listado de inactivos (DEC-85)."""
+    if not puede_modificar(request.user):
+        raise PermissionDenied
+    try:
+        producto = producto_dado_de_baja(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+    reactivar(request.user, producto)
+    messages.success(request, f"Se reactivó «{producto}».")
+    return redirect("catalogo:productos")

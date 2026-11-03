@@ -8,6 +8,7 @@
 
   const buscar = document.getElementById("buscar");
   const resultados = document.getElementById("resultados");
+  const verProductos = document.getElementById("ver-productos");
   const cuerpo = document.getElementById("lineas");
   const vacia = document.getElementById("vacia");
   const total = document.getElementById("total");
@@ -19,6 +20,21 @@
 
   // producto id -> { producto, cantidad (texto) }
   const lineas = new Map();
+
+  // La venta en curso se guarda en la pestaña, por usuario, hasta confirmarla o vaciarla.
+  let almacen = null;
+  try {
+    almacen = window.sessionStorage;
+  } catch {
+    // Sin almacenamiento: la venta no se guarda.
+  }
+  const guardada = almacen
+    ? crearVentaGuardada(almacen, `venta-en-curso-${raiz.dataset.usuario}`)
+    : { guardar() {}, leer: () => null, borrar() {} };
+
+  function persistir() {
+    guardada.guardar([...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })), medio.value);
+  }
 
   function subtotal(linea) {
     const cantidad = Number(linea.cantidad.replace(",", "."));
@@ -42,6 +58,15 @@
     if (contenido instanceof Node) td.append(contenido);
     else td.textContent = contenido;
     return td;
+  }
+
+  function nombreConAviso(nombre) {
+    const contenido = document.createElement("span");
+    const aviso = document.createElement("span");
+    aviso.className = "aviso-stock mt-1 block hidden text-xs font-normal text-amber-800";
+    aviso.setAttribute("role", "status");
+    contenido.append(nombre, aviso);
+    return contenido;
   }
 
   function dibujar(enfocar) {
@@ -95,7 +120,7 @@
       const fila = document.createElement("tr");
       fila.dataset.producto = id;
       fila.append(
-        celda("px-5 py-3 font-medium", linea.producto.nombre),
+        celda("px-5 py-3 font-medium", nombreConAviso(linea.producto.nombre)),
         celda("px-5 py-3", etiqueta),
         celda("cifras px-5 py-3 text-right whitespace-nowrap", `$ ${pesos.format(Number(linea.producto.precio))}`),
         celda("cifras px-5 py-3 text-right whitespace-nowrap subtotal", ""),
@@ -115,8 +140,13 @@
       const valor = subtotal(linea);
       suma += valor;
       fila.querySelector(".subtotal").textContent = `$ ${pesos.format(valor)}`;
+      // DEC-102: avisa con la cantidad disponible, sin bloquear (DEC-46).
+      const aviso = fila.querySelector(".aviso-stock");
+      aviso.textContent = avisoDeStock(linea.producto, linea.cantidad) || "";
+      aviso.classList.toggle("hidden", !aviso.textContent);
     }
     total.textContent = `$ ${pesos.format(suma)}`;
+    persistir();
   }
 
   // DEC-52 y DEC-53: por unidad suma 1 (o entra con 1); por kg deja el cursor en el peso.
@@ -129,19 +159,53 @@
     } else {
       lineas.set(producto.id, { producto, cantidad: "1" });
     }
-    resultados.classList.add("hidden");
+    cerrarLista();
     buscar.value = "";
     mostrarErrores([]);
     dibujar(producto.unidad === "KG" ? producto.id : undefined);
     if (producto.unidad !== "KG") buscar.focus();
   }
 
-  function mostrarResultados(lista, texto) {
+  // DEC-97: lista para elegir, navegable con flechas; el foco queda en el buscador.
+  const buscador = crearBuscadorDiferido();
+  let visibles = [];
+  let marcado = -1;
+
+  function marcar(indice) {
+    const opciones = resultados.querySelectorAll("[role=option]");
+    marcado = indice;
+    opciones.forEach((opcion, i) => {
+      opcion.setAttribute("aria-selected", String(i === marcado));
+      opcion.classList.toggle("bg-gray-100", i === marcado);
+    });
+    if (marcado >= 0) {
+      buscar.setAttribute("aria-activedescendant", opciones[marcado].id);
+      opciones[marcado].scrollIntoView({ block: "nearest" });
+    } else {
+      buscar.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  function cerrarLista() {
+    buscador.descartar();
+    resultados.classList.add("hidden");
+    buscar.setAttribute("aria-expanded", "false");
+    visibles = [];
+    marcar(-1);
+  }
+
+  function aviso(texto) {
+    const li = document.createElement("li");
+    li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
+    li.textContent = texto;
+    return li;
+  }
+
+  function mostrarResultados(lista, texto, hayMas) {
     resultados.replaceChildren();
+    visibles = lista;
     if (lista.length === 0) {
-      const li = document.createElement("li");
-      li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
-      li.textContent = "No se encontraron productos.";
+      const li = aviso("No se encontraron productos.");
       // A1: solo con permiso de alta (DEC-63).
       if (alta) {
         const crear = document.createElement("button");
@@ -153,22 +217,27 @@
       }
       resultados.append(li);
     }
-    for (const producto of lista) {
-      const boton = document.createElement("button");
-      boton.type = "button";
-      boton.className = "flex w-full items-center justify-between gap-4 px-3 py-2.5 text-left text-sm hover:bg-gray-50";
+    lista.forEach((producto, i) => {
+      const opcion = document.createElement("li");
+      opcion.id = `producto-${producto.id}`;
+      opcion.setAttribute("role", "option");
+      opcion.className = "flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 text-sm hover:bg-gray-50";
       const nombre = document.createElement("span");
       nombre.textContent = producto.plus ? `${producto.nombre} (${producto.plus})` : producto.nombre;
       const precio = document.createElement("span");
-      precio.className = "cifras text-gray-600";
-      precio.textContent = `$ ${pesos.format(Number(producto.precio))}${producto.unidad === "KG" ? " / kg" : ""}`;
-      boton.append(nombre, precio);
-      boton.addEventListener("click", () => agregar(producto));
-      const li = document.createElement("li");
-      li.append(boton);
-      resultados.append(li);
-    }
+      precio.className = "cifras whitespace-nowrap text-gray-600";
+      precio.textContent = `$ ${pesos.format(Number(producto.precio))} ${producto.unidad === "KG" ? "/ kg" : "/ u."}`;
+      opcion.append(nombre, precio);
+      // mousedown evita que el clic saque el foco del buscador antes de agregar.
+      opcion.addEventListener("mousedown", (evento) => evento.preventDefault());
+      opcion.addEventListener("click", () => agregar(producto));
+      opcion.addEventListener("mousemove", () => marcado !== i && marcar(i));
+      resultados.append(opcion);
+    });
+    if (hayMas) resultados.append(aviso("Seguí escribiendo para ver más."));
     resultados.classList.remove("hidden");
+    buscar.setAttribute("aria-expanded", "true");
+    marcar(-1);
   }
 
   async function consultar(texto) {
@@ -179,18 +248,65 @@
   }
 
   async function buscarTexto(texto) {
+    const turno = buscador.inmediato();
     const datos = await consultar(texto);
+    if (!buscador.vigente(turno)) return;
     if (datos.exacto) agregar(datos.exacto);
     else {
       buscar.value = texto;
-      mostrarResultados(datos.resultados, texto);
+      mostrarResultados(datos.resultados, texto, datos.hay_mas);
       buscar.focus();
     }
   }
 
+  async function filtrar(texto, turno) {
+    const datos = await consultar(texto);
+    if (buscador.vigente(turno)) mostrarResultados(datos.resultados, texto, datos.hay_mas);
+  }
+
+  function abrirLista(desde) {
+    const texto = textoAlAbrir(desde, buscar.value);
+    if (!texto) buscar.value = "";
+    filtrar(texto, buscador.inmediato());
+  }
+
+  // DEC-97: la lista se abre a pedido (clic en el buscador vacío, flecha abajo o el botón),
+  // nunca sola al volver el foco después de agregar un producto.
+  buscar.addEventListener("click", () => {
+    if (!buscar.value.trim()) abrirLista();
+  });
+  verProductos.addEventListener("click", () => {
+    abrirLista("boton");
+    buscar.focus();
+  });
+  buscar.addEventListener("input", () => {
+    marcar(-1);
+    buscador.diferir(buscar.value.trim(), filtrar);
+  });
+  document.addEventListener("click", (evento) => {
+    if (![buscar, resultados, verProductos].some((parte) => parte.contains(evento.target))) cerrarLista();
+  });
+
   buscar.addEventListener("keydown", (evento) => {
+    const abierta = !resultados.classList.contains("hidden");
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(evento.key) && (abierta || evento.key === "ArrowDown")) {
+      evento.preventDefault();
+      if (abierta) marcar(moverSeleccion(marcado, visibles.length, evento.key));
+      else abrirLista();
+      return;
+    }
+    if (evento.key === "Escape" && abierta) {
+      evento.preventDefault();
+      cerrarLista();
+      return;
+    }
     if (evento.key !== "Enter") return;
     evento.preventDefault();
+    // Un producto marcado con las flechas; si no, el plus exacto o la búsqueda (DEC-52).
+    if (abierta && marcado >= 0) {
+      agregar(visibles[marcado]);
+      return;
+    }
     const texto = buscar.value.trim();
     if (texto) buscarTexto(texto);
   });
@@ -250,11 +366,21 @@
     });
   }
 
+  medio.addEventListener("change", persistir);
+
+  // Avisa antes de salir de la pantalla con productos cargados.
+  window.addEventListener("beforeunload", (evento) => {
+    if (lineas.size === 0) return;
+    evento.preventDefault();
+    evento.returnValue = "";
+  });
+
   document.getElementById("cancelar").addEventListener("click", () => {
     // A5: no se registra nada.
     lineas.clear();
+    guardada.borrar();
     medio.value = "";
-    resultados.classList.add("hidden");
+    cerrarLista();
     mostrarErrores([]);
     dibujar();
     buscar.focus();
@@ -279,6 +405,8 @@
       });
       const datos = await respuesta.json();
       if (datos.ticket) {
+        lineas.clear();
+        guardada.borrar();
         window.location.assign(datos.ticket);
         return;
       }
@@ -289,5 +417,10 @@
     confirmar.disabled = false;
   });
 
+  const previa = guardada.leer();
+  if (previa) {
+    for (const linea of previa.lineas) lineas.set(linea.producto.id, linea);
+    if ([...medio.options].some((opcion) => opcion.value === previa.medio)) medio.value = previa.medio;
+  }
   dibujar();
 })();

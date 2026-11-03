@@ -1,5 +1,8 @@
 """CP-72 y CP-73: la base que crean las migraciones coincide con 05-modelo-datos.md."""
 
+import ast
+from pathlib import Path
+
 import pytest
 from django.apps import apps
 from django.core.management import call_command
@@ -20,6 +23,7 @@ TABLAS = {
     "detalle_venta",
     "categoria",
     "producto",
+    "ajuste_stock",
     "proveedor",
     "producto_proveedor",
     "ingreso_mercaderia",
@@ -46,6 +50,7 @@ CHECKS = {
         "movimiento_caja_concepto_valido",
         "movimiento_caja_referencia_segun_concepto",
         "movimiento_caja_anulacion_es_egreso",
+        "movimiento_caja_anulacion_pago_es_ingreso",
     ],
     "venta": [
         "venta_monto_total_no_negativo",
@@ -63,13 +68,23 @@ CHECKS = {
         "producto_stock_minimo_no_negativo",
         "producto_unidad_medida_valida",
     ],
+    "ajuste_stock": [
+        "ajuste_stock_nuevo_no_negativo",
+        "ajuste_stock_motivo_valido",
+    ],
     "producto_proveedor": ["producto_proveedor_precio_no_negativo"],
     "ingreso_mercaderia": [
         "ingreso_mercaderia_total_no_negativo",
         "ingreso_mercaderia_condicion_pago_valida",
+        "ingreso_mercaderia_estado_valido",
+        "ingreso_mercaderia_datos_de_anulacion_segun_estado",
     ],
     "detalle_ingreso": ["detalle_ingreso_cantidad_positiva", "detalle_ingreso_precio_no_negativo"],
-    "pago_proveedor": ["pago_proveedor_monto_positivo"],
+    "pago_proveedor": [
+        "pago_proveedor_monto_positivo",
+        "pago_proveedor_estado_valido",
+        "pago_proveedor_datos_de_anulacion_segun_estado",
+    ],
     "cliente": ["cliente_limite_credito_no_negativo"],
     "pago_cliente": ["pago_cliente_monto_positivo"],
     "movimiento_cuenta_corriente": [
@@ -81,7 +96,6 @@ CHECKS = {
 
 # (tabla, nombre, columnas, parcial)
 UNICOS = [
-    ("caja", "caja_unica_por_fecha_turno", ["fecha", "turno"], False),
     ("caja", "caja_una_sola_abierta", ["estado"], True),
     ("medio_pago", "medio_pago_un_solo_efectivo", ["es_efectivo"], True),
     (
@@ -91,6 +105,12 @@ UNICOS = [
         False,
     ),
     ("movimiento_caja", "movimiento_caja_una_anulacion_por_venta", ["venta_id"], True),
+    (
+        "movimiento_caja",
+        "movimiento_caja_un_movimiento_por_pago_y_concepto",
+        ["pago_proveedor_id", "concepto"],
+        True,
+    ),
     ("producto", "producto_plus_interno_unico", ["plus_interno"], True),
     ("producto_proveedor", "producto_proveedor_unico", ["producto_id", "proveedor_id"], False),
     ("movimiento_cuenta_corriente", "movimiento_cuenta_corriente_venta_unica", ["venta_id"], True),
@@ -106,6 +126,7 @@ INDICES = [
     ("pago_proveedor", ["proveedor_id"], False),
     ("pago_proveedor", ["ingreso_id"], False),
     ("producto", ["nombre"], False),
+    ("ajuste_stock", ["producto_id", "fecha_hora"], False),
     ("detalle_ingreso", ["fecha_vencimiento"], True),
 ]
 
@@ -143,7 +164,7 @@ def test_cp72_los_modelos_no_tienen_cambios_sin_migrar():
 # CP-73
 
 
-def test_cp73_existen_las_17_tablas_y_ninguna_condicional():
+def test_cp73_existen_las_18_tablas_y_ninguna_condicional():
     tablas = set(connection.introspection.table_names())
 
     assert TABLAS <= tablas
@@ -217,3 +238,21 @@ def test_cp73_toda_clave_foranea_existe_en_la_base_y_protege_el_borrado(modelo):
         assert any(r["foreign_key"] and r["columns"] == [campo.column] for r in restricciones), (
             campo.column
         )
+
+
+# R-6 (DEC-96): proveedores depende de catálogo y caja, nunca al revés.
+
+
+@pytest.mark.parametrize("app", ["catalogo", "caja"])
+def test_r6_catalogo_y_caja_no_importan_proveedores(app):
+    carpeta = Path(apps.get_app_config(app).path)
+    importaciones = []
+    for archivo in carpeta.rglob("*.py"):
+        arbol = ast.parse(archivo.read_text(encoding="utf-8"))
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.ImportFrom) and nodo.module:
+                importaciones.append((archivo.name, nodo.module))
+            elif isinstance(nodo, ast.Import):
+                importaciones += [(archivo.name, alias.name) for alias in nodo.names]
+
+    assert not [i for i in importaciones if i[1].startswith("apps.proveedores")]

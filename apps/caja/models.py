@@ -31,6 +31,8 @@ class ConceptoMovimientoCaja(models.TextChoices):
     OTRO = "OTRO", "Otro"
     # Reversa de una venta anulada (DEC-45, DEC-68).
     ANULACION = "ANULACION", "Anulación de venta"
+    # Reversa de un pago a proveedor en efectivo anulado (DEC-92).
+    ANULACION_PAGO = "ANULACION_PAGO", "Anulación de pago a proveedor"
 
 
 class MedioPago(ModeloBase):
@@ -94,13 +96,8 @@ class Caja(ModeloBase):
             models.CheckConstraint(
                 condition=Q(estado__in=EstadoCaja.values), name="caja_estado_valido"
             ),
-            # RI-01 (DEC-39): una caja por fecha y turno, aunque esté cerrada (no se reabre)...
-            models.UniqueConstraint(
-                fields=["fecha", "turno"],
-                name="caja_unica_por_fecha_turno",
-                violation_error_message="Ya hay una caja para esa fecha y turno.",
-            ),
-            # ...y una sola caja abierta a la vez, de cualquier fecha y turno.
+            # RI-01 (DEC-83): una sola caja abierta a la vez, de cualquier fecha y turno. Puede
+            # haber varias cajas por fecha y turno; las cerradas no se reabren.
             models.UniqueConstraint(
                 fields=["estado"],
                 condition=Q(estado=EstadoCaja.ABIERTA),
@@ -189,7 +186,12 @@ class MovimientoCaja(ModeloBase):
                     & _solo_referencia(venta=True)
                     | Q(concepto=ConceptoMovimientoCaja.PAGO_CLIENTE)
                     & _solo_referencia(pago_cliente=True)
-                    | Q(concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR)
+                    | Q(
+                        concepto__in=[
+                            ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+                            ConceptoMovimientoCaja.ANULACION_PAGO,
+                        ]
+                    )
                     & _solo_referencia(pago_proveedor=True)
                     | Q(concepto=ConceptoMovimientoCaja.OTRO) & _solo_referencia()
                 ),
@@ -206,6 +208,18 @@ class MovimientoCaja(ModeloBase):
                 condition=Q(concepto=ConceptoMovimientoCaja.ANULACION),
                 name="movimiento_caja_una_anulacion_por_venta",
                 violation_error_message="La venta ya tiene su anulación.",
+            ),
+            # DEC-92: la reversa de un pago es un ingreso; un pago tiene un egreso y una reversa.
+            models.CheckConstraint(
+                condition=~Q(concepto=ConceptoMovimientoCaja.ANULACION_PAGO)
+                | Q(tipo=TipoMovimientoCaja.INGRESO),
+                name="movimiento_caja_anulacion_pago_es_ingreso",
+            ),
+            models.UniqueConstraint(
+                fields=["pago_proveedor", "concepto"],
+                condition=Q(pago_proveedor__isnull=False),
+                name="movimiento_caja_un_movimiento_por_pago_y_concepto",
+                violation_error_message="El pago ya tiene ese movimiento de caja.",
             ),
         ]
         indexes = [

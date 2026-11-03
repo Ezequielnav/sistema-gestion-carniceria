@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static cantidades %}<!doctype html>
 <html lang="es-AR">
 <head>
   <meta charset="utf-8">
@@ -43,7 +43,7 @@
           {% for detalle in detalles %}
             <tr>
               <td class="py-1 pr-2">{{ detalle.producto.nombre }}</td>
-              <td class="cifras py-1 text-right whitespace-nowrap">{{ detalle.cantidad|floatformat:"-3" }}{% if detalle.producto.unidad_medida == "KG" %} kg{% endif %}</td>
+              <td class="cifras py-1 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
               <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
               <td class="cifras py-1 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>
@@ -60,7 +60,11 @@
 
     <div class="mt-8 flex gap-3 print:hidden">
       <button type="button" onclick="window.print()" class="flex-1 rounded-md border border-gray-300 px-4 py-2.5 font-medium hover:bg-gray-50">Imprimir</button>
-      <a href="{% url 'ventas:nueva' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Nueva venta</a>
+      {% if puede_vender %}
+        <a href="{% url 'ventas:nueva' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Nueva venta</a>
+      {% else %}
+        <a href="{% url 'ventas:detalle' venta.pk %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Volver a la venta</a>
+      {% endif %}
     </div>
   </main>
 </body>

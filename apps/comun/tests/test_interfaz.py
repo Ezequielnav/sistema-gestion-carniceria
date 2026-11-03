@@ -32,18 +32,18 @@ def _nombres(usuario):
 
 
 @pytest.mark.parametrize("con_permiso", [True, False])
-def test_rn05_el_menu_usa_la_misma_regla_que_el_alta_de_productos(con_permiso):
+def test_dec103_toda_cajera_ve_productos_y_el_alta_sigue_con_permiso(con_permiso):
     cajera = _usuario(Rol.CAJERA, puede_crear_productos=con_permiso)
     productos = next(f for f in FUNCIONES if f.nombre == "Productos")
 
-    assert puede_usar(cajera, productos) is puede_crear(cajera) is con_permiso
+    assert puede_usar(cajera, productos)
+    assert puede_crear(cajera) is con_permiso
 
 
 def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     assert _nombres(_usuario(Rol.ADMINISTRADOR)) == [
-        "Ventas del turno",  # DEC-71: solo para anular (DEC-45)
-        "Productos",
-        "Stock",
+        "Historial de ventas",  # DEC-86; anular, DEC-45
+        "Productos",  # con la consulta de stock (DEC-105)
         "Clientes",
         "Proveedores",
         "Reportes",
@@ -51,13 +51,12 @@ def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
     ]
 
 
-def test_cp74_cajera_ve_ventas_y_caja():
-    assert _nombres(_usuario(Rol.CAJERA)) == ["Ventas", "Caja"]
-
-
-def test_cp74_cajera_con_permiso_ve_productos():
-    assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=True)) == [
+@pytest.mark.parametrize("con_permiso", [True, False])
+def test_cp74_cajera_ve_ventas_ventas_de_la_caja_caja_y_productos(con_permiso):
+    # DEC-84: "Ventas de la caja" sin anular. DEC-103: productos con o sin permiso de alta.
+    assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=con_permiso)) == [
         "Ventas",
+        "Ventas de la caja",
         "Caja",
         "Productos",
     ]
@@ -75,6 +74,37 @@ def test_cp74_el_inicio_muestra_solo_el_menu_del_rol(client):
     assert respuesta.status_code == 200
     assert [f.nombre for f in respuesta.context["menu"]] == ["Reportes"]
     assert "Cobrar en el mostrador" not in respuesta.content.decode()
+
+
+@pytest.mark.parametrize("rol", [Rol.ADMINISTRADOR, Rol.CAJERA, Rol.DUENIO])
+def test_el_titulo_del_menu_lateral_es_menu_para_todos_los_roles(client, rol):
+    client.force_login(_usuario(rol))
+
+    contenido = client.get(reverse("inicio")).content.decode()
+
+    assert '<nav aria-label="Menú"' in contenido
+    assert ">Menú</p>" in contenido
+    assert "Funciones" not in contenido
+
+
+# CP-37 (DEC-30, DEC-82, DEC-105): tarjeta "stock bajo" solo para el Administrador
+
+
+def test_cp37_la_tarjeta_de_stock_bajo_es_del_administrador_y_lleva_al_filtro(client, producto):
+    producto.stock_actual = 0
+    producto.save()
+    enlace = f"{reverse('catalogo:productos')}?stock_bajo=1"
+
+    client.force_login(_usuario(Rol.ADMINISTRADOR))
+    respuesta = client.get(reverse("inicio"))
+    assert respuesta.context["stock_bajo"] == 1
+    assert enlace in respuesta.content.decode()
+
+    for rol in (Rol.CAJERA, Rol.DUENIO):
+        client.force_login(_usuario(rol))
+        respuesta = client.get(reverse("inicio"))
+        assert respuesta.context["stock_bajo"] is None
+        assert enlace not in respuesta.content.decode()
 
 
 # CP-75

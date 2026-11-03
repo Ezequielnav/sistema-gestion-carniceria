@@ -17,6 +17,7 @@ from apps.caja.models import (
     TipoMovimientoCaja,
     Turno,
 )
+from apps.comun.models import pesos
 from apps.usuarios.models import Rol
 
 
@@ -39,10 +40,9 @@ def puede_abrir(usuario):
     return usuario.rol == Rol.CAJERA
 
 
-def turnos_libres(fecha):
-    """Turnos que todavía no tuvieron caja en la fecha: un turno no se reabre (DEC-39)."""
-    usados = set(Caja.objects.filter(fecha=fecha).values_list("turno", flat=True))
-    return [turno for turno in Turno if turno not in usados]
+def turnos_libres():
+    """Turnos que se pueden abrir: los dos si no hay caja abierta (DEC-83)."""
+    return list(Turno) if caja_abierta() is None else []
 
 
 def _describir(caja):
@@ -58,15 +58,8 @@ def _ya_abierta(caja):
     )
 
 
-def _turno_usado(turno):
-    return ValidationError(
-        {"turno": f"El turno {Turno(turno).label.lower()} ya tuvo una caja hoy y no se reabre."},
-        code="turno_usado",
-    )
-
-
 def abrir_caja(usuario, turno, monto_inicial=None):
-    """Abre la caja de hoy en el turno elegido (RF-04, RF-05, RN-01, DEC-38, DEC-39).
+    """Abre la caja de hoy en el turno elegido (RF-04, RF-05, RN-01, DEC-38, DEC-83).
 
     El fondo de cambio vacío se guarda 0 (DEC-38).
     """
@@ -83,8 +76,6 @@ def abrir_caja(usuario, turno, monto_inicial=None):
     abierta = caja_abierta()
     if abierta is not None:
         raise _ya_abierta(abierta)
-    if turno not in turnos_libres(caja.fecha):
-        raise _turno_usado(turno)
     try:
         # Savepoint: si otra cajera abrió a la vez, la base lo rechaza (RI-01).
         with transaction.atomic():
@@ -92,8 +83,6 @@ def abrir_caja(usuario, turno, monto_inicial=None):
     except IntegrityError as error:
         if "caja_una_sola_abierta" in str(error):
             raise _ya_abierta(caja_abierta()) from error
-        if "caja_unica_por_fecha_turno" in str(error):
-            raise _turno_usado(turno) from error
         raise
     return caja
 
@@ -178,6 +167,21 @@ def anulaciones(caja):
     )
 
 
+def movimientos_de_pagos_a_proveedores(caja):
+    """Egresos de pagos a proveedores y sus reversas, para explicar lo esperado en el cierre."""
+    return list(
+        MovimientoCaja.objects.filter(
+            caja=caja,
+            concepto__in=[
+                ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+                ConceptoMovimientoCaja.ANULACION_PAGO,
+            ],
+        )
+        .select_related("pago_proveedor__proveedor", "medio_pago")
+        .order_by("fecha_hora", "pk")
+    )
+
+
 def egresos_otros(caja):
     return list(
         MovimientoCaja.objects.filter(
@@ -217,6 +221,92 @@ def registrar_egreso_otro(usuario, monto, descripcion):
             usuario=usuario,
             descripcion=descripcion,
         )
+
+
+# SC-02 para CU-07: pago a proveedor en efectivo y su reversa (R-3, DEC-80, DEC-92).
+# Comparten con el egreso "otro" y el cierre el bloqueo de la caja y el control de efectivo.
+
+
+def efectivo_disponible():
+    """Efectivo esperado de la caja abierta de hoy, o None si no se puede pagar en efectivo."""
+    caja = caja_abierta()
+    medio = MedioPago.objects.filter(es_efectivo=True).first()
+    if caja is None or medio is None or es_de_otro_dia(caja):
+        return None
+    return _esperado(caja, medio)
+
+
+def registrar_egreso_pago_proveedor(pago, usuario):
+    """Egreso `PAGO_PROVEEDOR` de un pago que sale de la caja abierta del día (DEC-80, DEC-106).
+
+    Va dentro de la transacción del pago. A nombre de quien registra, aunque la caja la haya
+    abierto otro usuario. Sin caja abierta, con la de otro día (como DEC-50) o sin efectivo
+    suficiente (CU-07 A1, como DEC-57), se rechaza mostrando el máximo.
+    """
+    caja = _caja_abierta_bloqueada()
+    if es_de_otro_dia(caja):
+        raise ValidationError(
+            "La caja abierta es de otro día: hay que cerrarla y abrir la de hoy para pagar en "
+            "efectivo.",
+            code="caja_de_otro_dia",
+        )
+    medio = efectivo()
+    disponible = _esperado(caja, medio)
+    if pago.monto > disponible:
+        raise ValidationError(
+            {
+                "monto": f"En la caja hay {pesos(max(disponible, Decimal('0')))} en efectivo: "
+                "ese es el máximo que se puede pagar."
+            },
+            code="sin_efectivo_suficiente",
+        )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        fecha_hora=pago.fecha_hora,
+        tipo=TipoMovimientoCaja.EGRESO,
+        monto=pago.monto,
+        medio_pago=medio,
+        concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR,
+        pago_proveedor=pago,
+        usuario=usuario,
+    )
+
+
+def egreso_de_pago(pago):
+    """El egreso de caja de un pago, o None si no salió de caja (DEC-106)."""
+    return (
+        MovimientoCaja.objects.filter(
+            pago_proveedor=pago, concepto=ConceptoMovimientoCaja.PAGO_PROVEEDOR
+        )
+        .select_related("caja")
+        .first()
+    )
+
+
+def registrar_reversa_pago_proveedor(pago, usuario, motivo):
+    """Ingreso `ANULACION_PAGO` que revierte el egreso de un pago anulado (DEC-92).
+
+    Va en la caja del egreso, que tiene que seguir abierta aunque sea de otro día (como
+    DEC-72). El egreso no se toca; un pago tiene a lo sumo una reversa (la base lo exige).
+    """
+    egreso = egreso_de_pago(pago)
+    caja = Caja.objects.select_for_update().get(pk=egreso.caja_id)
+    if caja.estado != EstadoCaja.ABIERTA:
+        raise ValidationError(
+            "La caja de este pago ya se cerró: un pago que salió de caja se anula solo con su "
+            "caja abierta.",
+            code="caja_cerrada",
+        )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        tipo=TipoMovimientoCaja.INGRESO,
+        monto=egreso.monto,
+        medio_pago=egreso.medio_pago,
+        concepto=ConceptoMovimientoCaja.ANULACION_PAGO,
+        pago_proveedor=pago,
+        usuario=usuario,
+        descripcion=motivo,
+    )
 
 
 # CU-03 Cerrar caja (RF-07, RF-08, RF-09, RI-10, DEC-38, DEC-40, DEC-56)

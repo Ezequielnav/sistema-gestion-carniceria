@@ -29,7 +29,7 @@
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
 | RF-04 | La cajera debe poder abrir la caja de un turno (mañana o tarde); se registra fecha, turno, empleado y estado "Abierta" | Base (CU-02) | Alta | Confirmado |
-| RF-05 | El sistema no debe permitir abrir una segunda caja para un turno que ya tiene una caja abierta | Base (CU-02, A1) | Alta | Confirmado |
+| RF-05 | El sistema no debe permitir abrir una segunda caja para un turno que ya tiene una caja abierta | Base (CU-02, A1) | Alta | Confirmado; se aplica como una sola caja abierta a la vez (DEC-83) |
 | RF-06 | El sistema debe registrar los ingresos y egresos de caja diferenciados por medio de pago | Base (2.1) | Alta | Confirmado |
 | RF-07 | Al cerrar la caja, el sistema debe mostrar el resumen por medio de pago, permitir ingresar los montos contados y calcular las diferencias | Base (CU-03) | Alta | Confirmado |
 | RF-08 | Al cerrar la caja, el sistema debe generar el reporte de cierre y bloquear la caja para edición | Base (CU-03) | Alta | Confirmado |
@@ -43,37 +43,40 @@
 | RF-11 | La cajera debe poder registrar una venta buscando o escaneando productos e indicando cantidades; el sistema muestra descripción, precio unitario y subtotal acumulado | Base (CU-01) | Alta | Confirmado |
 | RF-12 | El sistema debe calcular el total de la venta | Base (CU-01) | Alta | Confirmado |
 | RF-13 | La cajera debe poder seleccionar el medio de pago de la venta. Medios mencionados: efectivo, tarjeta, transferencia, QR y cuenta corriente | Base (2.1, CU-01) | Alta | Confirmado; lista decidida (DEC-41) |
-| RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44) |
+| RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44); lo ven la cajera, si la venta es de la caja abierta, y el Administrador (DEC-84) |
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
 | RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | A confirmar (PR-12, PR-13) |
 | RF-19 | El sistema debe permitir pagar una venta con más de un medio de pago | Propuesta (H-09) | Baja | Descartado (DEC-42): un solo medio por venta |
 | RF-20 | El sistema debe registrar la venta de carne con el nivel de detalle que defina el negocio | Propuesta (H-01) | Alta | Decidido (DEC-36): por producto y por kg |
-| RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77) |
+| RF-48 | El Administrador debe poder anular, con motivo, una venta de la caja abierta; la anulación revierte en la misma operación el ingreso de caja y el stock, y no modifica la venta ni sus detalles | Propuesta (PR-30) | Media | Decidido (DEC-45, DEC-66 a DEC-73, DEC-77); la cajera ve las ventas de la caja sin anular (DEC-84) |
+| RF-49 | El Administrador debe poder consultar el historial de ventas filtrando por fecha, turno y caja, y abrir el detalle y el ticket de cualquier venta | Propuesta (etapa 0b de H3) | Media | Decidido (DEC-86); no reemplaza a los reportes de CU-09 |
 
 ### 2.4 Productos y stock
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | A confirmar (PR-03, PR-22); plus decidido (DEC-37) |
+| RF-21 | El sistema debe gestionar el catálogo de productos (alta, baja, modificación) con nombre, precio, categoría, unidad de medida y plus interno | Propuesta (H-04, H-09) | Alta | Unidad decidida (DEC-79, supuesto): `UNIDAD` o `KG` por producto; plus decidido (DEC-37); a confirmar (PR-22); reactivación desde `/productos/` (DEC-85) |
 | RF-22 | El Administrador debe poder registrar el ingreso de mercadería seleccionando proveedor, productos, cantidades y precio unitario | Base (CU-05) | Alta | Confirmado |
 | RF-23 | Al confirmar un ingreso de mercadería, el sistema debe actualizar el stock | Base (CU-05) | Alta | Confirmado |
 | RF-24 | Si un producto del ingreso no existe, el sistema debe permitir crearlo | Base (CU-05, A1) | Media | Confirmado |
-| RF-25 | El Administrador debe poder consultar el stock de todos los productos y filtrar por categoría y proveedor | Base (CU-06) | Alta | Confirmado |
-| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado (umbrales: PR-20) |
-| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte |
+| RF-25 | El Administrador y la cajera deben poder consultar el stock de todos los productos y filtrar por categoría y proveedor | Base (CU-06) | Alta | Confirmado; la cajera, por el diagrama del relevamiento base (DEC-103, resuelve H-02), en solo lectura |
+| RF-26 | El sistema debe mostrar alertas de stock mínimo en la consulta de stock | Base (CU-06) | Media | Confirmado; umbral decidido (DEC-82, ajustado por DEC-101, supuesto): mínimo por producto, alerta con `stock_actual <= stock_minimo` o, sin mínimo, con `stock_actual <= 0` |
+| RF-27 | El sistema debe permitir registrar un faltante de stock detectado | Base (diagrama de CU-01) | Baja | A confirmar (PR-37); mientras tanto, el supuesto DEC-46: aviso a la cajera y stock negativo, sin registro aparte; el aviso aparece también al agregar el producto a la venta (DEC-102) |
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
+| RF-50 | El Administrador debe poder cambiar el stock de un producto con control de stock al modificarlo; el sistema aplica la diferencia y registra el ajuste con usuario, fecha, stock anterior, stock nuevo y motivo | Propuesta (PR-32) | Media | Decidido (DEC-98, supuesto del proyecto) |
+| RF-51 | Al dar de alta un producto con control de stock, el Administrador debe poder cargar su stock, que se registra como ajuste "Stock inicial" | Propuesta (PR-32) | Baja | Decidido (DEC-99, supuesto del proyecto) |
 
 ### 2.5 Proveedores
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar |
-| RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado (modalidad: PR-18) |
+| RF-29 | El Administrador debe poder gestionar proveedores (alta, baja, modificación, datos de contacto) | Propuesta (CU-05, precondición "proveedor registrado") | Alta | Confirmado en la necesidad; datos a detallar (PR-31). Implementado en H3, etapa 2 (DEC-87, DEC-88): nombre, teléfono y email |
+| RF-30 | Al ingresar mercadería, el sistema debe generar el registro de deuda o pago al proveedor | Base (CU-05) | Alta | Confirmado; modalidad decidida (DEC-81, supuesto): `A_CREDITO` deja la deuda y `CONTADO` registra el pago en la misma operación |
 | RF-31 | El Administrador debe poder registrar pagos a proveedores con proveedor, monto, fecha, medio de pago y productos asociados | Base (2.1, CU-07) | Alta | Confirmado |
 | RF-32 | El sistema debe listar los proveedores con deudas pendientes y actualizar su saldo al registrar un pago | Base (CU-07) | Alta | Confirmado |
-| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | A confirmar (PR-17, H-06) |
+| RF-33 | Cuando el pago a proveedor sale de la caja, el sistema debe validar la disponibilidad y registrar el egreso; si el monto supera el saldo, debe advertir el máximo disponible | Base (CU-07, A1) | Media | Decidido (DEC-80, DEC-106, supuestos): solo el pago en efectivo marcado "Sale de la caja abierta" toca la caja; los demás medios no (DEC-106) |
 | RF-34 | El sistema debe permitir gestionar pedidos a proveedores | Propuesta (H-07) | Baja | A confirmar (PR-19) |
 
 ### 2.6 Clientes y cuentas corrientes
@@ -129,7 +132,7 @@
 
 | Caso de uso | Requisitos relacionados |
 |---|---|
-| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48 |
+| CU-01 Registrar venta | RF-06, RF-11 a RF-20, RF-27, RF-48, RF-49 |
 | CU-02 Abrir caja por turno | RF-04, RF-05, RF-10 |
 | CU-03 Cerrar caja por turno | RF-06, RF-07, RF-08, RF-09 |
 | CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38 |
@@ -139,7 +142,7 @@
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
 | CU-09 Generar reportes | RF-42 a RF-46 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
-| CU-11 Gestionar productos | RF-21, RF-17, RF-24 |
+| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51 |
 | CU-12 Gestionar clientes | RF-35 |
 | CU-13 Gestionar proveedores | RF-29 |
 | CU-14 Gestionar usuarios | RF-03 |
@@ -152,7 +155,7 @@ Los requisitos "A confirmar" dependen de las brechas de [01-relevamiento.md](01-
 | Requisito | Brecha | Qué se necesita saber |
 |---|---|---|
 | RF-18, RF-40, RF-41 | PR-12, PR-13 | Límites de crédito y plazo de vencimiento |
-| RF-33, RF-34 | PR-17, PR-19 | Cómo se paga a proveedores y si los pedidos se gestionan en el sistema |
+| RF-34 | PR-19 | Si los pedidos a proveedores se gestionan en el sistema |
 | RF-03, RF-45 | PR-25 | Quién es el Administrador y qué ven los dueños |
 | RF-46 | PR-27 | Reportes automáticos o a pedido |
 

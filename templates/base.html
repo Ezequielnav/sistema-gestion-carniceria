@@ -26,7 +26,7 @@
         </span>
       </a>
 
-      <nav aria-label="Funciones" class="flex-1 overflow-y-auto px-3 py-4">
+      <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4">
         <ul class="space-y-0.5">
           <li>
             <a href="{% url 'inicio' %}"
@@ -39,7 +39,7 @@
         </ul>
 
         {% if menu %}
-          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Funciones</p>
+          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Menú</p>
           <ul class="space-y-0.5">
             {% for funcion in menu %}
               <li>

@@ -3,11 +3,19 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.catalogo.models import formatear_cantidad
 from apps.comun.models import NO_NEGATIVO, ModeloBase, campo_cantidad, campo_monto, validar_positivo
 
 
+class EstadoIngreso(models.TextChoices):
+    """Un ingreso no se edita: el Administrador lo anula con motivo (DEC-92)."""
+
+    VIGENTE = "VIGENTE", "Vigente"
+    ANULADO = "ANULADO", "Anulado"
+
+
 class CondicionPago(models.TextChoices):
-    """A confirmar (PR-18)."""
+    """A crédito deja la deuda; contado registra el pago (DEC-81, supuesto; ex PR-18)."""
 
     CONTADO = "CONTADO", "Contado"
     A_CREDITO = "A_CREDITO", "A crédito"
@@ -60,8 +68,20 @@ class IngresoMercaderia(ModeloBase):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     total = campo_monto(validators=[NO_NEGATIVO])
     condicion_pago = models.CharField(max_length=9, choices=CondicionPago.choices)
-    # Por ejemplo, número de remito (a confirmar: PR-18).
+    # Número de remito o de factura, y su fecha si hace falta (DEC-81, DEC-93).
     observacion = models.CharField(max_length=255, blank=True)
+    estado = models.CharField(
+        max_length=7, choices=EstadoIngreso.choices, default=EstadoIngreso.VIGENTE
+    )
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por_usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ingresos_anulados",
+    )
+    motivo_anulacion = models.TextField(blank=True)
 
     class Meta:
         db_table = "ingreso_mercaderia"
@@ -74,6 +94,28 @@ class IngresoMercaderia(ModeloBase):
             models.CheckConstraint(
                 condition=Q(condicion_pago__in=CondicionPago.values),
                 name="ingreso_mercaderia_condicion_pago_valida",
+            ),
+            models.CheckConstraint(
+                condition=Q(estado__in=EstadoIngreso.values),
+                name="ingreso_mercaderia_estado_valido",
+            ),
+            # Los datos de la anulación están si y solo si el ingreso está anulado (DEC-92).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        estado=EstadoIngreso.ANULADO,
+                        anulado_en__isnull=False,
+                        anulado_por_usuario__isnull=False,
+                    )
+                    & ~Q(motivo_anulacion="")
+                )
+                | Q(
+                    estado=EstadoIngreso.VIGENTE,
+                    anulado_en__isnull=True,
+                    anulado_por_usuario__isnull=True,
+                    motivo_anulacion="",
+                ),
+                name="ingreso_mercaderia_datos_de_anulacion_segun_estado",
             ),
         ]
 
@@ -110,7 +152,14 @@ class DetalleIngreso(ModeloBase):
         ]
 
     def __str__(self):
-        return f"{self.producto} x {self.cantidad}"
+        return f"{self.producto} x {formatear_cantidad(self.cantidad, self.producto.unidad_medida)}"
+
+
+class EstadoPago(models.TextChoices):
+    """Un pago no se edita: el Administrador lo anula con motivo (DEC-92)."""
+
+    VIGENTE = "VIGENTE", "Vigente"
+    ANULADO = "ANULADO", "Anulado"
 
 
 class PagoProveedor(ModeloBase):
@@ -121,6 +170,18 @@ class PagoProveedor(ModeloBase):
     monto = campo_monto(validators=[validar_positivo])
     medio_pago = models.ForeignKey("caja.MedioPago", on_delete=models.PROTECT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    # Solo un pago en efectivo puede salir de la caja abierta; así tiene egreso (DEC-106).
+    sale_de_caja = models.BooleanField(default=False)
+    estado = models.CharField(max_length=7, choices=EstadoPago.choices, default=EstadoPago.VIGENTE)
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por_usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="pagos_proveedor_anulados",
+    )
+    motivo_anulacion = models.TextField(blank=True)
 
     class Meta:
         db_table = "pago_proveedor"
@@ -128,6 +189,27 @@ class PagoProveedor(ModeloBase):
         verbose_name_plural = "pagos a proveedores"
         constraints = [
             models.CheckConstraint(condition=Q(monto__gt=0), name="pago_proveedor_monto_positivo"),
+            models.CheckConstraint(
+                condition=Q(estado__in=EstadoPago.values), name="pago_proveedor_estado_valido"
+            ),
+            # Los datos de la anulación están si y solo si el pago está anulado (DEC-92).
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        estado=EstadoPago.ANULADO,
+                        anulado_en__isnull=False,
+                        anulado_por_usuario__isnull=False,
+                    )
+                    & ~Q(motivo_anulacion="")
+                )
+                | Q(
+                    estado=EstadoPago.VIGENTE,
+                    anulado_en__isnull=True,
+                    anulado_por_usuario__isnull=True,
+                    motivo_anulacion="",
+                ),
+                name="pago_proveedor_datos_de_anulacion_segun_estado",
+            ),
         ]
 
     def __str__(self):

@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError, transaction
 
+from apps.catalogo.models import Producto, UnidadMedida
 from apps.proveedores.models import (
     CondicionPago,
     DetalleIngreso,
@@ -87,3 +88,22 @@ def test_cp71_pago_a_proveedor_con_monto_no_positivo_se_rechaza(
             proveedor=proveedor, monto=monto, medio_pago=efectivo, usuario=usuario
         )
     )
+
+
+def test_el_renglon_de_ingreso_se_lee_con_el_formato_de_cantidad(categoria):
+    # DEC-48: formatear_cantidad de catálogo (proveedores sí depende de catálogo, R-6).
+    asado = Producto(nombre="Asado", categoria=categoria, unidad_medida=UnidadMedida.KG)
+
+    assert str(DetalleIngreso(producto=asado, cantidad=Decimal("1.250"))) == "Asado x 1,250 kg"
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {"estado": "OTRO"},
+        {"estado": "ANULADO"},  # sin fecha, usuario ni motivo
+        {"estado": "VIGENTE", "motivo_anulacion": "No corresponde"},
+    ],
+)
+def test_dec92_la_base_exige_los_datos_de_anulacion_segun_el_estado(ingreso, datos):
+    _rechaza(lambda: IngresoMercaderia.objects.filter(pk=ingreso.pk).update(**datos))

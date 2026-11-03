@@ -66,6 +66,7 @@ def test_cp56_la_cajera_con_permiso_crea_el_producto_desde_la_venta(client, caje
             "plus": "777",
             "precio": "8500.00",
             "unidad": "KG",
+            "stock": None,
         }
     }
     assert producto.stock_actual == 0

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block titulo %}Ventas del turno{% endblock %}
-{% block encabezado %}Ventas del turno{% endblock %}
+{% block titulo %}Ventas de la caja{% endblock %}
+{% block encabezado %}Ventas de la caja{% endblock %}
 
 {% block contenido %}
-  {# DEC-71: ventas de la caja abierta, para revisarlas y anularlas (DEC-45). #}
-  <h2 class="text-2xl font-semibold tracking-tight">Ventas del turno</h2>
+  {# DEC-84: ventas de la caja abierta para la cajera, sin anular. #}
+  <h2 class="text-2xl font-semibold tracking-tight">Ventas de la caja</h2>
 
   {% if caja is None %}
     <div role="status" class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-700 shadow-xs">
-      <p>No hay una caja abierta. Solo se anulan ventas de la caja abierta; las de cajas cerradas ya no se modifican.</p>
+      <p>No hay una caja abierta. Acá se ven las ventas de la caja abierta.</p>
     </div>
   {% else %}
     <p class="mt-1 text-sm text-gray-500">Caja del turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}, abierta por {{ caja.usuario.get_full_name }}.</p>

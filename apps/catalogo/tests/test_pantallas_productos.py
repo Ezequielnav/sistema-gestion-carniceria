@@ -1,11 +1,12 @@
 """CU-11 de punta a punta: pantallas de /productos/ por rol (CP-53, CP-55, CP-56, CP-57, CP-59)."""
 
+import re
 from decimal import Decimal
 
 import pytest
 from django.urls import reverse
 
-from apps.catalogo.models import Producto
+from apps.catalogo.models import Producto, UnidadMedida
 
 pytestmark = pytest.mark.django_db
 
@@ -63,6 +64,29 @@ def test_admin_ve_stock_y_acciones(client, admin, producto):
     assert "Stock" in contenido
     assert _editar(producto) in contenido and _baja(producto) in contenido
     assert "Incluir dados de baja" in contenido
+
+
+def test_el_stock_se_muestra_segun_la_unidad_aunque_sea_negativo(client, admin, producto):
+    # DEC-48: entero por unidad, "kg" con coma por kg; DEC-46: puede ser negativo.
+    producto.stock_actual = Decimal("12.000")
+    producto.stock_minimo = Decimal("5")
+    producto.save()
+    asado = Producto.objects.create(
+        nombre="Asado",
+        categoria=producto.categoria,
+        precio_venta=Decimal("9800.00"),
+        unidad_medida=UnidadMedida.KG,
+        controla_stock=True,
+        stock_actual=Decimal("-1.250"),
+    )
+    client.force_login(admin)
+
+    listado = client.get(LISTADO).content.decode()
+    assert re.search(r">\s*12\s*<span[^>]*>mín\. 5</span>", listado)
+    assert "-1,250 kg" in listado
+    assert "12,000" not in listado and "-1.25" not in listado
+
+    assert "-1,250 kg" in client.get(_editar(asado)).content.decode()
 
 
 # Filtro de dados de baja (agregado del alumno)
@@ -125,14 +149,27 @@ def test_cp56_cajera_con_permiso_da_de_alta_desde_la_pantalla(client, cajera_alt
     assert Producto.objects.filter(plus_interno="700", activo=True).exists()
 
 
-def test_cajera_con_permiso_no_ve_stock_editar_ni_baja(client, cajera_alta, producto):
-    client.force_login(cajera_alta)
+# DEC-103: toda cajera ve el stock en solo lectura; solo el Administrador lo cambia.
 
-    contenido = client.get(LISTADO).content.decode()
 
-    assert "Nuevo producto" in contenido
+@pytest.mark.parametrize(("quien", "puede_dar_de_alta"), [("cajera_alta", True), ("cajera", False)])
+def test_dec103_la_cajera_ve_el_stock_sin_editar_ni_dar_de_baja(
+    client, request, producto, quien, puede_dar_de_alta
+):
+    producto.stock_actual = Decimal("12")
+    producto.stock_minimo = Decimal("5")
+    producto.save()
+    client.force_login(request.getfixturevalue(quien))
+
+    respuesta = client.get(LISTADO)
+
+    assert respuesta.status_code == 200
+    contenido = respuesta.content.decode()
+    assert ">Stock<" in contenido
+    assert re.search(r">\s*12\s*<span[^>]*>mín\. 5</span>", contenido)
     assert _editar(producto) not in contenido and _baja(producto) not in contenido
-    assert ">Stock<" not in contenido
+    assert ("Nuevo producto" in contenido) is puede_dar_de_alta
+    assert "Incluir dados de baja" not in contenido
 
 
 def test_cajera_con_permiso_no_edita_ni_da_de_baja_por_url(client, cajera_alta, producto):
@@ -148,14 +185,25 @@ def test_cajera_con_permiso_no_edita_ni_da_de_baja_por_url(client, cajera_alta, 
 # CP-55 y CP-53: sin permiso, ni pantalla ni URL directa
 
 
-@pytest.mark.parametrize("quien", ["cajera", "duenio"])
-def test_cp55_cp53_sin_permiso_no_entran_a_ninguna_pantalla(client, request, producto, quien):
-    client.force_login(request.getfixturevalue(quien))
+def test_cp55_cajera_sin_permiso_consulta_pero_no_da_de_alta_ni_modifica(client, cajera, producto):
+    client.force_login(cajera)
+
+    assert client.get(LISTADO).status_code == 200  # DEC-103
+    for url in (NUEVO, _editar(producto), _baja(producto)):
+        assert client.get(url).status_code == 403, url
+    assert client.post(NUEVO, _form()).status_code == 403
+    assert client.post(_editar(producto), _form(nombre="Otro")).status_code == 403
+    assert not Producto.objects.filter(plus_interno="700").exists()
+    producto.refresh_from_db()
+    assert producto.nombre == "Aceite 1 l"
+
+
+def test_cp53_los_duenios_no_entran_a_ninguna_pantalla(client, duenio, producto):
+    client.force_login(duenio)
 
     for url in (LISTADO, NUEVO, _editar(producto), _baja(producto)):
         assert client.get(url).status_code == 403, url
     assert client.post(NUEVO, _form()).status_code == 403
-    assert not Producto.objects.filter(plus_interno="700").exists()
 
 
 def test_sin_sesion_redirige_al_ingreso(client):
@@ -164,10 +212,10 @@ def test_sin_sesion_redirige_al_ingreso(client):
     assert respuesta.url.startswith(reverse("usuarios:ingresar"))
 
 
-def test_el_menu_de_la_cajera_sin_permiso_no_muestra_productos(client, cajera):
+def test_dec103_el_menu_de_la_cajera_sin_permiso_muestra_productos(client, cajera):
     client.force_login(cajera)
 
-    assert LISTADO not in client.get(reverse("inicio")).content.decode()
+    assert LISTADO in client.get(reverse("inicio")).content.decode()
 
 
 # CP-59 y RI-16 desde la pantalla: mensajes junto al campo
@@ -230,3 +278,44 @@ def test_el_formulario_no_tiene_stock_actual(client, admin):
 
     assert "stock_actual" not in client.get(NUEVO).context["form"].fields
     assert Producto.objects.get(plus_interno="700").stock_actual == 0
+
+
+# CP-97: reactivar un producto dado de baja (DEC-85)
+
+
+def test_cp97_el_admin_reactiva_desde_el_listado_de_inactivos(client, admin, producto):
+    producto.activo = False
+    producto.stock_actual = Decimal("-3")  # sin condición de stock
+    producto.save()
+    client.force_login(admin)
+
+    listado = client.get(reverse("catalogo:productos"), {"inactivos": "1"}).content.decode()
+    assert reverse("catalogo:reactivar", args=[producto.pk]) in listado
+
+    respuesta = client.post(reverse("catalogo:reactivar", args=[producto.pk]))
+
+    assert respuesta.status_code == 302
+    producto.refresh_from_db()
+    assert producto.activo
+    assert producto.stock_actual == Decimal("-3")
+
+
+def test_cp97_reactivar_solo_por_post_y_solo_dados_de_baja(client, admin, producto):
+    client.force_login(admin)
+    url = reverse("catalogo:reactivar", args=[producto.pk])
+
+    assert client.get(url).status_code == 405
+    assert client.post(url).status_code == 404  # el producto está activo
+
+
+@pytest.mark.parametrize("quien", ["cajera_alta", "cajera", "duenio"])
+def test_cp97_solo_el_administrador_reactiva(client, request, quien, producto):
+    producto.activo = False
+    producto.save()
+    client.force_login(request.getfixturevalue(quien))
+
+    respuesta = client.post(reverse("catalogo:reactivar", args=[producto.pk]))
+
+    assert respuesta.status_code == 403
+    producto.refresh_from_db()
+    assert not producto.activo

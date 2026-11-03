@@ -17,7 +17,7 @@ class AbrirCajaForm(forms.Form):
 
     def __init__(self, *args, turnos, **kwargs):
         super().__init__(*args, **kwargs)
-        # Solo los turnos que se pueden abrir hoy (DEC-39); el servicio lo valida igual.
+        # Solo los turnos que se pueden abrir (DEC-83); el servicio lo valida igual.
         self.fields["turno"].choices = [("", "Elegí un turno")] + [
             (turno.value, turno.label) for turno in turnos
         ]
