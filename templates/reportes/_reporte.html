@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{# CU-09 (DEC-136): reportes a pedido, en solo lectura, con rango de fechas (DEC-145). #}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}Reportes{% endblock %}
+
+{% block contenido %}
+  <div>
+    <h2 class="text-2xl font-semibold tracking-tight">Reportes</h2>
+    <p class="mt-1 text-sm text-gray-500">Solo consulta: se calculan con lo registrado en el rango que elijas.</p>
+  </div>
+
+  <nav class="mt-4 flex gap-1 overflow-x-auto border-b border-gray-200 text-sm" aria-label="Reportes">
+    {% for nombre, texto in pestanas %}
+      <a href="{% url 'reportes:'|add:nombre %}{% if rango %}?{{ rango }}{% endif %}" {% if nombre == activa %}aria-current="page"{% endif %}
+         class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-gray-500 hover:text-gray-900 aria-[current=page]:border-red-600 aria-[current=page]:text-gray-900">{{ texto }}</a>
+    {% endfor %}
+  </nav>
+
+  <form method="get" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end" novalidate>
+    {% for campo in form %}
+      <div>
+        <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+        {{ campo }}
+        {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Ver reporte</button>
+  </form>
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="{{ titulo }}">
+    <div class="border-b border-gray-200 px-5 py-4">
+      <h3 class="text-sm font-semibold">{{ titulo }}</h3>
+      {% if form.is_valid %}
+        <p class="mt-0.5 text-xs text-gray-500">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
+      {% endif %}
+    </div>
+    {% if not form.is_valid %}
+      <p class="px-5 py-12 text-center text-sm font-medium">Corregí el rango de fechas para ver el reporte.</p>
+    {% else %}
+      {% block reporte %}{% endblock %}
+    {% endif %}
+  </section>
+{% endblock %}

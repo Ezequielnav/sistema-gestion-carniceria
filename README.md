@@ -89,7 +89,8 @@ Los usuarios de ejemplo entran en <http://localhost:8000/ingresar/> con esa cont
 
 | Usuario | Rol | Qué ve |
 |---|---|---|
-| `admin` | Administrador | Todas sus funciones y el panel de administración |
+| `admin` | Administrador y superusuario técnico | Todas sus funciones y el panel de administración |
+| `admin_negocio` | Administrador del negocio | Todas sus funciones, sin el panel (DEC-150) |
 | `cajera_alta` | Cajera con permiso de alta de productos | Ventas, caja y productos |
 | `cajera` | Cajera sin ese permiso | Ventas y caja |
 | `duenio` | Dueño | Reportes (solo consulta) |

@@ -8,10 +8,22 @@ from apps.usuarios.models import Rol, Usuario
 
 pytestmark = pytest.mark.django_db
 
-# Lo que un dueño sí abre: el inicio, entrar y salir, y el reporte de cierre, que es parte de
-# la consulta de cierres de CU-09 (DEC-59, DEC-134, DEC-144). El panel tiene su propio
+# Lo que un dueño sí abre: el inicio, entrar y salir, los reportes y el reporte de cierre, que
+# es parte de la consulta de cierres de CU-09 (DEC-59, DEC-134, DEC-144). El panel tiene su propio
 # control (DEC-32) y se prueba en test_admin.py.
-PERMITIDAS_AL_DUENIO = {"inicio", "usuarios:ingresar", "usuarios:salir", "caja:cierre"}
+PERMITIDAS_AL_DUENIO = {
+    "inicio",
+    "usuarios:ingresar",
+    "usuarios:salir",
+    "caja:cierre",
+    # CU-09 (H5, etapa 3): todas las pantallas de reportes.
+    "reportes:inicio",
+    "reportes:ventas",
+    "reportes:productos",
+    "reportes:ingresos",
+    "reportes:medios",
+    "reportes:cierres",
+}
 
 
 def _usuario(rol):

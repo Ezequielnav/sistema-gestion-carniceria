@@ -167,7 +167,7 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11; categorías y consulta de ajustes (DEC-155) |
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
-| `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |
+| `reportes` | Ninguna propia: consultas agrupadas de solo lectura sobre `venta`, `detalle_venta`, `pago_cliente`, `caja` y `cierre_caja_detalle`; ninguna otra aplicación la importa (R-1 de H5, DEC-154) | CU-09 |
 | `comun` | Ninguna propia: el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades. Además reúne la navegación: menú y permisos por rol (`menu.py`, `permisos.py` y el procesador de contexto del menú), la pantalla de inicio y los datos de ejemplo con el comando `cargar_datos_ejemplo` | CU-10 (inicio después de ingresar) |
 
 ### Estructura propuesta del repositorio

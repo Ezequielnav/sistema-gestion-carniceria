@@ -308,3 +308,15 @@ def test_r4_clientes_y_caja_no_importan_hacia_arriba(app, prohibido):
     importaciones = _importaciones(app, incluir_pruebas=False)
 
     assert not [i for i in importaciones if i[1].startswith(prohibido)]
+
+
+# R-1 de H5 (DEC-154): reportes solo lee las demás aplicaciones; ninguna la importa.
+
+
+@pytest.mark.parametrize(
+    "app", ["usuarios", "caja", "ventas", "catalogo", "proveedores", "clientes", "comun"]
+)
+def test_r1_de_h5_ninguna_aplicacion_importa_reportes(app):
+    importaciones = _importaciones(app, incluir_pruebas=False)
+
+    assert not [i for i in importaciones if i[1].startswith("apps.reportes")]

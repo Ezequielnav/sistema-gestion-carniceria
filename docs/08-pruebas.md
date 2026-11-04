@@ -172,9 +172,13 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
-| CP-60 | Reporte de ventas por rango de fechas | RF-42, RF-43 | Los totales coinciden con las ventas del rango | Confirmado |
-| CP-61 | Totales por medio de pago | RF-42 | La suma por medio coincide con el total | Confirmado |
-| CP-62 | Período sin datos | RF-44 | Muestra "Sin registros disponibles" | Confirmado |
+| CP-60 | Reporte de ventas por rango de fechas | RF-42, RF-43, DEC-140 | Los totales coinciden con las ventas del rango: por fecha y turno de la caja, sumando dos cajas del mismo turno (DEC-83), con la venta a cuenta corriente y sin la anulada; el rango limita por la fecha de la caja | Confirmado; automatizado (H5, etapa 3, `apps/reportes/tests/test_reportes.py`) |
+| CP-61 | Totales por medio de pago | RF-42, DEC-143 | Por medio, ventas no anuladas (con la fila de cuenta corriente) y cobros vigentes; el total de ventas coincide con el de ventas diarias | Confirmado; automatizado (H5, etapa 3) |
+| CP-62 | Período sin datos | RF-44 | Cada reporte y la consulta de cierres muestran "Sin registros disponibles" | Confirmado; automatizado (H5, etapa 3) |
+| CP-129 | Producto más vendido | RF-42, DEC-141 | Ranking por importe de ventas no anuladas, con la cantidad en su unidad ("3,400 kg") y el total vendido | Decidido (DEC-141); automatizado (H5, etapa 3) |
+| CP-130 | Ingresos por día | RF-42, DEC-142 | Ventas que no son a cuenta corriente más cobros, sin anulados; "Entró a caja" y "Fuera de caja" (cobros sin caja) por día y en el total del rango | Decidido (DEC-142, supuesto); automatizado (H5, etapa 3) |
+| CP-131 | Consulta de cierres por fecha | DEC-59, DEC-144 | Las cajas cerradas del rango, también dos del mismo turno, con la diferencia total del cierre y el enlace a su reporte | Decidido (DEC-144); automatizado (H5, etapa 3) |
+| CP-132 | Rango de fechas del reporte | DEC-145, CU-09 A2 | Sin rango, el día de hoy; desde posterior a hasta, hasta posterior a hoy o una fecha vacía piden corregir el rango y el reporte no se calcula; la cajera recibe 403, el dueño consulta y ninguna pantalla acepta POST | Decidido (DEC-145); automatizado (H5, etapa 3) |
 | CP-63 | Exportar a PDF y a Excel | RF-43 | El archivo se genera y los montos coinciden con la pantalla | Confirmado |
 
 ### 4.7 Integridad general de la base de datos
@@ -189,7 +193,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: historial de ventas (con anulación, DEC-71, DEC-86), productos (con la consulta de stock, DEC-105), clientes, proveedores, reportes, medios de pago (DEC-155) y usuarios; cajera: ventas, ventas de la caja (sin anular, DEC-84), caja, cobrar cuenta corriente (S-2, H4) y productos, con o sin permiso de alta (DEC-103); dueños: solo reportes |
 | CP-75 | Abrir el inicio sin sesión | RF-01, RNF-06 (H1.4) | Redirige al ingreso |
 | CP-76 | Resumen del día en el inicio | H1.4 (DEC-30) | Ventas de hoy (cantidad y monto, sin las de otros días ni las anuladas, DEC-73), cajas abiertas, productos activos y últimas ventas salen de la base. Desde H5 lo ve solo el Administrador (DEC-137, R-4) |
-| CP-77 | Cargar los datos de ejemplo dos veces | H1.3 | No se duplica nada; hay un usuario por rol, una cajera con permiso de alta y otra sin él, y cada uno entra con la contraseña de `DEMO_PASSWORD`; fuera de desarrollo o sin esa variable el comando no corre |
+| CP-77 | Cargar los datos de ejemplo dos veces | H1.3 | No se duplica nada; hay un usuario por rol, una cajera con permiso de alta y otra sin él, un Administrador del negocio sin acceso al panel además del superusuario técnico `admin` (DEC-150), y cada uno entra con la contraseña de `DEMO_PASSWORD`; fuera de desarrollo o sin esa variable el comando no corre |
 | CP-78 | Usuario que no es Administrador con acceso al panel o como superusuario | DEC-32 | La base lo rechaza |
 
 ## 5. Trazabilidad de reglas a pruebas

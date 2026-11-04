@@ -39,9 +39,13 @@ def test_carga_un_usuario_por_rol_y_las_dos_cajeras(desarrollo):
     assert set(Usuario.objects.values_list("rol", flat=True)) == set(Rol.values)
     cajeras = Usuario.objects.filter(rol=Rol.CAJERA)
     assert sorted(cajeras.values_list("puede_crear_productos", flat=True)) == [False, True]
-    assert list(Usuario.objects.filter(is_staff=True).values_list("rol", flat=True)) == [
-        Rol.ADMINISTRADOR
+    # DEC-150: solo el superusuario técnico entra al panel; el Administrador del negocio, no.
+    assert list(Usuario.objects.filter(is_staff=True).values_list("username", flat=True)) == [
+        "admin"
     ]
+    negocio = Usuario.objects.get(username="admin_negocio")
+    assert negocio.rol == Rol.ADMINISTRADOR
+    assert not negocio.is_staff and not negocio.is_superuser
 
 
 def test_carga_medios_de_pago_y_cuenta_corriente_no_ingresa_a_caja(desarrollo):

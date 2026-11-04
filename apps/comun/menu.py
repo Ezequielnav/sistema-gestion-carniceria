@@ -93,7 +93,14 @@ FUNCIONES = [
         "camion",
         url="proveedores:proveedores",  # DEC-88; ingresos y pagos en las etapas 3 y 4
     ),
-    Funcion("Reportes", "Ventas, caja y saldos", "CU-09", frozenset({ADMIN, DUENIO}), "grafico"),
+    Funcion(
+        "Reportes",
+        "Ventas, ingresos y cierres",
+        "CU-09",
+        frozenset({ADMIN, DUENIO}),
+        "grafico",
+        url="reportes:inicio",  # DEC-136; los dueños, solo esto (DEC-134)
+    ),
     # DEC-155 (L18): sin entrar al panel, el Administrador mantiene los medios de pago.
     Funcion(
         "Medios de pago",

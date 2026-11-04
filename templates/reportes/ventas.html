@@ -1,0 +1,46 @@
+{% extends "reportes/_reporte.html" %}
+
+{# DEC-140: por fecha y turno de la caja; varias cajas del mismo turno se suman (DEC-83). #}
+{% block reporte %}
+  {% if reporte.dias %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+          <tr>
+            <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
+            <th scope="col" class="px-5 py-3 font-medium">Turno</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Ventas</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+          </tr>
+        </thead>
+        {% for dia in reporte.dias %}
+          <tbody class="divide-y divide-gray-100 border-b border-gray-200">
+            {% for turno in dia.turnos %}
+              <tr>
+                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{% if forloop.first %}{{ dia.fecha|date:"D j/m/Y" }}{% endif %}</td>
+                <td class="px-5 py-3">{{ turno.turno }}</td>
+                <td class="cifras px-5 py-3 text-right">{{ turno.cantidad }}</td>
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ turno.total|floatformat:"2g" }}</td>
+              </tr>
+            {% endfor %}
+            <tr class="bg-gray-50 font-medium">
+              <td class="px-5 py-2.5 text-gray-600" colspan="2">Total del día</td>
+              <td class="cifras px-5 py-2.5 text-right">{{ dia.cantidad }}</td>
+              <td class="cifras px-5 py-2.5 text-right whitespace-nowrap">$ {{ dia.total|floatformat:"2g" }}</td>
+            </tr>
+          </tbody>
+        {% endfor %}
+        <tfoot class="font-semibold">
+          <tr>
+            <td class="px-5 py-3" colspan="2">Total del rango</td>
+            <td class="cifras px-5 py-3 text-right">{{ reporte.cantidad }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.total|floatformat:"2g" }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Sin las ventas anuladas. Incluye las ventas a cuenta corriente.</p>
+  {% else %}
+    {% include "reportes/_sin_registros.html" %}
+  {% endif %}
+{% endblock %}
