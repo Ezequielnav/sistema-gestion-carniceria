@@ -1,6 +1,6 @@
 # SPEC - H5 Reportes y usuarios (CU-09, CU-14)
 
-**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4. Etapas 1 a 4 implementadas.
+**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4. Etapas 1 a 5 implementadas.
 
 Fuente de verdad: `/docs`. Este spec no agrega reglas del negocio. Toma las de CU-09, CU-10 y CU-14 (04), RF-02, RF-03, RF-42 a RF-46 y RNF-09 (03), RN-06 (04), DEC-59, DEC-83 y DEC-86 (09), DEC-133 a DEC-139 (09) y los casos CP-53, CP-60 a CP-63 y CP-74 y el recorrido RM-08 (08). Las preguntas de H5 (PR-25, PR-26, PR-27 y PR-35) están cerradas como **supuestos del proyecto, no datos confirmados por el negocio** (DEC-133). Si el spec cambia después de aprobado, se anota en "Cambios después de aprobar el spec".
 
@@ -151,4 +151,5 @@ El mismo de H2 a H4: vistas finas con `requiere_funcion` y el control del servic
 | CU-14 no le cambia el rol, no desactiva ni le restablece la contraseña a un usuario con acceso al panel | DEC-156 (precisa S-11 y S-12) | 2 |
 | Fecha de cada operación en los reportes: las ventas por la fecha y el turno de su caja (DEC-140), también en ingresos y totales por medio; los cobros, que pueden no tener caja, por la fecha del cobro | DEC-157 (precisa DEC-140, DEC-142 y DEC-143) | 3 |
 | Versiones fijadas: `openpyxl` 3.1.5 y `reportlab` 4.4.4. Producto más vendido exporta todo el ranking (la pantalla pagina de a 25, S-2); sin datos no hay archivo y la pantalla avisa | Precisión de S-7 (DEC-146) | 4 |
+| El filtro de fechas de CU-09 pasa a `apps/comun/forms.py` (`RangoFechasForm`): lo usan los reportes (obligatorio, por defecto hoy), la consulta de ajustes de stock y los listados de ingresos y pagos (opcional). Así `proveedores` no importa `reportes` (R-1, DEC-154) | Precisión de S-13 (DEC-152) | 5 |
 | Los datos de ejemplo suman `admin_negocio`, Administrador sin acceso al panel, además del superusuario técnico `admin` | Pedido del alumno (DEC-150) | 3 |

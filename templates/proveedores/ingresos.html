@@ -16,6 +16,18 @@
   </div>
   {% include "proveedores/_pestanas.html" with activa="ingresos" %}
 
+  {# DEC-139, DEC-152: fechas y proveedor, combinables y conservados al paginar. #}
+  <form method="get" class="mt-6 grid gap-3 sm:grid-cols-[repeat(3,minmax(0,12rem))_auto] sm:items-end" novalidate>
+    {% for campo in form %}
+      <div>
+        <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+        {{ campo }}
+        {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Filtrar</button>
+  </form>
+
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de ingresos">
     {% if pagina.object_list %}
       <div class="overflow-x-auto">
@@ -59,10 +71,10 @@
           <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
             {% endif %}
           </span>
         </nav>
@@ -72,7 +84,7 @@
         <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
           {% include "comun/_icono.html" with nombre="camion" %}
         </span>
-        <p class="mt-3 text-sm font-medium">Todavía no hay ingresos de mercadería</p>
+        <p class="mt-3 text-sm font-medium">{% if form.errors %}Corregí el filtro para ver el listado{% elif filtros %}No hay resultados con ese filtro{% else %}Todavía no hay ingresos de mercadería{% endif %}</p>
       </div>
     {% endif %}
   </section>

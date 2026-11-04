@@ -1,10 +1,10 @@
 from django import forms
 from django.db.models import Q
 from django.forms.models import fields_for_model
-from django.utils import timezone
 
 from apps.catalogo.models import Categoria, MotivoAjuste, Producto, UnidadMedida
 from apps.catalogo.services import CAMPOS_EDITABLES, MOTIVOS_DE_MODIFICACION
+from apps.comun.forms import RangoFechasForm
 
 ETIQUETAS = {
     "nombre": "Nombre",
@@ -96,33 +96,7 @@ class CategoriaForm(forms.Form):
         self.fields["nombre"].widget.attrs["class"] = "campo"
 
 
-class FiltroFechasForm(forms.Form):
-    """Desde y hasta, opcionales; desde no puede ser posterior a hasta ni hasta a hoy
-    (DEC-145)."""
-
-    desde = forms.DateField(
-        label="Desde", required=False, widget=forms.DateInput(attrs={"type": "date"})
-    )
-    hasta = forms.DateField(
-        label="Hasta", required=False, widget=forms.DateInput(attrs={"type": "date"})
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for campo in self.fields.values():
-            campo.widget.attrs["class"] = "campo"
-
-    def clean(self):
-        datos = super().clean()
-        desde, hasta = datos.get("desde"), datos.get("hasta")
-        if hasta and hasta > timezone.localdate():
-            self.add_error("hasta", "La fecha no puede ser posterior a hoy.")
-        if desde and hasta and desde > hasta:
-            self.add_error("desde", "«Desde» no puede ser posterior a «hasta».")
-        return datos
-
-
-class FiltroAjustesForm(FiltroFechasForm):
+class FiltroAjustesForm(RangoFechasForm):
     """Filtro de la consulta de ajustes de stock: fechas y producto (DEC-155)."""
 
     producto = forms.ModelChoiceField(
