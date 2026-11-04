@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.paginator import Paginator
@@ -8,25 +9,39 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.caja.services import hay_caja_del_dia, ingreso_de_cobro
-from apps.clientes.forms import AnularCobroForm, ClienteForm, CobroForm
+from apps.clientes.forms import (
+    AnularCobroForm,
+    AnularSaldoInicialForm,
+    ClienteForm,
+    CobroForm,
+    CondicionesForm,
+    SaldoInicialForm,
+)
 from apps.clientes.services import (
     CAMPOS_EDITABLES,
     anular_cobro,
+    anular_saldo_inicial,
     buscar_para_elegir,
+    cargar_saldo_inicial,
+    cliente_con_cuenta,
     cliente_dado_de_baja,
     cliente_editable,
     cliente_para_elegir,
     cobro_con_detalles,
+    con_anulacion,
     con_cuenta,
     crear_cliente,
     dar_de_baja,
     impedimento_para_anular_cobro,
     listar_clientes,
     modificar_cliente,
+    modificar_condiciones,
+    movimientos_de_cuenta,
     puede_gestionar,
     reactivar,
     registrar_cobro,
     saldo,
+    saldo_inicial_vigente,
 )
 from apps.comun.models import pesos
 from apps.comun.permisos import requiere_funcion
@@ -233,3 +248,101 @@ def cobro_anular(request, pk):
             return redirect("clientes:cobro", pk=cobro.pk)
     cobro = _buscar(lambda clave: cobro_con_detalles(request.user, clave), pk)
     return _detalle_cobro(request, cobro, form, status=400)
+
+
+# CU-08 Gestionar cuentas corrientes: estado de cuenta (S-10, S-11; DEC-109, DEC-115, DEC-119)
+
+
+def _estado(request, pk, formularios=None, status=200):
+    cliente = _buscar(lambda clave: cliente_con_cuenta(request.user, clave), pk)
+    movimientos = movimientos_de_cuenta(request.user, cliente)
+    pagina = Paginator(movimientos, POR_PAGINA).get_page(request.GET.get("pagina"))
+    pagina.object_list = con_anulacion(pagina.object_list)
+    contexto = {
+        "cliente": cliente,
+        "pagina": pagina,
+        "saldo_inicial": saldo_inicial_vigente(cliente),
+        "form_condiciones": CondicionesForm(
+            initial={
+                "limite_credito": cliente.limite_credito,
+                "observaciones": cliente.observaciones,
+            }
+        ),
+        "form_saldo_inicial": SaldoInicialForm(),
+        "form_anular_saldo": AnularSaldoInicialForm(),
+        "plazo": settings.PLAZO_VENCIMIENTO_CUENTA_CORRIENTE_DIAS,
+    }
+    contexto.update(formularios or {})
+    return render(request, "clientes/estado_cuenta.html", contexto, status=status)
+
+
+@requiere_funcion("Clientes")
+@require_GET
+def estado(request, pk):
+    """CU-08: saldo, límite, disponible, alerta de deuda vencida y movimientos (RF-39, RF-40)."""
+    return _estado(request, pk)
+
+
+def _en_el_estado(request, pk, nombre, form, operacion, mensaje):
+    """Aplica la operación del servicio; si la rechaza, vuelve al estado con el error."""
+    if form.is_valid():
+        try:
+            operacion(form.cleaned_data)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, mensaje)
+            return redirect("clientes:estado", pk=pk)
+    return _estado(request, pk, {nombre: form}, status=400)
+
+
+@requiere_funcion("Clientes")
+@require_POST
+def condiciones(request, pk):
+    """RF-41: límite de crédito y observaciones (DEC-108, DEC-112, DEC-115)."""
+    cliente = _buscar(cliente_editable, pk)
+    return _en_el_estado(
+        request,
+        pk,
+        "form_condiciones",
+        CondicionesForm(request.POST),
+        lambda datos: modificar_condiciones(
+            request.user, cliente, datos["limite_credito"], datos["observaciones"]
+        ),
+        "Se guardaron el límite y las observaciones.",
+    )
+
+
+@requiere_funcion("Clientes")
+@require_POST
+def saldo_inicial(request, pk):
+    """CU-08 A4: carga la deuda que el cliente ya tenía (DEC-119, RI-18)."""
+    cliente = _buscar(lambda clave: cliente_con_cuenta(request.user, clave), pk)
+    return _en_el_estado(
+        request,
+        pk,
+        "form_saldo_inicial",
+        SaldoInicialForm(request.POST),
+        lambda datos: cargar_saldo_inicial(
+            request.user, cliente, datos["monto"], datos["fecha_origen"], datos["motivo"]
+        ),
+        "Se cargó el saldo inicial.",
+    )
+
+
+@requiere_funcion("Clientes")
+@require_POST
+def saldo_inicial_anular(request, pk):
+    """Anula el saldo inicial vigente con un movimiento inverso (DEC-119, S-11)."""
+    cliente = _buscar(lambda clave: cliente_con_cuenta(request.user, clave), pk)
+    vigente = saldo_inicial_vigente(cliente)
+    if vigente is None:
+        raise Http404
+    return _en_el_estado(
+        request,
+        pk,
+        "form_anular_saldo",
+        AnularSaldoInicialForm(request.POST),
+        lambda datos: anular_saldo_inicial(request.user, vigente, datos["motivo"]),
+        "Se anuló el saldo inicial.",
+    )

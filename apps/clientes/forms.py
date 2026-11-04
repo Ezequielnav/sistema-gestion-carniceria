@@ -95,3 +95,59 @@ class AnularCobroForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 3, "class": "campo"}),
         error_messages={"required": "Escribí por qué se anula el cobro."},
     )
+
+
+class CondicionesForm(forms.Form):
+    """Límite de crédito y observaciones desde el estado de cuenta (CU-08, RF-41)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.update(
+            fields_for_model(
+                Cliente,
+                fields=["limite_credito", "observaciones"],
+                labels=ETIQUETAS,
+                help_texts=AYUDAS,
+                widgets={"observaciones": forms.Textarea(attrs={"rows": 3})},
+            )
+        )
+        self.fields["limite_credito"].validators.append(NO_NEGATIVO)
+        self.fields["limite_credito"].widget.attrs.update({"min": "0", "step": "0.01"})
+        for campo in self.fields.values():
+            campo.widget.attrs["class"] = "campo"
+
+
+class SaldoInicialForm(forms.Form):
+    """Deuda que el cliente ya tenía al empezar (DEC-119). Las reglas las aplica el servicio."""
+
+    monto = forms.DecimalField(
+        label="Monto",
+        max_digits=12,
+        decimal_places=2,
+        error_messages={"required": "Escribí el monto que debe."},
+        widget=forms.NumberInput(attrs={"class": "campo", "min": "0.01", "step": "0.01"}),
+    )
+    fecha_origen = forms.DateField(
+        label="Fecha de origen",
+        help_text="Desde cuándo la debe: cuenta para la deuda vencida.",
+        error_messages={"required": "Indicá la fecha de origen de la deuda."},
+        widget=forms.DateInput(attrs={"type": "date", "class": "campo"}, format="%Y-%m-%d"),
+    )
+    motivo = forms.CharField(
+        label="Motivo",
+        max_length=255,
+        help_text="Por ejemplo, de dónde sale el monto (libreta, planilla).",
+        error_messages={"required": "Escribí el motivo del saldo inicial."},
+        widget=forms.TextInput(attrs={"class": "campo"}),
+    )
+
+
+class AnularSaldoInicialForm(forms.Form):
+    """Motivo de la anulación del saldo inicial (DEC-119)."""
+
+    motivo = forms.CharField(
+        label="Motivo de la anulación",
+        max_length=255,
+        widget=forms.Textarea(attrs={"rows": 2, "class": "campo"}),
+        error_messages={"required": "Escribí por qué se anula el saldo inicial."},
+    )

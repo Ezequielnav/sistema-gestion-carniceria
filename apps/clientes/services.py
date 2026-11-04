@@ -126,15 +126,15 @@ def validar_limite(cliente, monto):
         )
 
 
-def validar_saldo_suficiente(cliente, monto, que):
+def validar_saldo_suficiente(cliente, monto, de_que):
     """Un abono o una anulación no pueden dejar el saldo por debajo de 0 (DEC-111, DEC-114).
 
-    `que` completa el mensaje: "el cobro", "la venta", "el saldo inicial".
+    `de_que` completa el mensaje: "del cobro", "de la venta", "del saldo inicial".
     """
     saldo_actual = saldo(cliente)
     if monto > saldo_actual:
         raise ValidationError(
-            f"El saldo actual de {cliente} es {pesos(saldo_actual)}, menor al monto de {que} "
+            f"El saldo actual de {cliente} es {pesos(saldo_actual)}, menor al monto {de_que} "
             f"({pesos(monto)}).",
             code="saldo_insuficiente",
         )
@@ -175,7 +175,7 @@ def registrar_anulacion_de_cargo(venta):
     """L1: anular una venta a cuenta corriente revierte su deuda con `ANULACION_VENTA`, en lugar
     del egreso de caja (DEC-113). Se rechaza si el saldo actual es menor al total (DEC-114)."""
     cliente = bloquear_cliente(venta.cliente_id)
-    validar_saldo_suficiente(cliente, venta.monto_total, "la venta")
+    validar_saldo_suficiente(cliente, venta.monto_total, "de la venta")
     return MovimientoCuentaCorriente.objects.create(
         # RI-15: el mismo cliente que la venta.
         cliente=cliente,
@@ -328,7 +328,7 @@ def anular_saldo_inicial(usuario, saldo_inicial, motivo):
             raise ValidationError("Ese movimiento no es un saldo inicial.")
         if saldo_inicial.anulaciones.exists():
             raise ValidationError("El saldo inicial ya está anulado.")
-        validar_saldo_suficiente(cliente, saldo_inicial.monto, "el saldo inicial")
+        validar_saldo_suficiente(cliente, saldo_inicial.monto, "del saldo inicial")
         return MovimientoCuentaCorriente.objects.create(
             # RI-15: el mismo cliente que el saldo inicial que anula.
             cliente=cliente,
@@ -606,3 +606,66 @@ def anular_cobro(usuario, cobro, motivo):
             ]
         )
     return cobro
+
+
+# CU-08 Gestionar cuentas corrientes: estado de cuenta (DEC-109, DEC-112, DEC-115, DEC-119;
+# S-10, S-11). Solo el Administrador.
+
+
+def cliente_con_cuenta(usuario, pk, hoy=None):
+    """El cliente, activo o no, con saldo, deuda vencida, límite y disponible (CU-08)."""
+    _exigir_administrador(usuario, "consulta el estado de cuenta")
+    (cliente,) = con_cuenta([Cliente.objects.get(pk=pk)], hoy)
+    return cliente
+
+
+def movimientos_de_cuenta(usuario, cliente):
+    """Los movimientos del cliente, del más nuevo al más viejo (CU-08, RF-39)."""
+    _exigir_administrador(usuario, "consulta el estado de cuenta")
+    return (
+        MovimientoCuentaCorriente.objects.filter(cliente=cliente)
+        .select_related("venta", "pago_cliente__medio_pago", "saldo_inicial")
+        .order_by("-fecha_hora", "-pk")
+    )
+
+
+def con_anulacion(movimientos):
+    """Marca `anulado` en las ventas, cobros y saldos iniciales que tienen su movimiento inverso,
+    aunque la anulación esté en otra página. `clientes` no importa `ventas` (R-4): una venta
+    está anulada si tiene fecha de anulación (DEC-67)."""
+    movimientos = list(movimientos)
+    saldos = [m.pk for m in movimientos if m.tipo == Tipo.SALDO_INICIAL]
+    anulados = set(
+        MovimientoCuentaCorriente.objects.filter(saldo_inicial_id__in=saldos).values_list(
+            "saldo_inicial_id", flat=True
+        )
+    )
+    for movimiento in movimientos:
+        if movimiento.tipo == Tipo.VENTA_FIADA:
+            movimiento.anulado = movimiento.venta.anulada_en is not None
+        elif movimiento.tipo == Tipo.PAGO:
+            movimiento.anulado = movimiento.pago_cliente.estado == EstadoPagoCliente.ANULADO
+        elif movimiento.tipo == Tipo.SALDO_INICIAL:
+            movimiento.anulado = movimiento.pk in anulados
+        else:
+            movimiento.anulado = False
+        movimiento.suma = movimiento.tipo in TIPOS_QUE_SUMAN
+    return movimientos
+
+
+def modificar_condiciones(usuario, cliente, limite_credito, observaciones):
+    """Límite de crédito y observaciones desde el estado de cuenta (RF-41, DEC-108, DEC-112).
+
+    Como en CU-12, un cliente dado de baja no se modifica: primero se reactiva.
+    """
+    _exigir_administrador(usuario, "modifica límites y condiciones")
+    if not cliente.activo:
+        raise ValidationError(
+            f"{cliente} está dado de baja: para modificarlo, primero hay que reactivarlo.",
+            code="cliente_inactivo",
+        )
+    cliente.limite_credito = limite_credito
+    cliente.observaciones = (observaciones or "").strip()
+    cliente.full_clean()
+    cliente.save(update_fields=["limite_credito", "observaciones", "actualizado_en"])
+    return cliente

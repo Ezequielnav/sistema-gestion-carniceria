@@ -87,9 +87,9 @@
 | RF-36 | El Administrador debe poder registrar el pago de un cliente de cuenta corriente: ver saldo, ingresar monto y medio de pago | Base (CU-04) | Alta | Confirmado; también cobra la cajera (DEC-110, supuesto). Implementado en H4, etapa 4 |
 | RF-37 | Al registrar un pago de cliente, el sistema debe disminuir el saldo adeudado y registrar el ingreso en caja | Base (CU-04) | Alta | Confirmado; el Administrador puede registrarlo sin caja (DEC-110, supuesto). Implementado en H4, etapa 4 |
 | RF-38 | Si el pago supera la deuda, el sistema debe sugerir registrar el excedente como anticipo | Base (CU-04, A1) | Baja | Descartado (DEC-111, supuesto): sin saldo a favor; un cobro mayor al saldo se rechaza |
-| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado; incluye el saldo inicial (DEC-119, supuesto) |
-| RF-40 | El sistema debe mostrar una alerta cuando un cliente tenga deuda vencida | Base (CU-08) | Media | Decidido (DEC-109, supuesto): plazo único de 30 días, solo alerta |
-| RF-41 | El Administrador debe poder editar límites y condiciones de crédito de un cliente, si tiene permiso | Base (CU-08) | Media | Decidido (DEC-108, DEC-112, DEC-117, supuestos): límite opcional; las condiciones van en "Observaciones", texto libre, sin recargos |
+| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado; incluye el saldo inicial (DEC-119, supuesto). Implementado en H4, etapa 5 |
+| RF-40 | El sistema debe mostrar una alerta cuando un cliente tenga deuda vencida | Base (CU-08) | Media | Decidido (DEC-109, supuesto): plazo único de 30 días, solo alerta. Implementado en H4, etapa 5 |
+| RF-41 | El Administrador debe poder editar límites y condiciones de crédito de un cliente, si tiene permiso | Base (CU-08) | Media | Decidido (DEC-108, DEC-112, DEC-117, supuestos): límite opcional; las condiciones van en "Observaciones", texto libre, sin recargos. Implementado en H4, etapa 5 |
 
 ### 2.7 Reportes
 

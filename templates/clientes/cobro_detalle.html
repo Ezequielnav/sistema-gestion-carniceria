@@ -5,7 +5,7 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <a href="{% url 'clientes:clientes' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a clientes</a>
+    <a href="{% url 'clientes:estado' cobro.cliente_id %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver al estado de cuenta</a>
     <div class="mt-2 flex flex-wrap items-center gap-3">
       <h2 class="text-2xl font-semibold tracking-tight">Cobro N.º {{ cobro.pk }}</h2>
       {% if cobro.estado == "ANULADO" %}
@@ -14,7 +14,7 @@
     </div>
 
     <dl class="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-white p-6 text-sm shadow-xs sm:grid-cols-2">
-      <div><dt class="text-gray-500">Cliente</dt><dd class="font-medium">{{ cobro.cliente }}</dd></div>
+      <div><dt class="text-gray-500">Cliente</dt><dd class="font-medium"><a href="{% url 'clientes:estado' cobro.cliente_id %}" class="underline-offset-2 hover:underline">{{ cobro.cliente }}</a></dd></div>
       <div><dt class="text-gray-500">Monto</dt><dd class="cifras font-medium">$ {{ cobro.monto|floatformat:"2g" }}</dd></div>
       <div><dt class="text-gray-500">Medio</dt><dd>{{ cobro.medio_pago }}{% if ingreso %} · caja {{ ingreso.caja.fecha|date:"d/m/Y" }} {{ ingreso.caja.get_turno_display|lower }} ({{ ingreso.caja.get_estado_display|lower }}){% else %} · sin movimiento de caja{% endif %}</dd></div>
       <div><dt class="text-gray-500">Fecha</dt><dd class="cifras">{{ cobro.fecha_hora|date:"d/m/Y H:i" }}</dd></div>

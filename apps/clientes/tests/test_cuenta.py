@@ -189,9 +189,9 @@ def test_cp115_con_limite_cero_no_hay_credito(cliente):
 def test_dec111_un_abono_mayor_al_saldo_se_rechaza(cliente, libro):
     libro.venta("500")
 
-    cuenta.validar_saldo_suficiente(cliente, Decimal("500"), "el cobro")
+    cuenta.validar_saldo_suficiente(cliente, Decimal("500"), "del cobro")
     with pytest.raises(ValidationError) as error:
-        cuenta.validar_saldo_suficiente(cliente, Decimal("500.01"), "el cobro")
+        cuenta.validar_saldo_suficiente(cliente, Decimal("500.01"), "del cobro")
 
     assert error.value.code == "saldo_insuficiente"
 
