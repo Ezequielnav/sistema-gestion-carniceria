@@ -38,7 +38,7 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
 | D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1) | Propuesta | Fácil |
-| D-10 | Reportes PDF y Excel | Diferidos hasta CU-09 | Propuesta | Fácil |
+| D-10 | Reportes PDF y Excel | Diferidos hasta CU-09; se exportan en H5 (DEC-136) con `openpyxl` (Excel) y `reportlab` (PDF), aprobadas para la etapa 4 (DEC-146) | Propuesta | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
 | D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |
@@ -282,7 +282,7 @@ CU-11 se elige para el hito porque no depende de otros casos de uso y ejercita t
 | Aspecto | Decisión |
 |---|---|
 | Contraseñas | Con el sistema de hash del framework, nunca en texto plano (RNF-07) |
-| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02). Cada pantalla se protege con `requiere_funcion`, que usa la tabla del menú: sin sesión redirige al ingreso y sin permiso responde 403. El panel de Django es solo para el Administrador (DEC-32). Qué ve la cajera en el inicio está a confirmar (PR-35) |
+| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02). Cada pantalla se protege con `requiere_funcion`, que usa la tabla del menú: sin sesión redirige al ingreso y sin permiso responde 403. El panel de Django es solo para el Administrador (DEC-32). La cajera ve en el inicio el estado de la caja y accesos a sus operaciones, sin totales, y los dueños solo Reportes (DEC-134, DEC-137, supuestos) |
 | Sesiones | Cookies protegidas y cierre por inactividad. El tiempo está a confirmar (PR-34); mientras tanto queda el valor por defecto de Django (dos semanas). Salir cierra la sesión en el servidor |
 | Formularios | Protección contra falsificación de solicitudes del framework |
 | Base de datos | Consultas por el ORM, que evita la inyección SQL |
@@ -341,7 +341,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | PR-23 | Cantidad de usuarios y dispositivos |
 | PR-29 | Contingencia ante caída de internet |
 | PR-34 | Tiempo de cierre de sesión por inactividad |
-| PR-35 | Qué ve la cajera en el inicio (total del día y últimas ventas, o solo su caja) |
+| PR-35 | Cerrada por decisión de diseño (DEC-137, supuesto): la cajera ve en el inicio el estado de la caja y accesos a sus operaciones, sin totales del negocio |
 
 ## 13. Mantenimiento
 

@@ -42,7 +42,7 @@ Surgen de contradicciones entre las secciones del documento base (ver hallazgos 
 | Control de vencimientos de productos | El documento base lo cita como beneficio esperado, pero no hay caso de uso ni datos para controlarlo (PR-21) | A confirmar |
 | Registro de faltante de stock detectado | Aparece en el diagrama de casos de uso, no en el texto | A confirmar |
 | Gestión de pedidos a proveedores | El modelo de clases los incluye, los casos de uso no (PR-19) | A confirmar |
-| Reportes automáticos al cierre de jornada | Es una meta; el caso de uso describe reportes a pedido (PR-27) | A confirmar |
+| Reportes automáticos al cierre de jornada | Es una meta; el caso de uso describe reportes a pedido (PR-27) | Descartado (DEC-136, supuesto): los reportes son a pedido y el resumen de cierre de CU-03 cubre el cierre de cada turno |
 | Registro de ventas de carne | La carne se vende en el sistema por producto y por kg, sin descontar stock; Kendra sigue afuera | Decidido (DEC-36) |
 
 ## 3. Objetivos
@@ -75,7 +75,7 @@ Desarrollar un sistema de gestión web que centralice y organice la información
 |---|---|---|
 | M-01 | Prototipo funcional del sistema en 2 meses | **Plazo no vigente como fecha:** no hay fecha de entrega fija (PA-01). Se interpreta como el prototipo H1 + H2, que se presenta cuando el alumno decida (ver [07-planificacion.md](07-planificacion.md)) |
 | M-02 | Lograr el registro de ventas y pagos al 100% desde el sistema | Resuelto por DEC-36: las ventas de carne se registran en el sistema como cualquier producto, por kg (H-01) |
-| M-03 | Obtener reportes automáticos de ventas y stock al finalizar cada jornada | **Conflicto:** el caso de uso describe reportes a pedido. Se resuelve con PR-27 (H-13) |
+| M-03 | Obtener reportes automáticos de ventas y stock al finalizar cada jornada | Resuelto por DEC-136 (supuesto del proyecto, H-13): los reportes de CU-09 son a pedido; al cerrar cada caja queda el resumen de cierre de CU-03 (DEC-59) y el stock se consulta en CU-06 |
 
 ## 6. Mapa de módulos
 
@@ -96,11 +96,11 @@ flowchart TB
 
 | Rol | Acceso |
 |---|---|
-| Administrador | Acceso completo |
+| Administrador | Acceso completo; es un rol, no una persona (DEC-134) |
 | Cajera | Registra ventas y pagos, abre y cierra caja y, en algunos casos, agrega productos |
-| Dueños (gerentes) | Consulta de reportes, sin modificar datos operativos |
+| Dueños (gerentes) | Solo los reportes (CU-09), en solo lectura (DEC-134) |
 
-Detalle y pendientes (quién es "Administrador", qué ven los dueños) en [00-contexto.md](00-contexto.md) y PR-25.
+Detalle en [00-contexto.md](00-contexto.md); quién es "Administrador" y qué ven los dueños se decidió como supuesto del proyecto en DEC-134 (PR-25).
 
 ## 8. Supuestos y restricciones
 

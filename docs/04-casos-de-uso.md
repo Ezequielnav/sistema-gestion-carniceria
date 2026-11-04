@@ -20,7 +20,7 @@
 | Cajera | Registra ventas y pagos, abre y cierra caja; en algunos casos agrega productos |
 | Dueños (gerentes) | Acceso en modo consulta a reportes, sin modificar datos operativos |
 
-Quién es exactamente el "Administrador" y qué ven los dueños queda pendiente en PR-25.
+**Decidido como supuesto del proyecto, no confirmado por el negocio (DEC-134, PR-25):** "Administrador" es un rol con acceso completo, sin atarlo a una persona. Los dueños entran en solo lectura y ven únicamente Reportes (CU-09), que incluye la consulta de cierres por fecha (DEC-59). Cada persona tiene su propio usuario (DEC-135).
 
 ### Matriz de actores y casos de uso
 
@@ -33,10 +33,10 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 | CU-03 Cerrar caja por turno | | C | |
 | CU-04 Registrar pago de cliente | C; anula cobros (DEC-113) | C (DEC-110, supuesto) | |
 | CU-05 Registrar ingreso de mercadería | C | | |
-| CU-06 Consultar stock | C | C, solo lectura (DEC-103) | ? (PR-25) |
+| CU-06 Consultar stock | C | C, solo lectura (DEC-103) | |
 | CU-07 Registrar pago a proveedor | C | | |
-| CU-08 Gestionar cuentas corrientes | C | | ? (PR-25) |
-| CU-09 Generar reportes | C | | C (solo consulta) |
+| CU-08 Gestionar cuentas corrientes | C | | |
+| CU-09 Generar reportes | C | | C (solo consulta; lo único que ven, DEC-134) |
 | CU-10 Iniciar sesión | C | C | C |
 | CU-11 Gestionar productos | C | consulta y stock en solo lectura (DEC-103); alta con permiso | |
 | CU-12 Gestionar clientes | C | elige un cliente existente en la venta y el cobro, sin alta (DEC-116) | |
@@ -342,7 +342,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador y cajera, en solo lectura (DEC-103); dueños, a confirmar: PR-25 |
+| Actor principal | Administrador y cajera, en solo lectura (DEC-103); los dueños no acceden (DEC-134) |
 | Requisitos | RF-25, RF-26, RF-28 |
 | Precondiciones | Existen productos registrados |
 | Poscondiciones | Ninguna (solo consulta) |
@@ -360,12 +360,12 @@ flowchart LR
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
 | A1 | Los filtros no devuelven productos | El sistema muestra "Sin productos para el filtro seleccionado" | Propuesta |
-| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; hoy los dueños (PR-25) |
+| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; los dueños (DEC-134) |
 
 **Alcance:** el stock y las alertas son solo de productos no cárnicos; el listado también muestra la carne, como "Sin control" (DEC-105).
 **Implementación (H3, etapa 5, DEC-105):** en `/productos/`, para el Administrador y toda cajera: filtros por categoría, por proveedor (los activos con productos, por la relación inversa de `producto_proveedor`, R-7) y "Solo stock bajo", que se pueden combinar con la búsqueda y se conservan al paginar, y la marca "Stock bajo" en cada fila. La alerta se define una sola vez en el servicio de catálogo (R-8). El inicio del Administrador tiene la tarjeta "Stock bajo" con la cantidad de productos, que lleva al listado filtrado.
-**Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; para la cajera queda pendiente (L9, PR-35).
-**Pendientes:** PR-21 (vencimientos), PR-25 (si los dueños consultan el stock).
+**Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; la cajera no la ve, porque su inicio no muestra totales del negocio (DEC-137, supuesto).
+**Pendientes:** PR-21 (vencimientos). Los dueños no consultan el stock (DEC-134).
 
 ### CU-07 Registrar pago a proveedor
 
@@ -411,7 +411,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador (dueños en consulta, a confirmar: PR-25) |
+| Actor principal | Administrador (los dueños no acceden, DEC-134) |
 | Requisitos | RF-39 a RF-41 |
 | Precondiciones | El cliente está registrado |
 | Poscondiciones | Estado de cuenta actualizado |
@@ -441,10 +441,10 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador; dueños en modo consulta (a confirmar: PR-25) |
-| Requisitos | RF-42 a RF-46 |
+| Actor principal | Administrador; dueños en solo lectura (DEC-134) |
+| Requisitos | RF-42 a RF-45 (RF-46 descartado, DEC-136) |
 | Precondiciones | Existen ventas y pagos registrados |
-| Poscondiciones | Reporte generado (PDF o Excel) y disponible para descarga |
+| Poscondiciones | Reporte visible en pantalla y, si se pide, exportado a Excel o PDF para descargar |
 | Prototipo (referencia v0, a rediseñar) | ![Generar reportes](prototipos/CU-09-generar-reportes.png) |
 
 **Flujo normal (PDF)**
@@ -464,7 +464,9 @@ flowchart LR
 | A1 | No hay datos para el período | El sistema muestra "Sin registros disponibles" | PDF |
 | A2 | La fecha "desde" es posterior a "hasta" | El sistema pide corregir el rango | Propuesta |
 
-**Pendientes:** PR-27 (lista de reportes y si son automáticos o a pedido).
+**Decisiones de diseño (DEC-133):** cuatro reportes, los de RF-42: ventas diarias, producto más vendido, ingresos por día y totales por medio de pago. Son a pedido, con rango de fechas, se ven en pantalla y se exportan a Excel o PDF; ninguno se genera solo (DEC-136, supuesto). CU-09 incluye además la consulta de cierres de caja por fecha (DEC-59), que lleva al reporte de cierre de cada caja. La meta de reportes al cierre la cubre el resumen de cierre de CU-03 (H-13). Lo ven el Administrador y los dueños, en solo lectura (DEC-134).
+
+**Decisiones del spec (SPEC-H5):** ventas diarias por fecha y turno, con las ventas a cuenta corriente (DEC-140); producto más vendido por importe (DEC-141); ingresos por día con las ventas no fiadas y los cobros, sin anuladas, y una columna que separa lo que entró a caja de lo que quedó fuera de caja (DEC-142, supuesto); totales por medio de pago (DEC-143); consulta de cierres (DEC-144); rango por defecto hoy, sin fechas futuras (DEC-145); Excel y PDF (DEC-146).
 
 ### CU-10 Iniciar sesión
 
@@ -492,7 +494,9 @@ flowchart LR
 
 **Implementación (H1):** pantalla propia de ingreso para los tres roles. A1 y A2 muestran el mismo mensaje genérico ("Usuario o contraseña incorrectos."), para no revelar si la cuenta existe o está dada de baja. A3 cierra la sesión con un botón y vuelve al ingreso. Solo el Administrador entra además al panel de administración (DEC-32).
 
-**Pendientes:** PR-26 (usuarios individuales), PR-34 (cierre de sesión por inactividad).
+**Inicio por rol (DEC-137, supuesto, H5):** después de ingresar, la cajera ve el estado de la caja (la caja abierta, o que no hay una) y accesos a Registrar venta, Cobrar cuenta corriente y Cerrar caja, sin totales del negocio. El inicio del Administrador no cambia. El dueño ve en el inicio solo el acceso a Reportes, sin totales (DEC-147).
+
+**Pendientes:** PR-34 (cierre de sesión por inactividad). Cada persona tiene su propio usuario (DEC-135, PR-26).
 
 ### CU-11 Gestionar productos
 
@@ -559,7 +563,8 @@ flowchart LR
 | Poscondiciones | Usuarios actualizados con su rol |
 
 **Flujo normal (alta):** el Administrador crea el usuario, le asigna un rol (Administrador, Cajera o Dueños) y una contraseña inicial; el sistema lo guarda. También permite modificar, dar de baja y restablecer contraseña.
-**Pendientes:** PR-25, PR-26.
+
+**Decisiones de diseño (DEC-133):** un usuario por persona y sin autorregistro: solo el Administrador da de alta usuarios. CU-14 es solo del Administrador: alta con rol y contraseña inicial, edición de los datos y del rol, desactivación (baja lógica: el usuario no puede ingresar, CU-10 A2) y restablecimiento de la contraseña. Un usuario no se borra, porque sus operaciones lo referencian. La auditoría es el usuario que registra cada operación, sin un registro aparte (DEC-135, supuesto). Pantalla y reglas en DEC-149 a DEC-151: los Administradores creados en CU-14 no entran al panel de administración, que queda para el superusuario técnico (DEC-150, supuesto).
 
 ### CU-15 Ajustar stock (integrado a CU-11)
 

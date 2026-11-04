@@ -22,7 +22,7 @@
 |---|---|---|---|---|
 | RF-01 | El sistema debe permitir el inicio de sesión de los usuarios | Base (CU-02, precondición) | Alta | Confirmado |
 | RF-02 | El sistema debe aplicar permisos según el rol: Administrador (acceso completo), Cajera (ventas, pagos, caja, alta de productos con permiso) y Dueños (solo consulta de reportes) | Base (2.2) | Alta | Confirmado |
-| RF-03 | El Administrador debe poder crear, modificar y dar de baja usuarios y asignarles un rol | Propuesta (H-04) | Media | A confirmar (PR-25, PR-26) |
+| RF-03 | El Administrador debe poder crear, modificar y dar de baja usuarios y asignarles un rol | Propuesta (H-04) | Media | Decidido (DEC-134, DEC-135, supuestos): un usuario por persona; solo el Administrador da de alta, edita el rol, desactiva (baja lógica, sin borrado) y restablece la contraseña; sin autorregistro |
 
 ### 2.2 Caja
 
@@ -95,11 +95,11 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-42 | El sistema debe generar reportes de ventas diarias, producto más vendido, ingresos por día y totales por medio de pago | Base (2.1, CU-09) | Alta | Confirmado (lista final: PR-27) |
-| RF-43 | El usuario debe poder indicar rango de fechas y formato de exportación (PDF o Excel) y descargar el reporte | Base (CU-09) | Media | Confirmado |
+| RF-42 | El sistema debe generar reportes de ventas diarias, producto más vendido, ingresos por día y totales por medio de pago | Base (2.1, CU-09) | Alta | Confirmado; lista decidida (DEC-136, supuesto): estos cuatro reportes, a pedido. Qué cuenta cada uno: DEC-140 a DEC-143; los ingresos son ventas no fiadas y cobros, sin anuladas, separando lo que entró a caja (DEC-142) |
+| RF-43 | El usuario debe poder indicar rango de fechas y formato de exportación (PDF o Excel) y descargar el reporte | Base (CU-09) | Media | Confirmado; el reporte también se ve en pantalla (DEC-136); Excel con `openpyxl` y PDF con `reportlab` (DEC-146) |
 | RF-44 | Si no hay datos en el período, el sistema debe mostrar "Sin registros disponibles" | Base (CU-09, A1) | Baja | Confirmado |
-| RF-45 | Los Dueños deben poder consultar los reportes sin modificar datos operativos | Base (2.2) | Alta | Confirmado |
-| RF-46 | El sistema debe generar reportes de ventas y stock automáticamente al finalizar cada jornada | Base (meta) | Media | A confirmar (PR-27) |
+| RF-45 | Los Dueños deben poder consultar los reportes sin modificar datos operativos | Base (2.2) | Alta | Confirmado; los Dueños ven solo los reportes, incluida la consulta de cierres por fecha (DEC-134, supuesto) |
+| RF-46 | El sistema debe generar reportes de ventas y stock automáticamente al finalizar cada jornada | Base (meta) | Media | Descartado (DEC-136, supuesto): los reportes son a pedido; el resumen de cierre de CU-03 cubre el cierre de cada turno y el stock se consulta en CU-06 |
 
 ### 2.8 Datos iniciales
 
@@ -119,7 +119,7 @@
 | RNF-06 | Seguridad | El acceso requiere autenticación y las funciones se restringen por rol | Base (2.2) | Alta | Confirmado |
 | RNF-07 | Seguridad | Las contraseñas no deben almacenarse en texto plano | Propuesta | Alta | Propuesta |
 | RNF-08 | Seguridad | Los datos de clientes y saldos deben protegerse de accesos no autorizados | Propuesta | Alta | Propuesta |
-| RNF-09 | Integridad | Una caja cerrada no debe poder modificarse; los movimientos deben registrar fecha y usuario | Base (CU-03) y propuesta | Alta | Confirmado en el bloqueo; auditoría: propuesta |
+| RNF-09 | Integridad | Una caja cerrada no debe poder modificarse; los movimientos deben registrar fecha y usuario | Base (CU-03) y propuesta | Alta | Confirmado en el bloqueo; auditoría decidida (DEC-135, supuesto): el usuario que registra cada operación, sin registro de auditoría aparte |
 | RNF-10 | Integridad | Las operaciones que afectan varias tablas (venta, ingreso de mercadería, pagos) deben completarse enteras o no aplicarse | Propuesta | Alta | Propuesta |
 | RNF-11 | Respaldo | Debe haber copias de seguridad periódicas de la base de datos | Propuesta | Alta | A confirmar (frecuencia) |
 | RNF-12 | Rendimiento | Las operaciones de mostrador (buscar producto, registrar venta) deben responder de forma fluida; los reportes en un tiempo razonable | Propuesta | Media | A definir (umbral) |
@@ -155,8 +155,6 @@ Los requisitos "A confirmar" dependen de las brechas de [01-relevamiento.md](01-
 | Requisito | Brecha | Qué se necesita saber |
 |---|---|---|
 | RF-34 | PR-19 | Si los pedidos a proveedores se gestionan en el sistema |
-| RF-03, RF-45 | PR-25 | Quién es el Administrador y qué ven los dueños |
-| RF-46 | PR-27 | Reportes automáticos o a pedido |
 
 ## 6. Mantenimiento
 
