@@ -50,7 +50,7 @@ Estas preguntas **no repiten el relevamiento**: cubren lo que el alcance ampliad
 | Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32, PR-37 |
 | Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35, PR-36 |
 
-Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 para H2 y DEC-78 para H3 en [09-decisiones.md](09-decisiones.md); son supuestos del proyecto, no datos confirmados por el negocio). La columna "Documentos afectados" indica qué actualizar al responder.
+Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 para H2, DEC-78 para H3 y DEC-107 para H4 en [09-decisiones.md](09-decisiones.md); son supuestos del proyecto, no datos confirmados por el negocio). La columna "Documentos afectados" indica qué actualizar al responder.
 
 ### 3.1 Ventas y carne
 
@@ -73,7 +73,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-09 | ¿Se necesita pagar una misma venta con más de un medio? | Una venta con un solo medio de pago o varios | 04, 05 | **Cerrada por decisión de diseño:** DEC-42 (DEC-35) |
 | PR-10 | ¿Qué egresos de caja existen (gastos, retiros, pagos a proveedores)? | Tipos de egreso | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-43 (DEC-35); la reversa de una venta anulada usa el concepto `ANULACION` (DEC-68) |
 | PR-30 | Si se carga mal una venta o un movimiento de caja, ¿cómo se corrige hoy (anular, contra-asiento, editar) y quién lo autoriza? | Ningún caso de uso cubre anulaciones ni correcciones; define si el modelo necesita estados o movimientos de reversa | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-45 (DEC-35) |
-| PR-31 | ¿Qué datos de contacto se guardan de clientes y proveedores (teléfono, mail, dirección, identificación fiscal)? | Define los campos de cliente y proveedor | 03, 05 | Pendiente |
+| PR-31 | ¿Qué datos de contacto se guardan de clientes y proveedores (teléfono, mail, dirección, identificación fiscal)? | Define los campos de cliente y proveedor | 03, 05 | **Cerrada por decisión de diseño:** DEC-117 (DEC-107): cliente con nombre obligatorio y teléfono, dirección y observaciones opcionales (observaciones reúne las condiciones de crédito); proveedores sin cambios |
 | PR-32 | ¿Se hacen conteos de inventario o ajustes de stock (mermas, roturas, diferencias)? ¿Quién los autoriza? | Define si hace falta un caso de uso de ajuste de stock | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-98 (supuesto del proyecto): el Administrador edita el stock al crear o modificar un producto (CU-11) y cada cambio queda registrado como ajuste |
 | PR-33 | ¿Quién asume el costo mensual del servicio donde se aloje el sistema (hosting, base de datos, copias de seguridad)? ¿Hay un presupuesto? | Condiciona qué opciones de alojamiento son viables | 06, 07 | Pendiente |
 
@@ -81,12 +81,12 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 
 | ID | Pregunta | Por qué importa | Documentos afectados | Estado |
 |---|---|---|---|---|
-| PR-11 | ¿Aproximadamente cuántos clientes tienen cuenta corriente y cómo se registra hoy? | Volumen y migración | 05, 06 | Pendiente |
-| PR-12 | ¿Existe un límite de crédito por cliente? ¿Quién lo define? | Gestionar cuentas corrientes | 03, 04, 05 | Pendiente |
-| PR-13 | ¿Cuál es el plazo para considerar una deuda vencida? | Alerta de deuda vencida | 03, 04 | Pendiente |
-| PR-14 | ¿Quién cobra los pagos de cuenta corriente: solo el administrador o también la cajera? | Permisos del caso de uso | 03, 04 | Pendiente |
-| PR-15 | ¿Se aceptan pagos adelantados (saldo a favor)? | Documento actual prevé "anticipo" pero el modelo no lo contempla | 04, 05 | Pendiente |
-| PR-16 | ¿Se aplican recargos o intereses a deudas vencidas? | Reglas de saldo | 03, 05 | Pendiente |
+| PR-11 | ¿Aproximadamente cuántos clientes tienen cuenta corriente y cómo se registra hoy? | Volumen y migración | 05, 06 | **Cerrada por decisión de diseño:** DEC-118 (DEC-107): decenas a pocos cientos; los saldos existentes se cargan como saldo inicial (DEC-119) |
+| PR-12 | ¿Existe un límite de crédito por cliente? ¿Quién lo define? | Gestionar cuentas corrientes | 03, 04, 05 | **Cerrada por decisión de diseño:** DEC-108 (DEC-107) |
+| PR-13 | ¿Cuál es el plazo para considerar una deuda vencida? | Alerta de deuda vencida | 03, 04 | **Cerrada por decisión de diseño:** DEC-109 (DEC-107) |
+| PR-14 | ¿Quién cobra los pagos de cuenta corriente: solo el administrador o también la cajera? | Permisos del caso de uso | 03, 04 | **Cerrada por decisión de diseño:** DEC-110 (DEC-107) |
+| PR-15 | ¿Se aceptan pagos adelantados (saldo a favor)? | Documento actual prevé "anticipo" pero el modelo no lo contempla | 04, 05 | **Cerrada por decisión de diseño:** DEC-111 (DEC-107): sin saldo a favor |
+| PR-16 | ¿Se aplican recargos o intereses a deudas vencidas? | Reglas de saldo | 03, 05 | **Cerrada por decisión de diseño:** DEC-112 (DEC-107): sin recargos; posible mejora futura |
 
 ### 3.4 Stock, proveedores y precios
 
@@ -109,7 +109,7 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 | PR-25 | ¿Quién es el "Administrador": el administrativo, los dueños u otra persona? ¿Qué ven los dueños? | Roles y permisos | 00, 03, 04 | Pendiente para quién es el Administrador y qué ven los dueños; la consulta de stock de la cajera se decidió en DEC-103 |
 | PR-26 | ¿Cada persona tendrá su propio usuario y contraseña? | Seguridad y auditoría | 03, 06 | Pendiente |
 | PR-27 | ¿Qué reportes se necesitan, con qué frecuencia y en qué formato? ¿Deben generarse solos al cierre o a pedido? | La meta dice "automáticos"; el caso de uso, "a pedido" | 02, 03, 04 | Pendiente |
-| PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente |
+| PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente. Los saldos que los clientes ya deben al empezar no dependen de esta pregunta: se cargan como saldo inicial (DEC-119) |
 | PR-29 | Si falla internet en el local, ¿qué debería poder hacerse? | Internet es bueno, pero conviene definir contingencia | 03, 06 | Pendiente |
 | PR-34 | ¿Después de cuánto tiempo sin uso se debe cerrar la sesión? | Seguridad en una PC compartida del mostrador; mientras tanto queda el valor por defecto de Django | 06 | Pendiente |
 | PR-35 | ¿La cajera debe ver en el inicio el total vendido del día y las últimas ventas, o solo el estado de su caja? | Hoy el inicio lo muestra a todos los roles; relacionado con PR-25 | 04, 06 | Pendiente |
@@ -140,7 +140,7 @@ Inconsistencias detectadas al revisar el documento de trabajo. Cada una indica q
 | H-05 | Medios de pago: se listan cinco, el caso de uso dice "efectivo, débito, etc." y la caja solo totaliza efectivo, tarjeta y transferencia | Resuelto por DEC-41 (ex PR-08) | 03, 04, 05 |
 | H-06 | Pago a proveedor valida "disponibilidad en caja", pero un pago por transferencia no sale de la caja del turno | Resuelto por DEC-80 (ex PR-17) | 04 |
 | H-07 | El modelo incluye pedidos a proveedor, sin caso de uso asociado; "factura" aparece en un caso de uso sin estar modelada | Facturas: resuelto por DEC-81 (ex PR-18), el remito o la factura se anota en `observacion`. Pedidos: definir tras PR-19 | 04, 05 |
-| H-08 | Anticipo, deuda vencida, límites y condiciones están en los casos de uso pero no en el modelo | Agregar entidades de cuenta corriente y movimientos | 04, 05 |
+| H-08 | Anticipo, deuda vencida, límites y condiciones están en los casos de uso pero no en el modelo | Agregar entidades de cuenta corriente y movimientos. Resuelto por DEC-108 (límite), DEC-109 (deuda vencida calculada), DEC-111 (sin anticipo) y DEC-112 y DEC-117 (condiciones dentro de observaciones, texto libre) | 04, 05 |
 | H-09 | Modelo de clases: turno duplicado en venta y caja, un único medio de pago por venta, saldo de cliente derivable, falta plus interno, categoría y unidad de medida, rol repetido en empleado y usuario, multiplicidades mal escritas | Rediseñar el modelo | 05 |
 | H-10 | Diagrama de casos de uso: flechas de extend invertidas; se escribe "include", no "includes"; "Stock actualizado" no es un caso de uso; "Crear cliente" no tiene sentido en el pago de cuenta corriente; el texto de los casos no menciona los include/extend | Rehacer el diagrama en Mermaid | 04 |
 | H-11 | Prototipo de venta sin selección de cliente ni cuenta corriente | Actualizar prototipo | prototipos |

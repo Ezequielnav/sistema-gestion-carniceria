@@ -20,6 +20,9 @@
 
   // producto id -> { producto, cantidad (texto) }
   const lineas = new Map();
+  // SC-03 (DEC-123): el cliente elegido con SC-01 cuando el medio es cuenta corriente.
+  let cliente = null;
+  let totalActual = 0;
 
   // La venta en curso se guarda en la pestaña, por usuario, hasta confirmarla o vaciarla.
   let almacen = null;
@@ -33,7 +36,11 @@
     : { guardar() {}, leer: () => null, borrar() {} };
 
   function persistir() {
-    guardada.guardar([...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })), medio.value);
+    guardada.guardar(
+      [...lineas.values()].map(({ producto, cantidad }) => ({ producto, cantidad })),
+      medio.value,
+      cliente,
+    );
   }
 
   function subtotal(linea) {
@@ -146,6 +153,8 @@
       aviso.classList.toggle("hidden", !aviso.textContent);
     }
     total.textContent = `$ ${pesos.format(suma)}`;
+    totalActual = suma;
+    cuentaCorriente.dibujar();
     persistir();
   }
 
@@ -366,7 +375,97 @@
     });
   }
 
-  medio.addEventListener("change", persistir);
+  // SC-03: con el medio cuenta corriente se elige el cliente (SC-01). El servidor vuelve a
+  // validar cliente, límite y saldo al confirmar (DEC-47, DEC-108).
+  const cuentaCorriente = (function () {
+    const bloque = document.getElementById("cuenta-corriente");
+    if (!bloque) return { dibujar() {}, mostrar() {}, refrescar() {}, activo: () => false };
+    const elegir = document.getElementById("elegir-cliente");
+    const buscarCliente = document.getElementById("buscar-cliente");
+    const lista = document.getElementById("clientes");
+    const elegido = document.getElementById("cliente-elegido");
+    const campos = {
+      nombre: document.getElementById("cliente-nombre"),
+      saldo: document.getElementById("cliente-saldo"),
+      limite: document.getElementById("cliente-limite"),
+      disponible: document.getElementById("cliente-disponible"),
+      disponibleTitulo: document.getElementById("cliente-disponible-titulo"),
+      vencida: document.getElementById("cliente-vencida"),
+      aviso: document.getElementById("cliente-aviso"),
+    };
+    function elegirCliente(c) {
+      cliente = c;
+      mostrarErrores([]);
+      dibujar();
+      persistir();
+      confirmar.focus();
+    }
+
+    function dibujar() {
+      const visible = activo();
+      bloque.classList.toggle("hidden", !visible);
+      elegir.classList.toggle("hidden", Boolean(cliente));
+      elegido.classList.toggle("hidden", !cliente);
+      if (!visible || !cliente) return;
+      const resumen = resumenDeCliente(cliente, totalActual);
+      campos.nombre.textContent = cliente.nombre;
+      campos.saldo.textContent = resumen.saldo;
+      campos.limite.textContent = resumen.limite;
+      campos.disponible.textContent = resumen.disponible || "";
+      campos.disponible.classList.toggle("hidden", !resumen.disponible);
+      campos.disponibleTitulo.classList.toggle("hidden", !resumen.disponible);
+      campos.vencida.textContent = resumen.vencida || "";
+      campos.vencida.classList.toggle("hidden", !resumen.vencida);
+      campos.aviso.textContent = resumen.aviso || "";
+      campos.aviso.classList.toggle("hidden", !resumen.aviso);
+    }
+
+    function activo() {
+      return medio.value !== "" && medio.value === raiz.dataset.cuentaCorriente;
+    }
+
+    // Una venta guardada en la pestaña trae el cliente con datos de antes: se vuelven a pedir.
+    async function refrescar() {
+      if (!cliente) return;
+      const anterior = cliente;
+      const datos = await consultarClientes(raiz.dataset.clientes, anterior.nombre);
+      const actual = datos.resultados.find((c) => c.id === anterior.id) || null;
+      if (cliente === anterior) {
+        cliente = actual;
+        dibujar();
+        persistir();
+      }
+    }
+
+    // SC-01 con la navegación del buscador de productos (DEC-97).
+    crearElegirCliente({
+      entrada: buscarCliente,
+      lista,
+      url: raiz.dataset.clientes,
+      alElegir: elegirCliente,
+    });
+    document.getElementById("cambiar-cliente").addEventListener("click", () => {
+      cliente = null;
+      dibujar();
+      persistir();
+      buscarCliente.focus();
+    });
+
+    return {
+      dibujar,
+      mostrar() {
+        dibujar();
+        if (activo() && !cliente) buscarCliente.focus();
+      },
+      refrescar,
+      activo,
+    };
+  })();
+
+  medio.addEventListener("change", () => {
+    cuentaCorriente.mostrar();
+    persistir();
+  });
 
   // Avisa antes de salir de la pantalla con productos cargados.
   window.addEventListener("beforeunload", (evento) => {
@@ -380,6 +479,7 @@
     lineas.clear();
     guardada.borrar();
     medio.value = "";
+    cliente = null;
     cerrarLista();
     mostrarErrores([]);
     dibujar();
@@ -395,6 +495,8 @@
       csrfmiddlewaretoken: csrf,
       medio_pago: medio.value,
       lineas: JSON.stringify(lista),
+      // Solo con cuenta corriente; con otro medio el servidor no lo usa (SC-03).
+      cliente: cuentaCorriente.activo() && cliente ? String(cliente.id) : "",
     });
     confirmar.disabled = true;
     try {
@@ -421,6 +523,8 @@
   if (previa) {
     for (const linea of previa.lineas) lineas.set(linea.producto.id, linea);
     if ([...medio.options].some((opcion) => opcion.value === previa.medio)) medio.value = previa.medio;
+    cliente = previa.cliente;
   }
   dibujar();
+  cuentaCorriente.refrescar();
 })();

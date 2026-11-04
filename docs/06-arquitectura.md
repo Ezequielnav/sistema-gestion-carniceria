@@ -140,6 +140,9 @@ flowchart LR
     proveedores --> catalogo
     proveedores --> caja
     proveedores --> usuarios
+    ventas --> clientes
+    clientes --> caja
+    clientes --> usuarios
     comun --> caja
     comun --> catalogo
     comun --> ventas
@@ -147,6 +150,10 @@ flowchart LR
 ```
 
 `caja` y `catalogo` nunca importan servicios de `ventas` ni de `proveedores` (DEC-96). El stock y las cantidades se cambian y validan solo en `catalogo` (`mover_stock`, `validar_cantidad`), y la consulta de stock (CU-06) filtra por proveedor por la relación inversa de `producto_proveedor`, sin usar servicios de `proveedores`. `comun` depende de los otros módulos solo para la navegación y el inicio (menú, permisos y resumen del día); ningún módulo de negocio depende de `comun` salvo por el modelo base y `requiere_funcion`. Las relaciones entre modelos de distintos módulos (por ejemplo, `venta` y `movimiento_caja` se referencian mutuamente) son parte del modelo de datos ([05-modelo-datos.md](05-modelo-datos.md)) y no cuentan como dependencia entre servicios.
+
+Con H4 (DEC-131, R-4 del spec de H4) la cadena de la cuenta corriente va en un solo sentido: `ventas` → `clientes` → `caja`. `clientes` concentra saldo, disponible, deuda vencida, límite de crédito y saldo inicial (R-3) y nunca importa `ventas`; `caja` no importa `clientes` ni `ventas`. Una prueba de estructura (`apps/comun/tests/test_estructura.py`) lo verifica sobre el código de cada módulo, sin sus pruebas, que sí pueden armar ventas para probar la caja.
+
+**Orden de bloqueos (DEC-128):** las operaciones que se pueden cruzar bloquean sus filas con `select_for_update`, siempre en el mismo orden: primero la caja, después el cliente y por último los productos, ordenados por id. Así dos operaciones nunca se esperan una a la otra en sentidos opuestos (el problema de DF-03). La venta a cuenta corriente y el cobro bloquean al cliente para validar el límite o el saldo actual; la anulación de una venta bloquea, en este orden, la caja, la venta y el cliente, para validar el saldo (DEC-114, DEC-128). La anulación de un cobro bloquea la caja de su ingreso (si entró a caja), el cobro y el cliente, en ese orden (DEC-128). El cierre de caja bloquea solo la caja; una prueba con dos hilos verifica que un cobro, o su anulación, y el cierre no se cruzan (CP-120). Una prueba con dos hilos verifica que dos ventas a cuenta corriente del mismo cliente no pasan juntas el límite (`apps/ventas/tests/test_concurrencia_cuenta_corriente.py`).
 
 ## 4. Módulos y su relación con el modelo
 
@@ -200,7 +207,7 @@ sistema-gestion-carniceria/
 └── .claude/settings.json      permisos de Claude Code
 ```
 
-Hoy `proveedores` y `clientes` solo tienen modelos (sus servicios y pantallas llegan en H3 y H4), y `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
+`proveedores` tiene sus servicios y pantallas desde H3. `clientes` tiene desde la etapa 1 de H4 el servicio de cuenta corriente (saldo, deuda vencida y saldo inicial); desde la etapa 2, la gestión de clientes (CU-12) y la búsqueda para elegir un cliente (SC-01), desde la etapa 3, el cargo y la anulación de la venta a cuenta corriente, que `ventas` usa (SC-03), y desde la etapa 4, el cobro y su anulación (CU-04), con las funciones públicas de caja para su ingreso y su reversa (R-1); y desde la etapa 5, el estado de cuenta (CU-08) con la carga y anulación del saldo inicial. `reportes` todavía no existe (H5). La estructura se ajusta durante el desarrollo; lo importante es que cada módulo mantenga las capas separadas y sus pruebas junto al código.
 
 ## 5. Entorno local
 

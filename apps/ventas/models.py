@@ -16,7 +16,7 @@ class Venta(ModeloBase):
     fecha_hora = models.DateTimeField(default=timezone.now)
     caja = models.ForeignKey("caja.Caja", on_delete=models.PROTECT)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    # Obligatorio si el medio de pago es cuenta corriente (a confirmar: PR-12).
+    # Obligatorio si el medio de pago es cuenta corriente (DEC-108, RI-05).
     cliente = models.ForeignKey("clientes.Cliente", on_delete=models.PROTECT, null=True, blank=True)
     # Un solo medio por venta (DEC-42).
     medio_pago = models.ForeignKey("caja.MedioPago", on_delete=models.PROTECT)

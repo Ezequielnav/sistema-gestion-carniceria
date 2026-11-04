@@ -55,6 +55,10 @@
         <span>Total</span><span class="cifras">$ {{ venta.monto_total|floatformat:"2g" }}</span>
       </p>
       <p class="mt-1">Medio de pago: {{ venta.medio_pago }}</p>
+      {% if venta.cliente %}
+        {# S-5 (DEC-124): el cliente, sin su saldo: el ticket puede quedar a la vista. #}
+        <p>Cliente: {{ venta.cliente.nombre }}</p>
+      {% endif %}
       <p class="mt-4 text-center text-xs">No válido como factura</p>
     </section>
 

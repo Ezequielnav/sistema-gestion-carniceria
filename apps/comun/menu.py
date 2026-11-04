@@ -1,7 +1,7 @@
 """Menú de funciones por rol (RF-02, H1.4).
 
 Solo incluye lo confirmado (C) en la matriz de actores de 04 (sección 2). Los casos
-marcados "a confirmar" (PR-14, los dueños en PR-25) se agregan cuando el negocio los confirme.
+marcados "a confirmar" (los dueños, PR-25) se agregan cuando el negocio los confirme.
 """
 
 from dataclasses import dataclass
@@ -58,6 +58,15 @@ FUNCIONES = [
         "billetera",
         url="caja:caja",
     ),
+    # S-2 (DEC-121): la cajera cobra cuentas corrientes, sin gestionar clientes (DEC-110, DEC-116).
+    Funcion(
+        "Cobrar cuenta corriente",
+        "Cobrar a clientes en la caja",
+        "CU-04 (DEC-110)",
+        frozenset({CAJERA}),
+        "billetera",
+        url="clientes:cobrar",
+    ),
     # DEC-103: toda cajera consulta productos y stock; el alta sigue con permiso (RN-05).
     # DEC-105: la consulta de stock (CU-06) vive acá, sin función propia en el menú.
     Funcion(
@@ -74,6 +83,7 @@ FUNCIONES = [
         "CU-04, CU-08, CU-12",
         frozenset({ADMIN}),
         "personas",
+        url="clientes:clientes",  # S-2 (DEC-121); estado de cuenta y cobro en las etapas 4 y 5
     ),
     Funcion(
         "Proveedores",

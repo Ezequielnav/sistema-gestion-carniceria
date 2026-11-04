@@ -309,6 +309,110 @@ def registrar_reversa_pago_proveedor(pago, usuario, motivo):
     )
 
 
+# SC-02 para CU-04: ingreso de un cobro a cliente y su reversa (R-1, DEC-110, DEC-113).
+# Caja no conoce a `clientes` (R-4): recibe el cobro y usa solo sus campos.
+
+
+def caja_del_dia_bloqueada():
+    """La caja abierta de hoy, bloqueada (DEC-128: primero la caja). Sin caja abierta, o con la
+    de otro día (como DEC-50), se rechaza."""
+    caja = _caja_abierta_bloqueada()
+    if es_de_otro_dia(caja):
+        raise ValidationError(
+            "La caja abierta es de otro día: hay que cerrarla y abrir la de hoy.",
+            code="caja_de_otro_dia",
+        )
+    return caja
+
+
+def hay_caja_del_dia():
+    """Si hay una caja abierta de hoy, para ofrecer "Entra a la caja abierta" (S-6)."""
+    caja = caja_abierta()
+    return caja is not None and not es_de_otro_dia(caja)
+
+
+def registrar_ingreso_cobro(pago, usuario, caja):
+    """Ingreso `PAGO_CLIENTE` del cobro con su medio, en la caja del día ya bloqueada (RN-04)."""
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        fecha_hora=pago.fecha_hora,
+        tipo=TipoMovimientoCaja.INGRESO,
+        monto=pago.monto,
+        medio_pago=pago.medio_pago,
+        concepto=ConceptoMovimientoCaja.PAGO_CLIENTE,
+        pago_cliente=pago,
+        usuario=usuario,
+    )
+
+
+def ingreso_de_cobro(pago):
+    """El ingreso de caja de un cobro, o None si no entró a caja (DEC-110)."""
+    return (
+        MovimientoCaja.objects.filter(
+            pago_cliente=pago, concepto=ConceptoMovimientoCaja.PAGO_CLIENTE
+        )
+        .select_related("caja", "medio_pago")
+        .first()
+    )
+
+
+def caja_de_cobro_bloqueada(pago):
+    """La caja donde entró el cobro, bloqueada; tiene que seguir abierta, aunque sea de otro día
+    (DEC-113, mismo criterio que DEC-92 y DEC-72)."""
+    ingreso = ingreso_de_cobro(pago)
+    caja = Caja.objects.select_for_update().get(pk=ingreso.caja_id)
+    if caja.estado != EstadoCaja.ABIERTA:
+        raise ValidationError(
+            "La caja de este cobro ya se cerró: un cobro que entró a caja se anula solo con su "
+            "caja abierta.",
+            code="caja_cerrada",
+        )
+    return caja
+
+
+def registrar_reversa_cobro(pago, usuario, motivo, caja):
+    """Egreso `ANULACION_COBRO` que revierte el ingreso de un cobro anulado (DEC-113).
+
+    En la caja del ingreso, ya bloqueada con `caja_de_cobro_bloqueada`. En efectivo no puede
+    dejar el efectivo esperado por debajo de 0 (DEC-69). El ingreso no se toca.
+    """
+    ingreso = ingreso_de_cobro(pago)
+    medio = ingreso.medio_pago
+    if medio.es_efectivo:
+        disponible = _esperado(caja, medio)
+        if ingreso.monto > disponible:
+            raise ValidationError(
+                f"En la caja hay {pesos(max(disponible, Decimal('0')))} en efectivo: no alcanza "
+                f"para devolver {pesos(ingreso.monto)}.",
+                code="sin_efectivo_suficiente",
+            )
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        tipo=TipoMovimientoCaja.EGRESO,
+        monto=ingreso.monto,
+        medio_pago=medio,
+        concepto=ConceptoMovimientoCaja.ANULACION_COBRO,
+        pago_cliente=pago,
+        usuario=usuario,
+        descripcion=motivo,
+    )
+
+
+def movimientos_de_cobros(caja):
+    """Cobros a clientes y sus reversas, para explicar lo esperado en el cierre (S-8)."""
+    return list(
+        MovimientoCaja.objects.filter(
+            caja=caja,
+            concepto__in=[
+                ConceptoMovimientoCaja.PAGO_CLIENTE,
+                ConceptoMovimientoCaja.ANULACION_COBRO,
+            ],
+        )
+        .select_related("pago_cliente__cliente", "medio_pago")
+        .order_by("fecha_hora", "pk")
+    )
+
+
 # CU-03 Cerrar caja (RF-07, RF-08, RF-09, RI-10, DEC-38, DEC-40, DEC-56)
 
 

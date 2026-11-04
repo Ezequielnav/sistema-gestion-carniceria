@@ -59,7 +59,7 @@
               <td class="cifras px-5 py-3 whitespace-nowrap">{{ venta.fecha_hora|date:"d/m/Y H:i" }}</td>
               <td class="px-5 py-3 whitespace-nowrap">{{ venta.caja.fecha|date:"d/m" }} {{ venta.caja.get_turno_display|lower }}{% if venta.caja.estado == "ABIERTA" %} <span class="text-xs text-gray-500">(abierta)</span>{% endif %}</td>
               <td class="px-5 py-3">{{ venta.usuario.get_full_name }}</td>
-              <td class="px-5 py-3">{{ venta.medio_pago }}</td>
+              <td class="px-5 py-3">{{ venta.medio_pago }}{% if venta.cliente %}<span class="block text-xs text-gray-500">{{ venta.cliente.nombre }}</span>{% endif %}</td>
               <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap {% if venta.estado == 'ANULADA' %}line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
               <td class="px-5 py-3">
                 {% if venta.estado == "ANULADA" %}

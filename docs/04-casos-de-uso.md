@@ -31,7 +31,7 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 | CU-01 Registrar venta | historial de ventas y anular (DEC-45, DEC-86) | C | |
 | CU-02 Abrir caja por turno | | C | |
 | CU-03 Cerrar caja por turno | | C | |
-| CU-04 Registrar pago de cliente | C | ? (PR-14) | |
+| CU-04 Registrar pago de cliente | C; anula cobros (DEC-113) | C (DEC-110, supuesto) | |
 | CU-05 Registrar ingreso de mercadería | C | | |
 | CU-06 Consultar stock | C | C, solo lectura (DEC-103) | ? (PR-25) |
 | CU-07 Registrar pago a proveedor | C | | |
@@ -39,7 +39,7 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 | CU-09 Generar reportes | C | | C (solo consulta) |
 | CU-10 Iniciar sesión | C | C | C |
 | CU-11 Gestionar productos | C | consulta y stock en solo lectura (DEC-103); alta con permiso | |
-| CU-12 Gestionar clientes | C | ? | |
+| CU-12 Gestionar clientes | C | elige un cliente existente en la venta y el cobro, sin alta (DEC-116) | |
 | CU-13 Gestionar proveedores | C | | |
 | CU-14 Gestionar usuarios | C | | |
 
@@ -127,7 +127,7 @@ flowchart LR
     SC04 -. "«extend» stock insuficiente" .-> CU01
     CU11 -. "«extend» producto no encontrado" .-> CU01
     CU11 -. "«extend» producto nuevo" .-> CU05
-    CU12 -. "«extend» cliente no existe" .-> SC01
+    CU12 -. "«extend» cliente no existe (solo Administrador)" .-> SC01
 ```
 
 ### 3.3 Qué cambió respecto del diagrama del documento base
@@ -157,11 +157,11 @@ flowchart LR
 | RN-04 | Toda venta o pago actualiza la caja con monto y medio de pago | CU-01, CU-04 (PDF) | Confirmado |
 | RN-05 | La cajera solo puede crear productos si tiene permiso | CU-01, 2.2 (PDF) | Confirmado |
 | RN-06 | Los dueños solo consultan, sin modificar datos operativos | 2.2 (PDF) | Confirmado |
-| RN-07 | Si un pago de cliente supera la deuda, se sugiere registrar el excedente como anticipo | CU-04 (PDF) | Confirmado; tratamiento posterior a confirmar (PR-15) |
+| RN-07 | Si un pago de cliente supera la deuda, se sugiere registrar el excedente como anticipo | CU-04 (PDF) | Reemplazada por DEC-111 (supuesto): no hay saldo a favor; un cobro mayor al saldo se rechaza y se muestra el máximo a cobrar |
 | RN-08 | El ingreso de mercadería actualiza el stock y genera deuda o pago al proveedor | CU-05 (PDF) | Confirmado; modalidad decidida (DEC-81, supuesto) |
 | RN-09 | El pago a proveedor valida la disponibilidad en caja | CU-07 (PDF) | Decidido (DEC-80, DEC-106, supuestos): solo para pagos en efectivo que salen de la caja abierta |
 | RN-10 | La consulta de stock muestra alertas de stock mínimo | CU-06 (PDF) | Decidido (DEC-82, ajustado por DEC-101, supuesto): mínimo por producto cargado por el Administrador; sin mínimo, alerta con stock en 0 o menos |
-| RN-11 | Se alerta cuando un cliente tiene deuda vencida | CU-08 (PDF) | Plazo a confirmar (PR-13) |
+| RN-11 | Se alerta cuando un cliente tiene deuda vencida | CU-08 (PDF) | Decidido (DEC-109, supuesto): plazo único de 30 días, calculado al consultar; solo alerta, no bloquea |
 
 ## 5. Catálogo de casos de uso
 
@@ -189,12 +189,12 @@ flowchart LR
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
 | A1 | Producto no encontrado | La cajera puede crearlo si tiene permiso (CU-11), sin salir de la venta (DEC-62 a DEC-65) | PDF |
-| A2 | Medio de pago = cuenta corriente | Se ejecuta SC-03 | A confirmar: PR-12, PR-13 |
+| A2 | Medio de pago = cuenta corriente | Se ejecuta SC-03 | Decidido (DEC-108, DEC-109, supuestos); implementado en H4, etapa 3 |
 | A3 | Stock insuficiente en un producto con control de stock | Se ejecuta SC-04: al agregar el producto o cambiar su cantidad la pantalla avisa con la cantidad disponible (DEC-102, DEC-103); la venta se permite y el stock puede quedar negativo | Decidido (DEC-46, DEC-102) |
 | A4 | La caja del turno no está abierta | El sistema indica que debe abrir la caja (CU-02) | Propuesta |
 | A5 | La cajera cancela | No se registra nada | Propuesta |
 
-**Decisiones de diseño (DEC-35):** la carne se vende por kg y no descuenta stock (DEC-36); el lector de códigos carga el plus en el campo de búsqueda (DEC-37); la venta va a la única caja abierta (DEC-83, que reemplaza a DEC-39); medios de pago de la tabla `medio_pago`, sin cuenta corriente hasta H4 (DEC-41); un solo medio por venta (DEC-42); ticket no fiscal imprimible desde el navegador (DEC-44); una venta confirmada no se edita: el Administrador la anula con reversa mientras su caja esté abierta (DEC-45). Del spec de CU-01: lista de la venta en el navegador con todo recalculado en el servidor (DEC-47), cantidades enteras por unidad y hasta 3 decimales por kg (DEC-48), subtotal redondeado a 2 decimales (DEC-49), sin venta en una caja de otro día (DEC-50), medio de pago sin valor por defecto (DEC-51), código exacto que agrega el producto (DEC-52), una línea por producto (DEC-53) y ticket con "Imprimir" y "Nueva venta" (DEC-54).
+**Decisiones de diseño (DEC-35):** la carne se vende por kg y no descuenta stock (DEC-36); el lector de códigos carga el plus en el campo de búsqueda (DEC-37); la venta va a la única caja abierta (DEC-83, que reemplaza a DEC-39); medios de pago de la tabla `medio_pago`, con cuenta corriente desde H4 (DEC-41, SC-03); un solo medio por venta (DEC-42); ticket no fiscal imprimible desde el navegador (DEC-44); una venta confirmada no se edita: el Administrador la anula con reversa mientras su caja esté abierta (DEC-45). Del spec de CU-01: lista de la venta en el navegador con todo recalculado en el servidor (DEC-47), cantidades enteras por unidad y hasta 3 decimales por kg (DEC-48), subtotal redondeado a 2 decimales (DEC-49), sin venta en una caja de otro día (DEC-50), medio de pago sin valor por defecto (DEC-51), código exacto que agrega el producto (DEC-52), una línea por producto (DEC-53) y ticket con "Imprimir" y "Nueva venta" (DEC-54).
 **Observación del prototipo:** no incluye selección de cliente ni la opción de cuenta corriente (H-11).
 
 **Implementación (H2, etapa 2):** pantalla `/ventas/nueva/`, solo para la cajera (con o sin permiso de alta); el Administrador y los dueños reciben 403. Sin caja abierta, o con la caja abierta de otro día, la pantalla avisa y enlaza a Caja. La búsqueda trae productos activos por nombre o plus; un código exacto agrega el producto. La lista de la venta vive en el navegador y, al confirmar, el servidor recalcula precios, subtotales y total, guarda la venta, sus detalles, el ingreso de caja (SC-02) y el descuento de stock en una sola transacción. Una venta con total 0 se rechaza, porque el ingreso de caja tiene que ser mayor a 0. El aviso de stock insuficiente del ticket no muestra cantidades; la pantalla de venta avisa con la cantidad disponible (etapa 5 de H3, DEC-102). Después de confirmar se ve el ticket. La venta en curso se guarda en la pestaña (`sessionStorage`) y se recupera al volver a la pantalla; se borra al confirmar o vaciar, y al salir con productos cargados el navegador avisa (DEC-47, etapa 0b de H3).
@@ -270,7 +270,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador (la cajera, a confirmar: PR-14) |
+| Actor principal | Administrador y cajera (DEC-110, supuesto; amplía el CU 3.2.4 del documento original, que era solo del Administrador) |
 | Requisitos | RF-06, RF-36 a RF-38 |
 | Precondiciones | El cliente existe y tiene saldo pendiente |
 | Poscondiciones | El monto adeudado disminuye y la caja registra el ingreso |
@@ -287,10 +287,14 @@ flowchart LR
 
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
-| A1 | Monto mayor al adeudado | El sistema sugiere registrar el excedente como anticipo (RN-07) | PDF; tratamiento: PR-15 |
-| A2 | La caja del turno no está abierta | El sistema avisa; si el ingreso debe ir a caja, hay que abrirla | Propuesta, a confirmar: PR-14 |
+| A1 | Monto mayor al adeudado | El sistema rechaza el cobro y muestra el saldo como máximo a cobrar. Reemplaza el "anticipo" del CU 3.2.4 original (RN-07) | Decidido (DEC-111, supuesto) |
+| A2 | No hay caja abierta del día | La cajera no puede cobrar y el sistema indica abrir la caja (CU-02). El Administrador puede registrar el cobro sin movimiento de caja, desmarcando "Entra a la caja abierta" (criterio de DEC-106) | Decidido (DEC-110, supuesto) |
+| A3 | Medio de pago = cuenta corriente | No se ofrece: una deuda no se paga con más deuda | Decidido (DEC-110) |
+| A4 | El Administrador anula un cobro | Con motivo: se registra un movimiento inverso `ANULACION_PAGO` en la cuenta corriente y, si entró a caja, un egreso `ANULACION_COBRO` en su caja, que tiene que seguir abierta; con esa caja cerrada se rechaza, como el pago a proveedor (DEC-92, DEC-106) | Decidido (DEC-113) |
 
-**Pendientes:** PR-14, PR-15.
+**Decisiones de diseño (DEC-107):** cobran el Administrador y la cajera; el cobro entra como ingreso `PAGO_CLIENTE` con su medio a la caja abierta del día (DEC-110); el saldo nunca es menor a 0 (DEC-111); sin recargos ni intereses (DEC-112); anulación con movimiento inverso (DEC-113).
+
+**Implementación (H4, etapa 4):** pantalla `/clientes/cobrar/`. La cajera llega desde "Cobrar cuenta corriente" en el menú (S-2) y necesita la caja abierta de hoy: si no la hay, la pantalla avisa y enlaza a Caja. El Administrador llega desde "Clientes" ("Registrar cobro" o "Cobrar" en la fila de un cliente que debe, que lo deja elegido). El cliente se elige con SC-01, con flechas, Inicio, Fin, Enter y Escape como el buscador de productos (el componente `elegir_cliente.js` usa la lógica de `buscador.js`), incluidos los dados de baja que deben; se ve su saldo como máximo a cobrar y la alerta de deuda vencida. El medio no tiene valor por defecto ni ofrece cuenta corriente. "Entra a la caja abierta" solo la ve el Administrador y solo con caja de hoy, marcada; sin caja de hoy, su cobro va sin movimiento de caja (S-6). El servidor valida medio, monto, saldo (DEC-111) y caja; un error deja el cliente elegido. Con caja, el cobro deja en la misma operación el `PAGO`, el ingreso `PAGO_CLIENTE` con su medio a nombre de quien cobra y su cobro (`pago_cliente.entra_a_caja`). El detalle del cobro (`/clientes/cobros/<id>/`, solo del Administrador) permite anularlo con motivo: `ANULACION_PAGO` y, si entró a caja, el egreso `ANULACION_COBRO` en su caja, que tiene que seguir abierta; si no, se explica por qué no se puede (DEC-113). La pantalla de cierre y su reporte listan los cobros y sus reversas (S-8). El estado de cuenta (CU-08, etapa 5) enlaza a cada cobro y el detalle vuelve a él.
 
 ### CU-05 Registrar ingreso de mercadería
 
@@ -418,17 +422,20 @@ flowchart LR
 1. El usuario selecciona al cliente (SC-01).
 2. El sistema muestra saldo, listado de ventas fiadas y pagos realizados.
 3. Si existe deuda vencida, el sistema muestra una alerta (RN-11).
-4. El usuario puede editar límites o condiciones si tiene permiso.
+4. El usuario puede editar límites o condiciones si tiene permiso (las condiciones van en "Observaciones", DEC-117).
 
 **Flujos alternativos (el documento base los dejaba vacíos)**
 
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
 | A1 | No hay deuda vencida | No se muestra alerta | Propuesta |
-| A2 | El usuario no tiene permiso para editar | Los campos de límite y condiciones quedan de solo lectura | Propuesta |
+| A2 | El usuario no tiene permiso para editar | Los campos de límite y observaciones quedan de solo lectura | Propuesta |
 | A3 | El cliente no tiene movimientos | El sistema muestra saldo cero y listados vacíos | Propuesta |
+| A4 | El cliente ya debía antes de usar el sistema | El Administrador carga el saldo inicial con monto, fecha de origen y motivo; uno vigente por cliente; se anula con un movimiento inverso | Decidido (DEC-119, supuesto) |
 
-**Pendientes:** PR-12 (límites), PR-13 (plazo de vencimiento), PR-16 (recargos).
+**Decisiones de diseño (DEC-107):** límite de crédito opcional por cliente, definido por el Administrador; vacío, sin límite (DEC-108). Deuda vencida: saldo de los cargos con más de 30 días, imputando los cobros a los cargos más antiguos y calculada al consultar; solo alerta (DEC-109). Sin recargos ni intereses; "Observaciones" es texto libre informativo (DEC-112, DEC-117). El estado de cuenta lista el saldo inicial, las ventas a cuenta corriente, los cobros y sus anulaciones (DEC-113, DEC-119); el saldo inicial cuenta para el vencimiento con su fecha de origen.
+
+**Implementación (H4, etapa 5):** pantalla `/clientes/<id>/`, solo del Administrador (S-10; la cajera y los dueños reciben 403), a la que se llega desde el nombre del cliente en el listado, también si está dado de baja. Muestra saldo, límite (DEC-115), disponible y deuda vencida, con la alerta si la hay (RN-11), y los movimientos del más nuevo al más viejo, paginados de a 25: saldo inicial, ventas a cuenta corriente (con enlace al detalle de la venta), cobros (con enlace a su detalle, el medio y si fue sin caja) y sus anulaciones, con la marca "Anulado" en la venta, el cobro o el saldo inicial que se revirtió. "Registrar cobro" lleva al cobro con el cliente elegido; "Anular" en un cobro vigente lleva a su detalle, desde donde se anula (S-11). En la misma pantalla se modifican el límite y las observaciones (RF-41; un cliente dado de baja primero se reactiva) y se carga el saldo inicial con monto, fecha de origen y motivo o, si hay uno vigente, se anula con motivo (A4, DEC-119); los rechazos (uno ya vigente, saldo menor al monto) se muestran en su sección.
 
 ### CU-09 Generar reportes
 
@@ -524,8 +531,10 @@ flowchart LR
 | Origen | Propuesta (H-04) |
 | Poscondiciones | Clientes actualizados |
 
-**Flujo normal (alta):** el Administrador ingresa los datos del cliente (nombre y contacto, según el modelo del documento base) y el sistema lo guarda. También permite modificar y dar de baja.
-**Pendientes:** PR-11 (volumen y datos), y si la cajera puede dar de alta clientes durante una venta a cuenta corriente.
+**Flujo normal (alta):** el Administrador ingresa los datos del cliente y el sistema lo guarda. También permite modificar, dar de baja y reactivar.
+
+**Decisiones de diseño (DEC-107):** solo el Administrador da de alta y modifica clientes; la cajera elige uno existente en la venta (SC-03) y en el cobro (CU-04), sin alta (DEC-116). Nombre obligatorio; teléfono, dirección y observaciones opcionales, con las condiciones de crédito dentro de "Observaciones"; el nombre repetido no se bloquea (DEC-117). Límite de crédito opcional (DEC-108), que se muestra como "Sin límite" si está vacío y "Sin crédito habilitado" si es 0 (DEC-115). Listado con buscador por nombre o teléfono y paginación de a 25, para decenas a pocos cientos de clientes (DEC-118). La deuda que ya existía se carga como saldo inicial desde el estado de cuenta (CU-08, DEC-119).
+**Implementación (H4, etapa 2):** pantalla `/clientes/`, solo del Administrador (DEC-116; la cajera y los dueños reciben 403 y no la ven en el menú, S-2). Igual que CU-13 (S-1): listado de activos paginado de a 25 con búsqueda por nombre o teléfono, "Solo con deuda vencida" e "Incluir dados de baja", que se conservan al paginar; cada fila muestra teléfono, dirección, el límite con el texto de DEC-115, el saldo y, si la tiene, la marca "Vencida" con el monto (S-7). Saldos y deuda vencida de la página salen de dos consultas, no de una por cliente (R-7). Alta y modificación con nombre obligatorio y teléfono, dirección, límite y observaciones opcionales; baja lógica con confirmación, que avisa el saldo si el cliente debe (la deuda sigue y se le puede cobrar); "Reactivar" (POST) en el listado de dados de baja. Un cliente dado de baja no se edita: primero se reactiva. Las reglas y los permisos están también en el servicio.
 
 ### CU-13 Gestionar proveedores
 
@@ -560,19 +569,23 @@ Se integró a CU-11 Gestionar productos: el stock se cambia al crear o modificar
 
 ### SC-01 Verificar cliente
 
-Incluido en CU-04, CU-08 y SC-03. El usuario busca o selecciona al cliente. Si no existe, el sistema ofrece crearlo (CU-12, propuesta).
+Incluido en CU-04, CU-08 y SC-03. El usuario busca al cliente por nombre o teléfono entre los activos y lo elige (DEC-118); el sistema muestra su saldo, su límite (DEC-115) y la alerta de deuda vencida si la tiene (DEC-109). Si no existe, solo el Administrador puede crearlo (CU-12, DEC-116); la cajera no tiene esa opción. En el cobro también se puede elegir un cliente dado de baja con saldo (DEC-116).
+
+**Implementación (H4, etapa 2):** el servicio `buscar_para_elegir` y `GET /clientes/buscar/?q=` (con `para=cobro` para sumar los dados de baja que deben) devuelven hasta 50 clientes con nombre, teléfono, saldo, límite (DEC-115), disponible y deuda vencida, y si hay más (como DEC-97). Lo usan el Administrador y la cajera (la vista acepta las funciones "Clientes" y "Ventas"; desde la etapa 4, también la del cobro); los dueños reciben 403. La elección en pantalla se arma en la venta (etapa 3) y en el cobro (etapa 4).
 
 ### SC-02 Registrar movimiento de caja
 
-Incluido en CU-01, CU-04 y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa.
+Incluido en CU-01, CU-04 (cuando el cobro entra a caja, DEC-110) y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa.
 
 **Implementación (H2, etapas 2 y 3):** el ingreso de cada venta se registra junto con la venta. Los egresos "otros" se cargan desde la pantalla de Caja: monto mayor a 0, descripción obligatoria, en el medio marcado como efectivo (DEC-55) y sin superar el efectivo esperado (DEC-57). Los egresos "otros" (gastos y retiros en efectivo) llevan el concepto `OTRO` (DEC-43). La pantalla lista los egresos del turno, que no se editan ni se borran (DEC-58).
 
 **Implementación (H2, etapa 4):** la anulación de una venta registra un egreso con concepto `ANULACION`, que referencia la venta, por su total y con su medio de pago (DEC-68). La pantalla de cierre y su reporte listan las ventas anuladas (DEC-77) y, desde H3, los pagos a proveedores en efectivo y sus reversas, que también cambian lo esperado.
 
-### SC-03 Vender a cuenta corriente (a confirmar: PR-12, PR-13)
+### SC-03 Vender a cuenta corriente (DEC-108, DEC-109, DEC-113)
 
-Extiende CU-01 cuando el medio de pago es cuenta corriente. Selecciona el cliente (SC-01), valida límite y deuda vencida según las reglas que defina el negocio, y registra la venta como deuda del cliente. El tratamiento en la caja del turno está por definir.
+Extiende CU-01 cuando el medio de pago es cuenta corriente. Selecciona el cliente (SC-01) y muestra su saldo y, si la tiene, la alerta de deuda vencida, que no bloquea (DEC-109). Si el cliente tiene límite de crédito y el saldo más el total de la venta lo supera, la venta se rechaza mostrando el saldo y el disponible (DEC-108); con límite 0 se muestra "Sin crédito habilitado" (DEC-115). Solo se eligen clientes activos (DEC-116). Registra la venta como deuda del cliente (`movimiento_cuenta_corriente` `VENTA_FIADA`) sin movimiento de caja (`ingresa_a_caja = false`, DEC-41); la venta queda en la caja abierta como venta del turno. Su anulación revierte la deuda con un movimiento inverso `ANULACION_VENTA` en lugar del egreso de caja, y se rechaza solo si el saldo actual del cliente es menor al total de la venta (DEC-113, DEC-114, L1).
+
+**Implementación (H4, etapa 3):** en `/ventas/nueva/` el medio "Cuenta corriente" (el activo que no ingresa a caja, S-3) aparece entre los demás. Al elegirlo se abre SC-01: la cajera busca por nombre o teléfono, elige un cliente activo y ve su saldo, límite (DEC-115), disponible y la alerta de deuda vencida, que no frena la venta; si el total pasa el disponible, la pantalla avisa antes de confirmar. La venta en curso guardada en la pestaña recuerda el cliente y, al volver, pide de nuevo sus datos (S-4). Al confirmar, el servidor vuelve a validar el cliente (que exista y esté activo, DEC-116) y el límite (DEC-108), y guarda la venta con su cliente y un `VENTA_FIADA` por el total, sin movimiento de caja (R-2); bloquea caja, cliente y productos en ese orden (DEC-128). El ticket muestra el cliente sin su saldo; el cierre de caja no cuenta la venta (no hay movimiento) y el resumen del día, las ventas de la caja y el historial sí, con el nombre del cliente (S-5). La anulación, desde el historial del Administrador, registra `ANULACION_VENTA` en lugar del egreso de caja, devuelve el stock y se rechaza si el saldo actual del cliente es menor al total (L1, DEC-113, DEC-114).
 
 ### SC-04 Avisar stock insuficiente (DEC-46)
 
@@ -591,7 +604,7 @@ Los prototipos de CU-01 a CU-09 provienen del relevamiento base y se guardan en 
 | CU-05 | `prototipos/CU-05-registrar-ingreso-mercaderia.png` | Tiene "Método de pago" no descripto en el texto |
 | CU-06 | `prototipos/CU-06-consultar-stock.png` | Muestra alerta de stock bajo |
 | CU-07 | `prototipos/CU-07-registrar-pago-proveedor.png` | Incluye el aviso de monto superior al saldo de caja |
-| CU-08 | `prototipos/CU-08-gestionar-cuentas-corrientes.png` | Incluye alerta de deuda vencida, límite y condiciones |
+| CU-08 | `prototipos/CU-08-gestionar-cuentas-corrientes.png` | Incluye alerta de deuda vencida, límite y condiciones (las condiciones van en "Observaciones", DEC-117) |
 | CU-09 | `prototipos/CU-09-generar-reportes.png` | Tipo, rango de fechas y formato de exportación |
 
 Los prototipos definitivos (incluidos los de CU-10 a CU-14 y las correcciones indicadas) se diseñan en una etapa posterior y se guardan en `docs/prototipos/` con la versión v1 en el nombre, por ejemplo `CU-01-registrar-venta-v1.png`. Los de referencia v0 se conservan para consultar el origen.

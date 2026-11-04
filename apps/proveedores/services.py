@@ -33,7 +33,7 @@ from apps.proveedores.models import (
 )
 from apps.usuarios.models import Rol
 
-# Datos de contacto a confirmar (PR-31).
+# Datos de contacto de H3, que DEC-117 (PR-31) mantiene.
 CAMPOS_EDITABLES = ["nombre", "telefono", "email"]
 
 

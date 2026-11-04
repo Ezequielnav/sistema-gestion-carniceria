@@ -28,7 +28,26 @@ test("guarda las líneas y el medio, y los devuelve al volver a la pantalla", ()
   assert.deepEqual(crearVentaGuardada(almacen, "venta-en-curso-3").leer(), {
     lineas: [{ producto: pan, cantidad: "2" }, { producto: queso, cantidad: "0.750" }],
     medio: "1",
+    cliente: null,
   });
+});
+
+test("con cuenta corriente guarda también el cliente elegido (DEC-123)", () => {
+  const almacen = almacenDePrueba();
+  const juan = { id: 4, nombre: "Juan Pérez", saldo: "800.00" };
+  crearVentaGuardada(almacen, "venta-en-curso-3").guardar([{ producto: pan, cantidad: "1" }], "5", juan);
+
+  assert.deepEqual(crearVentaGuardada(almacen, "venta-en-curso-3").leer().cliente, juan);
+});
+
+test("un cliente guardado sin id válido se descarta", () => {
+  const almacen = almacenDePrueba();
+  almacen.setItem(
+    "venta-en-curso-3",
+    JSON.stringify({ lineas: [{ producto: pan, cantidad: "1" }], medio: "5", cliente: { id: "4" } }),
+  );
+
+  assert.equal(crearVentaGuardada(almacen, "venta-en-curso-3").leer().cliente, null);
 });
 
 test("una venta vacía no deja nada guardado", () => {

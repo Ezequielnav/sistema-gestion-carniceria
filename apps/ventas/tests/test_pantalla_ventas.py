@@ -60,7 +60,12 @@ def test_la_pantalla_ofrece_los_medios_sin_valor_por_defecto(client, usuario, ca
     respuesta = client.get(NUEVA)
 
     opciones = list(respuesta.context["form"].fields["medio_pago"].choices)
-    assert [str(etiqueta) for _, etiqueta in opciones] == ["Elegí un medio de pago", "Efectivo"]
+    # S-3 (DEC-122): cuenta corriente se ofrece desde H4.
+    assert [str(etiqueta) for _, etiqueta in opciones] == [
+        "Elegí un medio de pago",
+        "Efectivo",
+        "Cuenta corriente",
+    ]
     assert respuesta.context["problema"] is None
     assert 'id="buscar"' in respuesta.content.decode()
 

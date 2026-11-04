@@ -15,6 +15,7 @@ from apps.ventas.services import (
     buscar_para_venta,
     detalles_de_venta,
     historial_de_ventas,
+    medio_cuenta_corriente,
     obtener_venta,
     problema_para_vender,
     puede_anular,
@@ -73,6 +74,8 @@ def nueva(request):
         {
             "problema": problema_para_vender(),
             "form": ConfirmarVentaForm(),
+            # S-3 (DEC-122): al elegir este medio aparece la elección del cliente (SC-01).
+            "cuenta_corriente": medio_cuenta_corriente(),
             # A1: solo la cajera con permiso de alta (RN-05, DEC-63).
             "form_producto": ProductoForm(prefix="producto") if puede_crear(request.user) else None,
         },
@@ -128,7 +131,10 @@ def confirmar(request):
         return JsonResponse({"errores": errores}, status=400)
     try:
         venta, avisos = registrar_venta(
-            request.user, form.cleaned_data["lineas"], form.cleaned_data["medio_pago"]
+            request.user,
+            form.cleaned_data["lineas"],
+            form.cleaned_data["medio_pago"],
+            form.cleaned_data["cliente"],
         )
     except ValidationError as error:
         return JsonResponse({"errores": error.messages}, status=400)

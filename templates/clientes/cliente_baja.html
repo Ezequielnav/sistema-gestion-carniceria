@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block titulo %}Dar de baja{% endblock %}
+{% block encabezado %}Clientes{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xs">
+    <h2 class="text-xl font-semibold tracking-tight">¿Dar de baja «{{ cliente.nombre }}»?</h2>
+    <p class="mt-2 text-sm text-gray-600">
+      Deja de aparecer en el listado y no puede comprar a cuenta corriente, pero no se borra: sus movimientos quedan como están. Se puede reactivar.
+    </p>
+    {# S-1 (DEC-120): la baja no borra la deuda; se le puede seguir cobrando (DEC-116). #}
+    {% if saldo > 0 %}
+      <div role="alert" class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+        Debe <span class="cifras font-semibold">$ {{ saldo|floatformat:"2g" }}</span>. La deuda se mantiene y se le puede seguir cobrando.
+      </div>
+    {% endif %}
+    <form method="post" class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {% csrf_token %}
+      <a href="{% url 'clientes:clientes' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
+      <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Dar de baja</button>
+    </form>
+  </div>
+{% endblock %}

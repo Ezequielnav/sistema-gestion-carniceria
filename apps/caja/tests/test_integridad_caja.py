@@ -199,3 +199,75 @@ def test_tipo_o_concepto_de_movimiento_fuera_de_la_lista_se_rechaza(
             usuario=usuario,
         )
     )
+
+
+# H4, etapa 1: reversa de un cobro (DEC-113) y medio cuenta corriente (DEC-41, R-6)
+
+
+def _movimiento_de_cobro(caja, efectivo, usuario, pago_cliente, tipo, concepto):
+    return MovimientoCaja.objects.create(
+        caja=caja,
+        tipo=tipo,
+        monto=Decimal("100"),
+        medio_pago=efectivo,
+        concepto=concepto,
+        usuario=usuario,
+        pago_cliente=pago_cliente,
+    )
+
+
+def test_dec113_cobro_con_su_ingreso_y_su_reversa_se_acepta(caja, efectivo, usuario, pago_cliente):
+    _movimiento_de_cobro(
+        caja, efectivo, usuario, pago_cliente, TipoMovimientoCaja.INGRESO, "PAGO_CLIENTE"
+    )
+    _movimiento_de_cobro(
+        caja, efectivo, usuario, pago_cliente, TipoMovimientoCaja.EGRESO, "ANULACION_COBRO"
+    )
+
+
+def test_dec113_la_reversa_de_un_cobro_es_un_egreso(caja, efectivo, usuario, pago_cliente):
+    _rechaza(
+        lambda: _movimiento_de_cobro(
+            caja, efectivo, usuario, pago_cliente, TipoMovimientoCaja.INGRESO, "ANULACION_COBRO"
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ("tipo", "concepto"),
+    [
+        (TipoMovimientoCaja.INGRESO, ConceptoMovimientoCaja.PAGO_CLIENTE),
+        (TipoMovimientoCaja.EGRESO, ConceptoMovimientoCaja.ANULACION_COBRO),
+    ],
+)
+def test_dec113_un_cobro_tiene_un_solo_movimiento_de_cada_concepto(
+    caja, efectivo, usuario, pago_cliente, tipo, concepto
+):
+    _movimiento_de_cobro(caja, efectivo, usuario, pago_cliente, tipo, concepto)
+
+    _rechaza(lambda: _movimiento_de_cobro(caja, efectivo, usuario, pago_cliente, tipo, concepto))
+
+
+def test_dec113_la_reversa_de_un_cobro_lleva_el_cobro(caja, efectivo, usuario):
+    _rechaza(
+        lambda: MovimientoCaja.objects.create(
+            caja=caja,
+            tipo=TipoMovimientoCaja.EGRESO,
+            monto=Decimal("100"),
+            medio_pago=efectivo,
+            concepto=ConceptoMovimientoCaja.ANULACION_COBRO,
+            usuario=usuario,
+        )
+    )
+
+
+def test_r6_un_solo_medio_que_no_ingresa_a_caja(db):
+    MedioPago.objects.create(nombre="Cuenta corriente", ingresa_a_caja=False)
+
+    _rechaza(lambda: MedioPago.objects.create(nombre="Fiado", ingresa_a_caja=False))
+
+
+def test_r6_el_efectivo_ingresa_a_caja(db):
+    _rechaza(
+        lambda: MedioPago.objects.create(nombre="Efectivo", es_efectivo=True, ingresa_a_caja=False)
+    )

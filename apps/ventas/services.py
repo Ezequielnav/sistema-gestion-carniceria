@@ -16,6 +16,7 @@ from apps.caja.services import (
 )
 from apps.catalogo.models import Producto, UnidadMedida
 from apps.catalogo.services import buscar_productos, mover_stock, validar_cantidad
+from apps.clientes.services import bloquear_cliente, registrar_anulacion_de_cargo, registrar_cargo
 from apps.comun.models import subtotal
 from apps.usuarios.models import Rol
 from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
@@ -47,8 +48,18 @@ def puede_vender(usuario):
 
 
 def medios_de_pago_para_venta():
-    """Medios activos que ingresan a caja: cuenta corriente no se ofrece hasta H4 (DEC-41)."""
-    return MedioPago.objects.filter(activo=True, ingresa_a_caja=True).order_by("pk")
+    """Medios activos, con cuenta corriente desde H4 (DEC-41, R-6)."""
+    return MedioPago.objects.filter(activo=True).order_by("pk")
+
+
+def medio_cuenta_corriente():
+    """El medio cuenta corriente activo, o None si no se ofrece (S-3)."""
+    return medios_de_pago_para_venta().filter(ingresa_a_caja=False).first()
+
+
+def es_cuenta_corriente(medio):
+    """Cuenta corriente es el medio que no ingresa a caja (S-3, DEC-122)."""
+    return not medio.ingresa_a_caja
 
 
 # Tope de la lista del buscador (DEC-97); el resto se encuentra escribiendo.
@@ -113,12 +124,16 @@ def _agrupar(lineas):
     return agrupadas
 
 
-def registrar_venta(usuario, lineas, medio_pago):
+def registrar_venta(usuario, lineas, medio_pago, cliente=None):
     """Registra la venta completa o nada (RNF-10).
 
     `lineas` es una lista de (id de producto, cantidad). Precios, subtotales y total se
     calculan acá, nunca se toman del navegador (RI-12, RI-03, DEC-47). Devuelve la venta y
     los avisos de stock insuficiente (DEC-46).
+
+    Con cuenta corriente (SC-03) exige el cliente y deja su deuda en lugar del ingreso de caja
+    (RI-05, R-2); con otro medio, el cliente se ignora. Bloquea en el orden de DEC-128: caja,
+    cliente y productos por id.
     """
     if not puede_vender(usuario):
         raise PermissionDenied("Solo la cajera puede registrar ventas.")
@@ -128,9 +143,15 @@ def registrar_venta(usuario, lineas, medio_pago):
         raise ValidationError(
             {"medio_pago": "Ese medio de pago no se puede usar en la venta."}, code="medio_pago"
         )
+    a_cuenta = es_cuenta_corriente(medio_pago)
+    if a_cuenta and cliente is None:
+        raise ValidationError(
+            {"cliente": "Elegí el cliente de la cuenta corriente."}, code="sin_cliente"
+        )
     cantidades = _agrupar(lineas)
     with transaction.atomic():
         caja = _caja_para_vender()
+        cliente = bloquear_cliente(cliente.pk) if a_cuenta else None
         # Por id, como los ingresos: dos operaciones no se traban con los mismos productos.
         productos = Producto.objects.select_for_update().order_by("pk").in_bulk(list(cantidades))
         detalles = []
@@ -150,15 +171,18 @@ def registrar_venta(usuario, lineas, medio_pago):
             )
         total = sum((d.subtotal for d in detalles), Decimal("0"))
         if total <= 0:
-            # El ingreso de caja tiene que ser mayor a 0 (RI-04, movimiento_caja_monto_positivo).
+            # El ingreso de caja y la deuda tienen que ser mayores a 0 (RI-04, RI-05).
             raise ValidationError("El total de la venta tiene que ser mayor a 0.")
         venta = Venta.objects.create(
-            caja=caja, usuario=usuario, medio_pago=medio_pago, monto_total=total
+            caja=caja, usuario=usuario, medio_pago=medio_pago, cliente=cliente, monto_total=total
         )
         for detalle in detalles:
             detalle.venta = venta
         DetalleVenta.objects.bulk_create(detalles)
-        registrar_ingreso_venta(venta)
+        if a_cuenta:
+            registrar_cargo(venta)
+        else:
+            registrar_ingreso_venta(venta)
         avisos = []
         for detalle in detalles:
             producto = detalle.producto
@@ -179,9 +203,9 @@ def registrar_venta(usuario, lineas, medio_pago):
 
 def obtener_venta(pk):
     """La venta con lo que muestran el ticket y el detalle; Venta.DoesNotExist si no existe."""
-    return Venta.objects.select_related("caja", "usuario", "medio_pago", "anulada_por_usuario").get(
-        pk=pk
-    )
+    return Venta.objects.select_related(
+        "caja", "usuario", "medio_pago", "cliente", "anulada_por_usuario"
+    ).get(pk=pk)
 
 
 def detalles_de_venta(venta):
@@ -222,7 +246,7 @@ def ventas_de_la_caja_abierta():
         return None, []
     ventas = (
         Venta.objects.filter(caja=caja)
-        .select_related("usuario", "medio_pago")
+        .select_related("usuario", "medio_pago", "cliente")
         .order_by("-fecha_hora", "-pk")
     )
     return caja, list(ventas)
@@ -240,7 +264,7 @@ def historial_de_ventas(desde=None, hasta=None, turno="", caja=None, todas=False
     y el turno son los de la caja. No reemplaza a los reportes de CU-09.
     Devuelve las ventas y la caja abierta cuando se usó como valor por defecto.
     """
-    ventas = Venta.objects.select_related("caja", "usuario", "medio_pago").order_by(
+    ventas = Venta.objects.select_related("caja", "usuario", "medio_pago", "cliente").order_by(
         "-fecha_hora", "-pk"
     )
     if not (desde or hasta or turno or caja or todas):
@@ -264,6 +288,8 @@ def anular_venta(usuario, venta, motivo):
 
     La venta, sus detalles y su ingreso no se tocan: solo cambian el estado y los datos de
     la anulación (DEC-67). La caja tiene que estar abierta, aunque sea de otro día (DEC-72).
+    Una venta a cuenta corriente revierte su deuda en lugar del ingreso, y se rechaza si el
+    saldo del cliente es menor al total (L1, DEC-113, DEC-114).
     """
     if not puede_anular(usuario):
         raise PermissionDenied("Solo el administrador anula ventas.")
@@ -283,7 +309,10 @@ def anular_venta(usuario, venta, motivo):
         impedimento = _impedimento_para_anular(venta)
         if impedimento is not None:
             raise impedimento
-        registrar_reversa_venta(venta, usuario, motivo)
+        if es_cuenta_corriente(venta.medio_pago):
+            registrar_anulacion_de_cargo(venta)
+        else:
+            registrar_reversa_venta(venta, usuario, motivo)
         venta.estado = EstadoVenta.ANULADA
         venta.anulada_en = timezone.now()
         venta.anulada_por_usuario = usuario

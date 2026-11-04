@@ -221,19 +221,18 @@ def test_venta_con_total_cero_se_rechaza(usuario, caja_hoy, efectivo, aceite):
     assert _nada_guardado()
 
 
-# CP-21 y DEC-41: un medio de pago, sin cuenta corriente ni inactivos
+# CP-21 y DEC-41: un medio de pago, con cuenta corriente desde H4 (S-3) y sin inactivos
 
 
-def test_dec41_cuenta_corriente_e_inactivos_no_se_ofrecen_ni_se_aceptan(
+def test_dec41_inactivos_no_se_ofrecen_ni_se_aceptan_y_cuenta_corriente_si(
     usuario, caja_hoy, efectivo, cuenta_corriente, aceite
 ):
     tarjeta = MedioPago.objects.create(nombre="Tarjeta", activo=False)
 
-    assert list(medios_de_pago_para_venta()) == [efectivo]
-    for medio in (cuenta_corriente, tarjeta):
-        with pytest.raises(ValidationError) as error:
-            registrar_venta(usuario, [(aceite.pk, Decimal("1"))], medio)
-        assert "medio_pago" in error.value.message_dict
+    assert list(medios_de_pago_para_venta()) == [efectivo, cuenta_corriente]
+    with pytest.raises(ValidationError) as error:
+        registrar_venta(usuario, [(aceite.pk, Decimal("1"))], tarjeta)
+    assert "medio_pago" in error.value.message_dict
     assert _nada_guardado()
 
 

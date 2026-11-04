@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django import forms
 
 from apps.caja.models import MedioPago, Turno
+from apps.clientes.models import Cliente
 from apps.ventas.services import cajas_para_filtrar, medios_de_pago_para_venta
 
 
@@ -21,10 +22,17 @@ class ConfirmarVentaForm(forms.Form):
     )
     # Lista en JSON: [{"producto": id, "cantidad": "1.250"}]. Los precios no viajan.
     lineas = forms.CharField(widget=forms.HiddenInput, required=False)
+    # SC-03: solo con cuenta corriente. Activo, límite y saldo los valida el servicio (DEC-123).
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.all(),
+        required=False,
+        widget=forms.HiddenInput,
+        error_messages={"invalid_choice": "El cliente elegido ya no existe."},
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Sin valor por defecto (DEC-51) y sin cuenta corriente hasta H4 (DEC-41).
+        # Sin valor por defecto (DEC-51); con cuenta corriente desde H4 (DEC-41, S-3).
         self.fields["medio_pago"].queryset = medios_de_pago_para_venta()
         self.fields["medio_pago"].widget.attrs["class"] = "campo"
 
