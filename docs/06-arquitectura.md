@@ -43,6 +43,7 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
 | D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |
 | D-14 | Credenciales de la base local | `.env.example` solo con nombres y valores de ejemplo; el `.env` local queda fuera de GitHub y del permiso de lectura de los agentes; las pruebas usan una base de prueba con credenciales exclusivas de desarrollo | Decidida (sección 6) | Fácil |
+| D-15 | Gráficos del Resumen de Reportes | **Chart.js 4.4.9** (licencia MIT) como archivo estático propio en `static/vendor/chart.js/chart-4.4.9.umd.js`, sin CDN; la versión queda fijada en `package.json` (dependencia de desarrollo) y el archivo se copia desde `node_modules` (DEC-158) | Pedido del alumno | Fácil |
 
 ### 2.1 Autenticación: por qué sesiones y no JWT (D-06)
 

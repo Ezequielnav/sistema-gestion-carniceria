@@ -185,11 +185,11 @@ def test_rf45_la_cajera_no_ve_reportes(client, url):
         services.ventas_diarias(cajera, D15, D16)
 
 
-def test_el_inicio_de_reportes_abre_ventas_diarias_con_el_rango(client, admin):
+def test_el_inicio_de_reportes_abre_el_resumen_con_el_rango(client, admin):
     client.force_login(admin)
 
     respuesta = client.get(
         reverse("reportes:inicio"), {"desde": "2026-01-15", "hasta": "2026-01-16"}
     )
 
-    assert respuesta.url == reverse("reportes:ventas") + "?desde=2026-01-15&hasta=2026-01-16"
+    assert respuesta.url == reverse("reportes:resumen") + "?desde=2026-01-15&hasta=2026-01-16"

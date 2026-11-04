@@ -1,0 +1,128 @@
+{% extends "reportes/_reporte.html" %}
+{% load static %}
+
+{# Pestaña "Resumen" de Reportes (RF-55, DEC-158): solo lectura, del rango elegido; no se exporta. #}
+{% block scripts %}<script src="{% static 'vendor/chart.js/chart-4.4.9.umd.js' %}" defer></script><script src="{% static 'js/tablero.js' %}" defer></script>{% endblock %}
+
+{% block seccion %}
+  {% if not form.is_valid %}
+    <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="{{ titulo }}">
+      <p class="px-5 py-12 text-center text-sm font-medium">Corregí el rango de fechas para ver el reporte.</p>
+    </section>
+  {% else %}
+  {% with t=reporte %}
+  {# Ventas del rango: lo central del Resumen, con su evolución día por día. #}
+  <section class="mt-6 grid overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs lg:grid-cols-[17rem_minmax(0,1fr)]" aria-labelledby="titulo-ventas">
+    <div class="border-b border-gray-200 p-5 lg:border-r lg:border-b-0">
+      <h3 id="titulo-ventas" class="text-sm font-medium text-gray-500">Vendido</h3>
+      <p class="mt-0.5 text-xs text-gray-500">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
+      {% if t.ventas.cantidad %}
+        <p class="cifras mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">$ {{ t.ventas.total|floatformat:"2g" }}</p>
+        <p class="mt-1 text-sm text-gray-500">{{ t.ventas.cantidad }} venta{{ t.ventas.cantidad|pluralize }}</p>
+        <p class="mt-4 text-sm text-gray-500">Ticket promedio</p>
+        <p class="cifras text-lg font-semibold">$ {{ t.ticket_promedio|floatformat:"2g" }}</p>
+      {% else %}
+        <p class="mt-3 text-sm text-gray-500">Sin registros disponibles</p>
+      {% endif %}
+      <a href="{% url 'reportes:ventas' %}?{{ rango }}" class="mt-4 inline-block text-sm font-medium text-red-700 hover:text-red-800">Ver ventas diarias</a>
+    </div>
+    <div class="min-w-0 p-5">
+      <h3 class="text-sm font-medium text-gray-500">Ventas por día</h3>
+      {% if t.serie %}
+        <div class="relative mt-4 h-56 sm:h-64 lg:h-72">
+          <canvas id="grafico-ventas" role="img" aria-label="Ventas por día del rango: $ {{ t.ventas.total|floatformat:'2g' }} en total"></canvas>
+        </div>
+      {% else %}
+        <p class="flex h-56 items-center justify-center text-sm text-gray-500 sm:h-64 lg:h-72">Sin registros disponibles</p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# Ingresos, del rango; saldos y stock, de hoy. Solo el Administrador tiene enlaces a esas pantallas (DEC-134). #}
+  <dl class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+      <dt class="text-sm font-medium text-gray-500">Ingresos del rango</dt>
+      <dd class="mt-2 flex flex-1 flex-col">
+        {% if t.ingresos %}
+          <span class="cifras text-2xl font-semibold tracking-tight">$ {{ t.ingresos.total|floatformat:"2g" }}</span>
+          <span class="mt-1 text-sm text-gray-500">$ {{ t.ingresos.fuera|floatformat:"2g" }} fuera de caja</span>
+        {% else %}
+          <span class="text-sm text-gray-500">Sin registros disponibles</span>
+        {% endif %}
+        <a href="{% url 'reportes:ingresos' %}?{{ rango }}" class="mt-auto pt-3 text-sm font-medium text-red-700 hover:text-red-800">Ver ingresos por día</a>
+      </dd>
+    </div>
+
+    <div class="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+      <dt class="text-sm font-medium text-gray-500">Cuentas corrientes, al día de hoy</dt>
+      <dd class="mt-2 flex flex-1 flex-col">
+        {% if t.cuentas_corrientes %}
+          <span class="cifras text-2xl font-semibold tracking-tight">$ {{ t.cuentas_corrientes.saldo|floatformat:"2g" }}</span>
+          <span class="mt-1 text-sm {% if t.cuentas_corrientes.vencida %}font-medium text-amber-700{% else %}text-gray-500{% endif %}">$ {{ t.cuentas_corrientes.vencida|floatformat:"2g" }} vencido</span>
+        {% else %}
+          <span class="text-sm text-gray-500">Sin registros disponibles</span>
+        {% endif %}
+        {% if es_admin %}<a href="{% url 'clientes:clientes' %}{% if t.cuentas_corrientes.vencida %}?vencidos=1{% endif %}" class="mt-auto pt-3 text-sm font-medium text-red-700 hover:text-red-800">Ver clientes</a>{% endif %}
+      </dd>
+    </div>
+
+    <div class="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+      <dt class="text-sm font-medium text-gray-500">Stock bajo, al día de hoy</dt>
+      <dd class="mt-2 flex flex-1 flex-col">
+        {% if t.stock_bajo %}
+          <span class="cifras text-2xl font-semibold tracking-tight">{{ t.stock_bajo }}</span>
+          <span class="mt-1 text-sm text-gray-500">producto{{ t.stock_bajo|pluralize }} para reponer</span>
+        {% else %}
+          <span class="text-sm text-gray-500">Sin registros disponibles</span>
+        {% endif %}
+        {% if es_admin %}<a href="{% url 'catalogo:productos' %}?stock_bajo=1" class="mt-auto pt-3 text-sm font-medium text-red-700 hover:text-red-800">Ver productos</a>{% endif %}
+      </dd>
+    </div>
+
+    <div class="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+      <dt class="text-sm font-medium text-gray-500">Deuda con proveedores, al día de hoy</dt>
+      <dd class="mt-2 flex flex-1 flex-col">
+        {% if t.deuda_proveedores %}
+          <span class="cifras text-2xl font-semibold tracking-tight">$ {{ t.deuda_proveedores|floatformat:"2g" }}</span>
+          <span class="mt-1 text-sm text-gray-500">Ingresos sin pagar</span>
+        {% else %}
+          <span class="text-sm text-gray-500">Sin registros disponibles</span>
+        {% endif %}
+        {% if es_admin %}<a href="{% url 'proveedores:proveedores' %}" class="mt-auto pt-3 text-sm font-medium text-red-700 hover:text-red-800">Ver proveedores</a>{% endif %}
+      </dd>
+    </div>
+  </dl>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-2">
+    <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-labelledby="titulo-medios">
+      <div class="flex items-baseline justify-between gap-3">
+        <h3 id="titulo-medios" class="text-sm font-medium text-gray-500">Ventas por medio de pago</h3>
+        <a href="{% url 'reportes:medios' %}?{{ rango }}" class="text-sm font-medium text-red-700 hover:text-red-800">Ver totales</a>
+      </div>
+      {% if t.medios %}
+        <div class="relative mt-4 h-56">
+          <canvas id="grafico-medios" role="img" aria-label="Ventas del rango por medio de pago"></canvas>
+        </div>
+      {% else %}
+        <p class="flex h-56 items-center justify-center text-sm text-gray-500">Sin registros disponibles</p>
+      {% endif %}
+    </section>
+
+    <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-labelledby="titulo-top">
+      <div class="flex items-baseline justify-between gap-3">
+        <h3 id="titulo-top" class="text-sm font-medium text-gray-500">Los 5 productos más vendidos</h3>
+        <a href="{% url 'reportes:productos' %}?{{ rango }}" class="text-sm font-medium text-red-700 hover:text-red-800">Ver ranking</a>
+      </div>
+      {% if t.top %}
+        <div class="relative mt-4 h-56">
+          <canvas id="grafico-top" role="img" aria-label="Los 5 productos más vendidos del rango, por importe"></canvas>
+        </div>
+      {% else %}
+        <p class="flex h-56 items-center justify-center text-sm text-gray-500">Sin registros disponibles</p>
+      {% endif %}
+    </section>
+  </div>
+  {% endwith %}
+  {{ graficos|json_script:"datos-tablero" }}
+  {% endif %}
+{% endblock %}

@@ -18,6 +18,7 @@ PERMITIDAS_AL_DUENIO = {
     "caja:cierre",
     # CU-09 (H5, etapa 3): todas las pantallas de reportes.
     "reportes:inicio",
+    "reportes:resumen",
     "reportes:ventas",
     "reportes:productos",
     "reportes:ingresos",

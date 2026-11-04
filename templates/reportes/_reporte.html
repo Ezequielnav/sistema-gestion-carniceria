@@ -28,6 +28,7 @@
     <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Ver reporte</button>
   </form>
 
+  {% block seccion %}
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="{{ titulo }}">
     <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -50,4 +51,5 @@
       {% block reporte %}{% endblock %}
     {% endif %}
   </section>
+  {% endblock %}
 {% endblock %}

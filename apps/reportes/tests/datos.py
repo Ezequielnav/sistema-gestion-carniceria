@@ -115,4 +115,11 @@ def armar_escenario(admin):
         monto_sistema=Decimal("1000"),
         monto_contado=Decimal("900"),
     )
-    return {"manana_1": manana_1, "manana_2": manana_2, "tarde": tarde, "dia_16": dia_16}
+    return {
+        "manana_1": manana_1,
+        "manana_2": manana_2,
+        "tarde": tarde,
+        "dia_16": dia_16,
+        "cliente": cliente,
+        "efectivo": efectivo,
+    }

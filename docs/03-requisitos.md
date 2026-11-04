@@ -103,6 +103,7 @@
 | RF-44 | Si no hay datos en el período, el sistema debe mostrar "Sin registros disponibles" | Base (CU-09, A1) | Baja | Confirmado |
 | RF-45 | Los Dueños deben poder consultar los reportes sin modificar datos operativos | Base (2.2) | Alta | Confirmado; los Dueños ven solo los reportes, incluida la consulta de cierres por fecha (DEC-134, supuesto) |
 | RF-46 | El sistema debe generar reportes de ventas y stock automáticamente al finalizar cada jornada | Base (meta) | Media | Descartado (DEC-136, supuesto): los reportes son a pedido; el resumen de cierre de CU-03 cubre el cierre de cada turno y el stock se consulta en CU-06 |
+| RF-55 | El Administrador y los Dueños deben ver en Reportes un resumen de solo lectura del rango elegido (por defecto, los últimos 30 días): lo vendido, el ticket promedio, los ingresos y gráficos de ventas por día, por medio de pago y de los productos más vendidos, más el saldo y la deuda vencida de las cuentas corrientes (totales), el stock bajo y la deuda con proveedores al día de hoy, con enlaces a cada reporte | Propuesta (pedido del alumno) | Media | Decidido (DEC-158) |
 
 ### 2.8 Datos iniciales
 
@@ -143,7 +144,7 @@
 | CU-06 Consultar stock | RF-25, RF-26, RF-28 |
 | CU-07 Registrar pago a proveedor | RF-06, RF-31, RF-32, RF-33 |
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
-| CU-09 Generar reportes | RF-42 a RF-46 |
+| CU-09 Generar reportes | RF-42 a RF-46, RF-55 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
 | CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51, RF-52, RF-53 |
 | Medios de pago (DEC-155, sin caso de uso propio) | RF-54 |
