@@ -496,6 +496,8 @@ flowchart LR
 
 **Inicio por rol (DEC-137, supuesto, H5):** después de ingresar, la cajera ve el estado de la caja (la caja abierta, o que no hay una) y accesos a Registrar venta, Cobrar cuenta corriente y Cerrar caja, sin totales del negocio. El inicio del Administrador no cambia. El dueño ve en el inicio solo el acceso a Reportes, sin totales (DEC-147).
 
+**Implementación (H5, etapa 1):** la vista de inicio elige la plantilla por rol y solo calcula los totales para el Administrador (R-4, DEC-154): `comun/inicio_cajera.html` con la caja abierta (turno, fecha, quién la abrió y la hora) o "No hay caja abierta" con "Abrir caja", y los accesos a `/ventas/nueva/`, `/clientes/cobrar/` y `/caja/cerrar/`, que avisan si falta la caja (DEC-148); `comun/inicio_duenio.html` con el acceso a Reportes, "Pronto" hasta la etapa 3. Un dueño recibe 403 en el resto de las pantallas; abre el reporte de cierre por enlace (DEC-59) (CP-126, CP-127).
+
 **Pendientes:** PR-34 (cierre de sesión por inactividad). Cada persona tiene su propio usuario (DEC-135, PR-26).
 
 ### CU-11 Gestionar productos
@@ -523,6 +525,8 @@ flowchart LR
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
 
 **Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL): primero se reactiva con "Reactivar" en el listado de dados de baja, solo el Administrador y sin condición de stock (DEC-85). La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). Toda cajera, con o sin permiso de alta, ve el listado con el stock en solo lectura, sin editar ni dar de baja; la cajera con permiso además da de alta (DEC-103, que reemplaza en esto a DEC-33). Los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
+
+**Panel sin borrado (H5, etapa 1, DEC-138, L14):** el panel de administración no borra productos, tengan o no referencias, ni ofrece borrar varios a la vez; se dan de baja (CP-128).
 
 **Stock editable (etapa 1b de H3, DEC-98 a DEC-100, supuestos del proyecto):** el Administrador ve y edita el stock al crear y al modificar un producto, en `/productos/` y en el panel de administración, que guarda con el mismo servicio de catálogo. Solo para productos que controlan stock; mayor o igual a 0 y con el formato de DEC-79. Si al guardar el stock cambió, el servicio lo aplica con `mover_stock` y registra un ajuste (`ajuste_stock`) con usuario, fecha, stock anterior, stock nuevo y motivo: en el alta, "Stock inicial"; al modificar, el que se elija (por defecto "Modificación manual"; también conteo, vencimiento, rotura u otro). El cambio se mide contra el stock que mostró el formulario, así una venta hecha mientras se editaba no se deshace. Solo el Administrador cambia el stock: la cajera lo ve en el listado pero su alta no carga stock y arranca en 0 (DEC-103), igual que el alta durante la venta y desde el ingreso. Los ajustes no se editan ni se borran: se consultan en el panel ("Ajustes de stock"), de solo lectura.
 
@@ -564,7 +568,7 @@ flowchart LR
 
 **Flujo normal (alta):** el Administrador crea el usuario, le asigna un rol (Administrador, Cajera o Dueños) y una contraseña inicial; el sistema lo guarda. También permite modificar, dar de baja y restablecer contraseña.
 
-**Decisiones de diseño (DEC-133):** un usuario por persona y sin autorregistro: solo el Administrador da de alta usuarios. CU-14 es solo del Administrador: alta con rol y contraseña inicial, edición de los datos y del rol, desactivación (baja lógica: el usuario no puede ingresar, CU-10 A2) y restablecimiento de la contraseña. Un usuario no se borra, porque sus operaciones lo referencian. La auditoría es el usuario que registra cada operación, sin un registro aparte (DEC-135, supuesto). Pantalla y reglas en DEC-149 a DEC-151: los Administradores creados en CU-14 no entran al panel de administración, que queda para el superusuario técnico (DEC-150, supuesto).
+**Decisiones de diseño (DEC-133):** un usuario por persona y sin autorregistro: solo el Administrador da de alta usuarios. CU-14 es solo del Administrador: alta con rol y contraseña inicial, edición de los datos y del rol, desactivación (baja lógica: el usuario no puede ingresar, CU-10 A2) y restablecimiento de la contraseña. Un usuario no se borra, porque sus operaciones lo referencian. La auditoría es el usuario que registra cada operación, sin un registro aparte (DEC-135, supuesto). Pantalla y reglas en DEC-149 a DEC-151: los Administradores creados en CU-14 no entran al panel de administración, que queda para el superusuario técnico (DEC-150, supuesto). El panel tampoco borra usuarios (DEC-153, H5 etapa 1).
 
 ### CU-15 Ajustar stock (integrado a CU-11)
 

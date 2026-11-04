@@ -1,0 +1,30 @@
+{# Accesos a las funciones del rol (RF-02), los del menú lateral. #}
+<section class="rounded-xl border border-gray-200 bg-white shadow-xs {{ clase }}" aria-labelledby="titulo-accesos">
+  <div class="border-b border-gray-200 px-5 py-4">
+    <h3 id="titulo-accesos" class="text-sm font-semibold">Accesos</h3>
+  </div>
+  {% if menu %}
+    <ul class="divide-y divide-gray-100">
+      {% for funcion in menu %}
+        <li>
+          {% if funcion.url %}<a href="{% url funcion.url %}" class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50">{% else %}<div aria-disabled="true" class="flex items-center gap-4 px-5 py-3.5">{% endif %}
+            <span class="flex size-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600">
+              {% include "comun/_icono.html" with nombre=funcion.icono clase="size-4" %}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-medium">{{ funcion.nombre }}</span>
+              <span class="block text-sm text-gray-500">{{ funcion.descripcion }}</span>
+            </span>
+            {% if funcion.url %}
+              <span class="text-gray-400">{% include "comun/_icono.html" with nombre="flecha" clase="size-4" %}</span>
+            {% else %}
+              <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500" title="{{ funcion.casos_de_uso }}">Pronto</span>
+            {% endif %}
+          {% if funcion.url %}</a>{% else %}</div>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="px-5 py-6 text-sm text-gray-500">Tu usuario no tiene funciones asignadas. Pedile al administrador que revise tu rol.</p>
+  {% endif %}
+</section>

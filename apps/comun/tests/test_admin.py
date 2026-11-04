@@ -261,3 +261,44 @@ def test_los_productos_se_listan_dentro_del_ingreso(cliente_admin, ingreso, prod
 def test_los_renglones_no_tienen_modulo_propio_en_el_panel(modelo):
     with pytest.raises(NoReverseMatch):
         _url(modelo, "changelist")
+
+
+# CP-128 (DEC-138, DEC-153, L14): el panel no borra productos ni usuarios, tengan o no
+# referencias; se dan de baja o se desactivan.
+
+
+def test_cp128_el_panel_no_borra_un_producto_sin_referencias(cliente_admin, producto):
+    client, _ = cliente_admin
+
+    assert client.get(_url(Producto, "delete", producto.pk)).status_code == 403
+    assert client.post(_url(Producto, "delete", producto.pk), {"post": "yes"}).status_code == 403
+    client.post(
+        _url(Producto, "changelist"),
+        {"action": "delete_selected", "_selected_action": [producto.pk], "post": "yes"},
+    )
+
+    assert Producto.objects.filter(pk=producto.pk).exists()
+
+
+def test_cp128_el_panel_no_borra_usuarios(cliente_admin, usuario):
+    client, _ = cliente_admin
+
+    assert client.get(_url(Usuario, "delete", usuario.pk)).status_code == 403
+    assert client.post(_url(Usuario, "delete", usuario.pk), {"post": "yes"}).status_code == 403
+    client.post(
+        _url(Usuario, "changelist"),
+        {"action": "delete_selected", "_selected_action": [usuario.pk], "post": "yes"},
+    )
+
+    assert Usuario.objects.filter(pk=usuario.pk).exists()
+
+
+@pytest.mark.parametrize("modelo", [Producto, Usuario], ids=lambda m: m._meta.db_table)
+def test_cp128_el_listado_del_panel_no_ofrece_borrar_varios(cliente_admin, modelo):
+    client, _ = cliente_admin
+
+    formulario = client.get(_url(modelo, "changelist")).context["action_form"]
+    # Sin acciones disponibles, el panel no muestra el formulario de acciones.
+    acciones = [] if formulario is None else [v for v, _ in formulario.fields["action"].choices]
+
+    assert "delete_selected" not in acciones

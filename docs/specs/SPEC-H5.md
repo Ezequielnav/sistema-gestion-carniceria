@@ -1,6 +1,6 @@
 # SPEC - H5 Reportes y usuarios (CU-09, CU-14)
 
-**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4.
+**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4. Etapa 1 implementada.
 
 Fuente de verdad: `/docs`. Este spec no agrega reglas del negocio. Toma las de CU-09, CU-10 y CU-14 (04), RF-02, RF-03, RF-42 a RF-46 y RNF-09 (03), RN-06 (04), DEC-59, DEC-83 y DEC-86 (09), DEC-133 a DEC-139 (09) y los casos CP-53, CP-60 a CP-63 y CP-74 y el recorrido RM-08 (08). Las preguntas de H5 (PR-25, PR-26, PR-27 y PR-35) están cerradas como **supuestos del proyecto, no datos confirmados por el negocio** (DEC-133). Si el spec cambia después de aprobado, se anota en "Cambios después de aprobar el spec".
 

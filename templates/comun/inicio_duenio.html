@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{# Inicio del dueño (DEC-134, DEC-147): solo el acceso a Reportes, sin totales del negocio. #}
+{% block contenido %}
+  <div>
+    <h2 class="text-2xl font-semibold tracking-tight">Hola, {{ user.nombre_completo|default:user.username }}</h2>
+    <p class="mt-1 text-sm text-gray-500">Los números del negocio están en los reportes.</p>
+  </div>
+
+  <div class="mt-8 max-w-xl">
+    {% include "comun/_accesos.html" with clase="" %}
+  </div>
+{% endblock %}

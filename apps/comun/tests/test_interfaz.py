@@ -102,10 +102,11 @@ def test_cp37_la_tarjeta_de_stock_bajo_es_del_administrador_y_lleva_al_filtro(cl
     assert respuesta.context["stock_bajo"] == 1
     assert enlace in respuesta.content.decode()
 
+    # La cajera y el dueño tienen su propio inicio, sin totales (R-4, DEC-154).
     for rol in (Rol.CAJERA, Rol.DUENIO):
         client.force_login(_usuario(rol))
         respuesta = client.get(reverse("inicio"))
-        assert respuesta.context["stock_bajo"] is None
+        assert "stock_bajo" not in respuesta.context
         assert enlace not in respuesta.content.decode()
 
 
