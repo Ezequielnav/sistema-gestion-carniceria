@@ -56,7 +56,8 @@ def _exigir_administrador(usuario, accion):
 
 
 def puede_elegir(usuario):
-    """SC-01: el Administrador y la cajera eligen un cliente en la venta y el cobro (DEC-116)."""
+    """El Administrador y la cajera eligen un cliente en la venta y el cobro (SC-01, DEC-116) y
+    cobran (DEC-110)."""
     return usuario.is_authenticated and usuario.rol in (Rol.ADMINISTRADOR, Rol.CAJERA)
 
 
@@ -248,10 +249,6 @@ def deudas_vencidas_de_clientes(clientes, hoy=None):
     return {i: _deuda_vencida(por_cliente[i], limite) for i in ids}
 
 
-def deuda_vencida(cliente, hoy=None):
-    return deudas_vencidas_de_clientes([cliente], hoy)[cliente.pk]
-
-
 # Saldo inicial (DEC-119, RI-18)
 
 
@@ -298,7 +295,7 @@ def cargar_saldo_inicial(usuario, cliente, monto, fecha_origen, motivo):
         raise ValidationError({"fecha_origen": "La fecha de origen no puede ser posterior a hoy."})
     motivo = _validar_motivo(motivo, "del saldo inicial")
     with transaction.atomic():
-        cliente = Cliente.objects.select_for_update().get(pk=cliente.pk)
+        cliente = bloquear_cliente(cliente.pk)
         if saldo_inicial_vigente(cliente) is not None:
             raise ValidationError(
                 f"{cliente} ya tiene un saldo inicial: para cambiarlo, primero hay que anularlo.",
@@ -322,7 +319,7 @@ def anular_saldo_inicial(usuario, saldo_inicial, motivo):
     _exigir_administrador(usuario, "anula el saldo inicial")
     motivo = _validar_motivo(motivo, "de la anulación")
     with transaction.atomic():
-        cliente = Cliente.objects.select_for_update().get(pk=saldo_inicial.cliente_id)
+        cliente = bloquear_cliente(saldo_inicial.cliente_id)
         saldo_inicial = MovimientoCuentaCorriente.objects.get(pk=saldo_inicial.pk)
         if saldo_inicial.tipo != Tipo.SALDO_INICIAL:
             raise ValidationError("Ese movimiento no es un saldo inicial.")
@@ -354,7 +351,7 @@ def _por_texto(clientes, texto):
     return clientes
 
 
-def listar_clientes(usuario, texto="", incluir_inactivos=False, solo_vencidos=False, hoy=None):
+def listar_clientes(usuario, texto="", incluir_inactivos=False, solo_vencidos=False):
     """Ordenados por nombre; los dados de baja solo si se piden. "Solo con deuda vencida"
     calcula la deuda de los que coinciden con una sola consulta (S-7, R-7)."""
     _exigir_administrador(usuario, "gestiona clientes")
@@ -363,17 +360,17 @@ def listar_clientes(usuario, texto="", incluir_inactivos=False, solo_vencidos=Fa
         clientes = clientes.filter(activo=True)
     clientes = _por_texto(clientes, texto)
     if solo_vencidos:
-        vencidas = deudas_vencidas_de_clientes(list(clientes), hoy)
+        vencidas = deudas_vencidas_de_clientes(list(clientes))
         clientes = clientes.filter(pk__in=[pk for pk, monto in vencidas.items() if monto > 0])
     return clientes
 
 
-def con_cuenta(clientes, hoy=None):
+def con_cuenta(clientes):
     """Agrega a cada cliente saldo, deuda vencida y el texto del límite (DEC-115), con una
     consulta para los saldos y otra para la deuda vencida de toda la lista (R-7)."""
     clientes = list(clientes)
     saldos = saldos_de_clientes(clientes)
-    vencidas = deudas_vencidas_de_clientes(clientes, hoy)
+    vencidas = deudas_vencidas_de_clientes(clientes)
     for cliente in clientes:
         cliente.saldo = saldos[cliente.pk]
         cliente.deuda_vencida = vencidas[cliente.pk]
@@ -462,7 +459,7 @@ def cliente_para_elegir(usuario, pk, para_cobro=False):
     return _para_elegir(cliente)
 
 
-def buscar_para_elegir(usuario, texto, para_cobro=False, hoy=None):
+def buscar_para_elegir(usuario, texto, para_cobro=False):
     """Clientes activos por nombre o teléfono, con saldo, límite, disponible y deuda vencida.
 
     En el cobro también aparecen los dados de baja que todavía deben (DEC-116). Devuelve hasta
@@ -482,15 +479,10 @@ def buscar_para_elegir(usuario, texto, para_cobro=False, hoy=None):
         clientes = clientes.filter(activo=True)
     encontrados = list(clientes[: LIMITE_BUSQUEDA + 1])
     hay_mas = len(encontrados) > LIMITE_BUSQUEDA
-    return [_para_elegir(c) for c in con_cuenta(encontrados[:LIMITE_BUSQUEDA], hoy)], hay_mas
+    return [_para_elegir(c) for c in con_cuenta(encontrados[:LIMITE_BUSQUEDA])], hay_mas
 
 
 # CU-04 Registrar pago de cliente: el cobro y su anulación (DEC-110, DEC-111, DEC-113; S-6).
-
-
-def puede_cobrar(usuario):
-    """Cobran el Administrador y la cajera (DEC-110)."""
-    return puede_elegir(usuario)
 
 
 def medios_para_cobrar():
@@ -506,7 +498,7 @@ def registrar_cobro(usuario, cliente, monto, medio, entra_a_caja=True):
     DEC-106). Bloquea caja y después cliente (DEC-128). Se puede cobrar a un cliente dado de
     baja que todavía debe (DEC-116).
     """
-    if not puede_cobrar(usuario):
+    if not puede_elegir(usuario):
         raise PermissionDenied("Solo el administrador y la cajera cobran cuentas corrientes.")
     if not medios_para_cobrar().filter(pk=medio.pk).exists():
         raise ValidationError(
@@ -612,10 +604,10 @@ def anular_cobro(usuario, cobro, motivo):
 # S-10, S-11). Solo el Administrador.
 
 
-def cliente_con_cuenta(usuario, pk, hoy=None):
+def cliente_con_cuenta(usuario, pk):
     """El cliente, activo o no, con saldo, deuda vencida, límite y disponible (CU-08)."""
     _exigir_administrador(usuario, "consulta el estado de cuenta")
-    (cliente,) = con_cuenta([Cliente.objects.get(pk=pk)], hoy)
+    (cliente,) = con_cuenta([Cliente.objects.get(pk=pk)])
     return cliente
 
 
@@ -624,7 +616,7 @@ def movimientos_de_cuenta(usuario, cliente):
     _exigir_administrador(usuario, "consulta el estado de cuenta")
     return (
         MovimientoCuentaCorriente.objects.filter(cliente=cliente)
-        .select_related("venta", "pago_cliente__medio_pago", "saldo_inicial")
+        .select_related("venta", "pago_cliente__medio_pago")
         .order_by("-fecha_hora", "-pk")
     )
 

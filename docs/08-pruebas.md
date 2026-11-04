@@ -117,7 +117,7 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
 
-Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`). Etapa 3: SC-03 y L1 (`apps/ventas/tests/test_cuenta_corriente.py`, `test_concurrencia_cuenta_corriente.py` y `cuenta_corriente.test.cjs`). Etapa 4: CU-04 (`apps/clientes/tests/test_cobros.py` y `test_concurrencia_cobros.py`). Etapa 5: CU-08 (`test_estado_cuenta.py`).
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`). Etapa 3: SC-03 y L1 (`apps/ventas/tests/test_cuenta_corriente.py`, `test_concurrencia_cuenta_corriente.py` y `cuenta_corriente.test.cjs`). Etapa 4: CU-04 (`apps/clientes/tests/test_cobros.py` y `test_concurrencia_cobros.py`). Etapa 5: CU-08 (`test_estado_cuenta.py`). Etapa 6: prueba integral CP-123 (`apps/comun/tests/test_flujo_h4.py`) y recorridos RM-07 y RM-11.
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
@@ -135,6 +135,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-122 | Saldo inicial y su anulación | DEC-119, RI-18, DEC-114 | Solo el Administrador lo carga (monto mayor a 0 con 2 decimales, fecha de origen no posterior a hoy y motivo) y lo anula con motivo; sin validar el límite; uno vigente por cliente; la anulación deja `ANULACION_SALDO_INICIAL`, se rechaza si el saldo actual es menor al monto y después se puede cargar otro; la cajera y los dueños reciben 403 | Decidido (supuesto); automatizado en el servicio (H4, etapa 1) y en el estado de cuenta (etapa 5, criterio 12 del spec) |
 | CP-121 | Estado de cuenta | RF-39 a RF-41, RN-11, S-10, S-11 | Solo el Administrador (la cajera y los dueños reciben 403). Muestra saldo, límite ("Sin límite", "Sin crédito habilitado"), disponible, deuda vencida con su alerta y los movimientos paginados de a 25, con enlaces a cada venta y cobro y la marca de los anulados; sin movimientos, saldo 0. Modifica límite y observaciones con el error junto al campo; un cliente dado de baja no se modifica. El cobro vigente se anula desde su detalle | Automatizado (H4, etapa 5) |
 | CP-120 | Cobro o anulación de cobro y cierre de caja al mismo tiempo | RNF-10, RI-02, DEC-128 | Como CP-88: si el cierre toma la caja primero, el cobro espera y se rechaza (no hay caja abierta) y la anulación espera y se rechaza (caja cerrada); si el cobro va primero, el cierre espera y lo incluye en lo esperado | Automatizado con dos hilos (H4, etapa 4) |
+| CP-123 | Flujo completo de H4 | RF-18, RF-35 a RF-41, RN-04, RN-11, RI-05, RI-06 | Cliente con límite y saldo inicial (con deuda vencida), venta a cuenta corriente con el cliente en el ticket, una que pasa el límite rechazada, cobro en efectivo, anulación de la venta rechazada por saldo, anulación del cobro y de la venta, estado de cuenta con sus 5 movimientos y la alerta, y cierre de caja con el cobro y su reversa compensados, sin diferencias | Automatizado (H4, etapa 6) |
 
 ### 4.5 Productos, usuarios y permisos (CU-10 a CU-14)
 
@@ -192,7 +193,7 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-01 | CP-01, CP-02, CP-79 | RI-01 | CP-02, CP-79, CP-80 |
 | RN-02 | CP-03 | RI-02 | CP-05, CP-85 |
 | RN-03 | CP-05 | RI-03 | CP-10 |
-| RN-04 | CP-11, CP-40, CP-117 | RI-04 | CP-11 |
+| RN-04 | CP-11, CP-40, CP-117, CP-123 | RI-04 | CP-11 |
 | RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19, CP-115, CP-116 |
 | RN-06 | CP-53 | RI-06 | CP-40, CP-41, CP-118 |
 | RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85, CP-107 |
@@ -222,6 +223,7 @@ Se ejecutan al cerrar cada hito, en Chrome de PC y en un celular. Cada recorrido
 | RM-06 | Registrar un pago a proveedor y ver el saldo | H3 | Administrador |
 | RM-10 | Flujo completo de H3: proveedor, producto, ingreso a crédito, venta con aviso de stock, tarjeta "Stock bajo", pago en efectivo y cierre de caja | H3 | Administrador / Cajera |
 | RM-07 | Vender a cuenta corriente, registrar un pago y ver el estado de cuenta | H4 | Administrador / Cajera |
+| RM-11 | Flujo completo de H4: cliente, saldo inicial, venta a cuenta corriente con el límite, cobro, anulaciones, estado de cuenta y cierre de caja | H4 | Administrador / Cajera |
 | RM-08 | Generar un reporte, exportarlo y comparar sus totales con la caja | H5 | Administrador / Dueños |
 | RM-09 | Usar el sistema desde el celular en todas las pantallas anteriores | H6 | Los tres |
 
@@ -238,6 +240,7 @@ Se ejecutan al cerrar cada hito, en Chrome de PC y en un celular. Cada recorrido
 | 2026-10-30 | RM-05 | OK | En local, con Administrador temporal y datos temporales que se borraron al terminar. Ingreso de 5 unidades a $ 1.000: stock 5, saldo del proveedor $ 5.000 y alerta de mínimo en el listado al bajar el stock |
 | 2026-10-30 | RM-06 | OK | Mismo recorrido. Pago de $ 5.000 en efectivo con $ 22.000 disponibles en la caja abierta por la cajera: saldo del ingreso en 0 y egreso a nombre del Administrador |
 | 2026-10-30 | RM-10 | OK | Mismo recorrido. Caja con fondo de $ 10.000; venta de 6 unidades con stock 5: aviso "disponible 5" en la pantalla y en el ticket, stock -1. Tarjeta "Stock bajo" con 2 productos, que lleva al listado filtrado. Cierre: esperado en efectivo $ 17.000, contado igual, diferencia 0 y el pago listado en la pantalla y en el reporte. Sin errores |
+| 2026-11-04 | RM-07 y RM-11 | OK | En local con Playwright, los usuarios de ejemplo (Administrador y cajera) y un cliente de prueba ("Cliente Recorrido H4", límite $ 10.000). Administrador: alta del cliente y saldo inicial de $ 2.000 con origen hace 40 días: saldo $ 2.000, disponible $ 8.000 y alerta de deuda vencida. Cajera: 403 en Clientes y en el estado de cuenta, "Cobrar cuenta corriente" en el menú y aviso sin caja; abrió la caja (fondo $ 1.000) y vendió 2 gaseosas ($ 7.000) a cuenta corriente con el plus 601, eligiendo el cliente con flechas y Enter: ticket con el cliente y sin saldo. Una segunda venta de $ 3.500 avisó "supera el disponible de $ 1.000" y el servidor la rechazó. Cobró $ 3.000 en efectivo (medios sin cuenta corriente, sin la casilla de caja). Administrador: anular la venta se rechazó (saldo $ 6.000 menor a $ 7.000, DEC-114); anuló el cobro desde el estado de cuenta (reversa en la caja abierta) y después la venta. Cobro de $ 500 por transferencia desmarcando "Entra a la caja abierta": sin movimiento de caja. Estado de cuenta con los 6 movimientos y las marcas "Anulado"; deuda vencida $ 1.500 (el cobro cubrió parte del saldo inicial). Anular el saldo inicial con saldo $ 1.500 se rechazó con el mensaje en su sección; límite 0 guardado se ve "Sin crédito habilitado". Anuló el cobro sin caja (siempre) y el saldo inicial: saldo $ 0. Cajera: cierre con esperado en efectivo $ 1.000, sin la venta a cuenta corriente; la pantalla y el reporte listan "Cobro de cuenta corriente N.º 1" y su anulación; sin diferencias. En la consola solo los 400 y 403 esperados. Quedan en la base de desarrollo el cliente de prueba (saldo 0), la venta 23 anulada, dos cobros anulados y la caja 16 cerrada |
 
 ## 7. Criterios de aceptación por hito
 

@@ -25,6 +25,10 @@ Tipo = TipoMovimientoCuentaCorriente
 HOY = datetime.date(2026, 3, 1)
 
 
+def _vencida(cliente, hoy=None):
+    return cuenta.deudas_vencidas_de_clientes([cliente], hoy)[cliente.pk]
+
+
 def _momento(dias_atras):
     """Mediodía de hace `dias_atras` días respecto de HOY, en la hora local."""
     fecha = HOY - datetime.timedelta(days=dias_atras)
@@ -205,19 +209,19 @@ def test_cp119_cobro_cubre_primero_el_cargo_mas_antiguo(cliente, libro):
     libro.cobro("600", dias_atras=2)
 
     assert cuenta.saldo(cliente) == Decimal("900.00")
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("400.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("400.00")
 
 
 def test_cp44_sin_cargos_de_mas_de_30_dias_no_hay_deuda_vencida(cliente, libro):
     libro.venta("1000", dias_atras=30)
 
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("0.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("0.00")
 
 
 def test_cp44_un_cargo_de_31_dias_ya_esta_vencido(cliente, libro):
     libro.venta("1000", dias_atras=31)
 
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("1000.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("1000.00")
 
 
 def test_cp119_cobros_que_cubren_lo_viejo_no_dejan_deuda_vencida(cliente, libro):
@@ -225,7 +229,7 @@ def test_cp119_cobros_que_cubren_lo_viejo_no_dejan_deuda_vencida(cliente, libro)
     libro.venta("500", dias_atras=5)
     libro.cobro("1000")
 
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("0.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("0.00")
 
 
 def test_cp119_ventas_y_cobros_anulados_no_cuentan(cliente, libro):
@@ -235,7 +239,7 @@ def test_cp119_ventas_y_cobros_anulados_no_cuentan(cliente, libro):
     cobro = libro.cobro("300")
     libro.anular_cobro(cobro)
 
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("300.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("300.00")
 
 
 def test_cp119_el_saldo_inicial_vence_por_su_fecha_de_origen(cliente, libro):
@@ -244,7 +248,7 @@ def test_cp119_el_saldo_inicial_vence_por_su_fecha_de_origen(cliente, libro):
     libro.cobro("700")
 
     # El cobro cubre primero la venta (50 días) y después 200 del saldo inicial (45 días).
-    assert cuenta.deuda_vencida(cliente, hoy=HOY) == Decimal("1800.00")
+    assert _vencida(cliente, hoy=HOY) == Decimal("1800.00")
 
 
 def test_r7_deudas_vencidas_del_listado_en_una_sola_consulta(
@@ -278,7 +282,7 @@ def test_cp122_el_administrador_carga_el_saldo_inicial(admin, cliente):
 
     assert saldo_inicial.tipo == Tipo.SALDO_INICIAL
     assert cuenta.saldo(cliente) == Decimal("2000.00")
-    assert cuenta.deuda_vencida(cliente) == Decimal("2000.00")
+    assert _vencida(cliente) == Decimal("2000.00")
 
 
 def test_cp122_el_saldo_inicial_no_se_valida_contra_el_limite(admin, cliente):

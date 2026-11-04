@@ -185,8 +185,9 @@ def cobrar(request):
                 datos["cliente"],
                 datos["monto"],
                 datos["medio_pago"],
-                # Sin caja de hoy, el del Administrador va sin movimiento de caja (DEC-110).
-                entra_a_caja=not es_admin or (caja_del_dia and datos["entra_a_caja"]),
+                # Sin caja de hoy, el del Administrador va sin movimiento de caja (DEC-110). La
+                # cajera no tiene la casilla: el servicio la cobra siempre en caja.
+                entra_a_caja=caja_del_dia and datos["entra_a_caja"],
             )
         except ValidationError as error:
             form.add_error(None, error)

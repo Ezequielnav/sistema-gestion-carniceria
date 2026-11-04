@@ -22,25 +22,29 @@ AYUDAS = {
 }
 
 
+def _campos_de_cliente(nombres):
+    """Campos del modelo con etiquetas, ayudas y el mínimo del límite (DEC-115, DEC-117)."""
+    campos = fields_for_model(
+        Cliente,
+        fields=nombres,
+        labels=ETIQUETAS,
+        help_texts=AYUDAS,
+        widgets={"observaciones": forms.Textarea(attrs={"rows": 3})},
+    )
+    # Repite el CHECK de la base para mostrar el error junto al campo (RI-16).
+    campos["limite_credito"].validators.append(NO_NEGATIVO)
+    campos["limite_credito"].widget.attrs.update({"min": "0", "step": "0.01"})
+    for campo in campos.values():
+        campo.widget.attrs["class"] = "campo"
+    return campos
+
+
 class ClienteForm(forms.Form):
     """Datos de un cliente (CU-12, DEC-117). Las reglas las aplica el servicio."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields.update(
-            fields_for_model(
-                Cliente,
-                fields=CAMPOS_EDITABLES,
-                labels=ETIQUETAS,
-                help_texts=AYUDAS,
-                widgets={"observaciones": forms.Textarea(attrs={"rows": 3})},
-            )
-        )
-        # Repite el CHECK de la base para mostrar el error junto al campo (RI-16).
-        self.fields["limite_credito"].validators.append(NO_NEGATIVO)
-        self.fields["limite_credito"].widget.attrs.update({"min": "0", "step": "0.01"})
-        for campo in self.fields.values():
-            campo.widget.attrs["class"] = "campo"
+        self.fields.update(_campos_de_cliente(CAMPOS_EDITABLES))
 
 
 class CobroForm(forms.Form):
@@ -102,19 +106,7 @@ class CondicionesForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields.update(
-            fields_for_model(
-                Cliente,
-                fields=["limite_credito", "observaciones"],
-                labels=ETIQUETAS,
-                help_texts=AYUDAS,
-                widgets={"observaciones": forms.Textarea(attrs={"rows": 3})},
-            )
-        )
-        self.fields["limite_credito"].validators.append(NO_NEGATIVO)
-        self.fields["limite_credito"].widget.attrs.update({"min": "0", "step": "0.01"})
-        for campo in self.fields.values():
-            campo.widget.attrs["class"] = "campo"
+        self.fields.update(_campos_de_cliente(["limite_credito", "observaciones"]))
 
 
 class SaldoInicialForm(forms.Form):

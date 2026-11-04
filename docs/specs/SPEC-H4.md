@@ -1,6 +1,6 @@
 # SPEC - H4 Clientes y cuentas corrientes (CU-12, SC-01, SC-03, CU-04, CU-08)
 
-**Estado:** aprobado (S-1 a S-11 como DEC-120 a DEC-130; R-1 a R-7 como DEC-131).
+**Estado:** implementado (etapas 1 a 6, rama `h4`). Aprobado con S-1 a S-11 como DEC-120 a DEC-130 y R-1 a R-7 como DEC-131. Los cambios posteriores a la aprobación están en la tabla final; lo que quedó pendiente, en la lista L de 07 (L13, L15 a L17).
 
 Fuente de verdad: `/docs`. Este spec no agrega reglas del negocio. Toma las de CU-04, CU-08, CU-12, SC-01 y SC-03 (04), RF-18 y RF-35 a RF-41 (03), RN-04, RN-07 y RN-11 (04), RI-05, RI-06, RI-13, RI-15 y RI-18 (05), DEC-107 a DEC-119 (09) y los casos CP-18, CP-19 y CP-40 a CP-44 (08). Las preguntas de H4 (PR-11 a PR-16 y PR-31) están cerradas como **supuestos del proyecto, no datos confirmados por el negocio** (DEC-107). Lo que `/docs` no fijaba está en la sección final (S-1 a S-11, DEC-120 a DEC-130) y los ajustes del refactor, en R-1 a R-7 (DEC-131), igual que en el spec de H3. Si el spec cambia después de aprobado, se anota en "Cambios después de aprobar el spec".
 
@@ -100,6 +100,9 @@ apps/ventas/services.py          medio cuenta corriente, cargo y anulación sin 
 apps/comun/menu.py               "Clientes" (Administrador) y "Cobrar cuenta corriente" (cajera) (S-2)
 templates/clientes/              pantallas de CU-12, CU-04 y CU-08
 templates/ventas/, static/js/    elección del cliente en la venta (S-4)
+static/js/elegir_cliente.js      SC-01 en pantalla para la venta y el cobro, sobre buscador.js
+static/js/cobro.js               pantalla del cobro (CU-04)
+apps/comun/tests/test_flujo_h4.py  prueba integral (CP-123)
 apps/*/tests/                    pruebas por módulo; prueba de estructura (R-4)
 docs/                            01, 03, 04, 05, 06, 07, 08 y 09 al día
 ```
@@ -168,3 +171,5 @@ def saldo(cliente):
 |---|---|---|---|
 | 2026-11-03 | La anulación de una venta bloquea caja, venta y cliente, en ese orden (S-9) | DEC-128 ampliada | 3 |
 | 2026-11-04 | La anulación de un cobro bloquea la caja de su ingreso, el cobro y el cliente, en ese orden (S-9) | DEC-128 ampliada | 4 |
+| 2026-11-04 | El concepto `PAGO_CLIENTE` se muestra como "Cobro de cuenta corriente" en el cierre y su reporte (solo la etiqueta; migración `caja/0011`) | Pedido del alumno | 4 |
+| 2026-11-04 | Pendientes que no entran en H4: comprobante del cobro (L16) y saldo acumulado en el estado de cuenta (L17) | Lista L de 07 | 4 y 5 |
