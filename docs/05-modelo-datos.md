@@ -338,7 +338,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | tipo | enum | S | `INGRESO`, `EGRESO` |
 | monto | decimal | S | Siempre positivo; el signo lo da `tipo` |
 | medio_pago_id | FK medio_pago | S | |
-| concepto | enum | S | `VENTA`, `PAGO_CLIENTE`, `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43), `ANULACION` (egreso que revierte una venta anulada: DEC-68), `ANULACION_PAGO` (ingreso que revierte el egreso de un pago a proveedor anulado: DEC-92), `ANULACION_COBRO` (egreso que revierte el ingreso de un cobro a cliente anulado: DEC-113) |
+| concepto | enum | S | `VENTA`, `PAGO_CLIENTE` (se muestra como "Cobro de cuenta corriente", migración `caja/0011`), `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43), `ANULACION` (egreso que revierte una venta anulada: DEC-68), `ANULACION_PAGO` (ingreso que revierte el egreso de un pago a proveedor anulado: DEC-92), `ANULACION_COBRO` (egreso que revierte el ingreso de un cobro a cliente anulado: DEC-113) |
 | venta_id | FK venta | N | Si `concepto = VENTA` o `ANULACION`; a lo sumo una `ANULACION` por venta |
 | pago_cliente_id | FK pago_cliente | N | Si `concepto = PAGO_CLIENTE` o `ANULACION_COBRO`; a lo sumo una `ANULACION_COBRO` por cobro |
 | pago_proveedor_id | FK pago_proveedor | N | Si `concepto = PAGO_PROVEEDOR` |

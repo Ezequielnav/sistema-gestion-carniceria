@@ -167,3 +167,4 @@ def saldo(cliente):
 | Fecha | Cambio | Decisión | Etapa |
 |---|---|---|---|
 | 2026-11-03 | La anulación de una venta bloquea caja, venta y cliente, en ese orden (S-9) | DEC-128 ampliada | 3 |
+| 2026-11-04 | La anulación de un cobro bloquea la caja de su ingreso, el cobro y el cliente, en ese orden (S-9) | DEC-128 ampliada | 4 |

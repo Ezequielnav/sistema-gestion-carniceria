@@ -117,20 +117,23 @@ Cada fila es un caso base. Al implementar el módulo se desglosan los casos (cam
 
 ### 4.4 Clientes y cuentas corrientes (CU-04, CU-08, CU-12, SC-03)
 
-Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`). Etapa 3: SC-03 y L1 (`apps/ventas/tests/test_cuenta_corriente.py`, `test_concurrencia_cuenta_corriente.py` y `cuenta_corriente.test.cjs`).
+Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan acá al implementar cada etapa. Etapa 1: el servicio de cuenta (`apps/clientes/tests/test_cuenta.py`) y las restricciones de la base (`test_integridad_clientes.py`, `test_integridad_caja.py`). Etapa 2: CU-12 y SC-01 (`test_clientes.py`). Etapa 3: SC-03 y L1 (`apps/ventas/tests/test_cuenta_corriente.py`, `test_concurrencia_cuenta_corriente.py` y `cuenta_corriente.test.cjs`). Etapa 4: CU-04 (`apps/clientes/tests/test_cobros.py` y `test_concurrencia_cobros.py`).
 
 | ID | Caso | Regla | Resultado esperado | Estado |
 |---|---|---|---|---|
-| CP-40 | Pago de cliente menor o igual a la deuda | RF-36, RF-37, RN-04 | El saldo baja y se registra el ingreso en caja | Confirmado |
-| CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06 | Se rechaza y se muestra el saldo como máximo a cobrar; no hay `ANTICIPO` | Decidido (DEC-111, supuesto); se automatiza en H4 |
+| CP-40 | Pago de cliente menor o igual a la deuda | RF-36, RF-37, RN-04 | El saldo baja y se registra el ingreso en caja, con su medio y a nombre de quien cobra | Confirmado; automatizado (H4, etapa 4) |
+| CP-41 | Pago de cliente mayor a la deuda | RN-07, RI-06 | Se rechaza y se muestra el saldo como máximo a cobrar; no hay `ANTICIPO`. Sin saldo no hay nada que cobrar | Decidido (DEC-111, supuesto); automatizado (H4, etapa 4) |
 | CP-42 | El saldo del cliente se calcula desde los movimientos | DEC-21 | Saldo = saldo inicial + ventas fiadas - pagos, con sus anulaciones (DEC-113, DEC-119); no hay saldo guardado | Confirmado; automatizado (H4, etapa 1), también el saldo de toda una lista en una sola consulta (R-7) |
 | CP-43 | Movimiento de cuenta corriente de otro cliente que la venta | RI-15 | Se rechaza | Confirmado |
 | CP-44 | Cliente con deuda vencida | RN-11, RF-40 | Muestra alerta con la deuda de más de 30 días, imputando los cobros a lo más antiguo; no bloquea | Decidido (DEC-109, supuesto). El cálculo, automatizado en el servicio (H4, etapa 1): 30 días no vence, 31 sí; la alerta en pantalla se prueba en las etapas 2, 3 y 5 |
 | CP-115 | Límite de crédito en la venta a cuenta corriente | DEC-108, DEC-115, S-9 | Llegar justo al límite se acepta y pasarlo se rechaza mostrando saldo y disponible, sin guardar venta, deuda ni cambio de stock; sin límite no hay tope; con límite 0 se rechaza ("sin crédito habilitado"); un cliente dado de baja no compra a cuenta corriente. La pantalla avisa antes de confirmar y el servidor vuelve a validar. Dos ventas del mismo cliente a la vez: la segunda espera a la primera y se rechaza por el límite | Decidido (supuestos); automatizado (H4, etapa 3), con dos hilos para la concurrencia |
 | CP-116 | Anular una venta a cuenta corriente | L1, DEC-113, DEC-114, S-11 | Solo el Administrador, con motivo y su caja abierta: la venta queda anulada, se registra `ANULACION_VENTA` por su total, no hay egreso de caja y vuelve el stock. Se rechaza si el saldo actual del cliente es menor al total; los cobros no quedan atados a una venta. El detalle explica el efecto en la cuenta corriente y muestra el rechazo | Decidido (supuestos); automatizado (H4, etapa 3) |
+| CP-117 | Cobro con caja y sin caja | DEC-110, S-6 | La cajera cobra solo con la caja abierta de hoy y siempre en caja; el cobro entra con su medio; cuenta corriente y los medios inactivos no se aceptan; el Administrador ve "Entra a la caja abierta" solo con caja de hoy y, sin ella o desmarcada, cobra sin movimiento de caja; se cobra a un cliente dado de baja que debe; los dueños no cobran | Decidido (supuestos); automatizado (H4, etapa 4) |
+| CP-118 | Anular un cobro | DEC-113, DEC-69, S-11 | Solo el Administrador, con motivo: `ANULACION_PAGO` y, si entró a caja, `ANULACION_COBRO` en su caja; con esa caja cerrada se rechaza (criterio de DEC-92 y DEC-106); en efectivo, se rechaza si no alcanza el efectivo; sin caja se anula siempre; no se anula dos veces. El detalle muestra por qué no se puede | Decidido (supuestos); automatizado (H4, etapa 4) |
 | CP-119 | Deuda vencida con cobros imputados a lo más antiguo | DEC-109, DEC-119 | Ventas de $ 1.000 (hace 40 días) y $ 500 (hace 5) con un cobro de $ 600: saldo $ 900 y vencida $ 400. Ventas y cobros anulados no cuentan; el saldo inicial vence por su fecha de origen; la deuda vencida de toda una lista sale de una sola consulta (R-7) | Decidido (supuesto); automatizado (H4, etapa 1) |
 | CP-114 | Gestionar clientes y elegir cliente | RF-35, RF-41, DEC-115 a DEC-118, S-1, S-7 | El Administrador da de alta (solo el nombre es obligatorio; límite vacío o mayor o igual a 0 con 2 decimales), modifica, da de baja (con aviso del saldo, que no se borra) y reactiva; busca por nombre o teléfono, filtra "Solo con deuda vencida" y pagina de a 25; el listado muestra saldo, límite ("Sin límite", "Sin crédito habilitado") y deuda vencida sin una consulta por cliente. La cajera y los dueños reciben 403 y no ven "Clientes". SC-01: el Administrador y la cajera eligen entre los activos (en el cobro, también los dados de baja que deben), hasta 50 con aviso si hay más; los dueños reciben 403 | Decidido (supuestos); automatizado (H4, etapa 2) |
 | CP-122 | Saldo inicial y su anulación | DEC-119, RI-18, DEC-114 | Solo el Administrador lo carga (monto mayor a 0 con 2 decimales, fecha de origen no posterior a hoy y motivo) y lo anula con motivo; sin validar el límite; uno vigente por cliente; la anulación deja `ANULACION_SALDO_INICIAL`, se rechaza si el saldo actual es menor al monto y después se puede cargar otro; la cajera y los dueños reciben 403 | Decidido (supuesto); servicio automatizado (H4, etapa 1); la pantalla, en la etapa 5 |
+| CP-120 | Cobro o anulación de cobro y cierre de caja al mismo tiempo | RNF-10, RI-02, DEC-128 | Como CP-88: si el cierre toma la caja primero, el cobro espera y se rechaza (no hay caja abierta) y la anulación espera y se rechaza (caja cerrada); si el cobro va primero, el cierre espera y lo incluye en lo esperado | Automatizado con dos hilos (H4, etapa 4) |
 
 ### 4.5 Productos, usuarios y permisos (CU-10 a CU-14)
 
@@ -173,7 +176,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-71 | Montos negativos y cantidades menores o iguales a cero en la base | RI-16 | La base los rechaza (restricción `CHECK`, no solo validación de formulario) |
 | CP-72 | Migraciones sobre base vacía | H1.2 | Se aplican sin errores, no quedan migraciones sin aplicar y los modelos no tienen cambios sin migrar |
 | CP-73 | Las entidades existen con sus claves y restricciones | [05-modelo-datos.md](05-modelo-datos.md) | Coincide con el modelo: las 17 tablas (18 desde `ajuste_stock`, etapa 1b de H3, DEC-98) y ninguna condicional, auditoría en todas, cada `CHECK` y `UNIQUE` de la sección 7.4 (los parciales, con su condición), los índices de la sección 7.5 y toda clave foránea con `PROTECT` |
-| CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: historial de ventas (con anulación, DEC-71, DEC-86), productos (con la consulta de stock, DEC-105), clientes, proveedores, reportes y usuarios; cajera: ventas, ventas de la caja (sin anular, DEC-84), caja y productos, con o sin permiso de alta (DEC-103); dueños: solo reportes |
+| CP-74 | Menú de la plantilla base por rol | RF-02, RN-05 (H1.4) | Administrador: historial de ventas (con anulación, DEC-71, DEC-86), productos (con la consulta de stock, DEC-105), clientes, proveedores, reportes y usuarios; cajera: ventas, ventas de la caja (sin anular, DEC-84), caja, cobrar cuenta corriente (S-2, H4) y productos, con o sin permiso de alta (DEC-103); dueños: solo reportes |
 | CP-75 | Abrir el inicio sin sesión | RF-01, RNF-06 (H1.4) | Redirige al ingreso |
 | CP-76 | Resumen del día en el inicio | H1.4 (DEC-30) | Ventas de hoy (cantidad y monto, sin las de otros días ni las anuladas, DEC-73), cajas abiertas, productos activos y últimas ventas salen de la base |
 | CP-77 | Cargar los datos de ejemplo dos veces | H1.3 | No se duplica nada; hay un usuario por rol, una cajera con permiso de alta y otra sin él, y cada uno entra con la contraseña de `DEMO_PASSWORD`; fuera de desarrollo o sin esa variable el comando no corre |
@@ -188,9 +191,9 @@ Toda regla debe tener al menos una prueba. Si se agrega una regla, se agrega su 
 | RN-01 | CP-01, CP-02, CP-79 | RI-01 | CP-02, CP-79, CP-80 |
 | RN-02 | CP-03 | RI-02 | CP-05, CP-85 |
 | RN-03 | CP-05 | RI-03 | CP-10 |
-| RN-04 | CP-11, CP-40 | RI-04 | CP-11 |
+| RN-04 | CP-11, CP-40, CP-117 | RI-04 | CP-11 |
 | RN-05 | CP-55, CP-56, CP-74 | RI-05 | CP-18, CP-19, CP-115, CP-116 |
-| RN-06 | CP-53 | RI-06 | CP-41 |
+| RN-06 | CP-53 | RI-06 | CP-40, CP-41, CP-118 |
 | RN-07 | CP-41 | RI-07 | CP-12, CP-13, CP-30, CP-85, CP-107 |
 | RN-08 | CP-30, CP-32, CP-92 | RI-08 | CP-34 |
 | RN-09 | CP-36, CP-91 | RI-09 | CP-36 |

@@ -17,10 +17,20 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
+from apps.caja.models import EstadoCaja, MedioPago
+from apps.caja.services import (
+    caja_de_cobro_bloqueada,
+    caja_del_dia_bloqueada,
+    ingreso_de_cobro,
+    registrar_ingreso_cobro,
+    registrar_reversa_cobro,
+)
 from apps.clientes.models import (
     TIPOS_QUE_SUMAN,
     Cliente,
+    EstadoPagoCliente,
     MovimientoCuentaCorriente,
+    PagoCliente,
     TipoMovimientoCuentaCorriente,
 )
 from apps.comun.models import pesos
@@ -438,6 +448,20 @@ def _para_elegir(cliente):
     }
 
 
+def cliente_para_elegir(usuario, pk, para_cobro=False):
+    """Un cliente con los datos de SC-01, para mostrarlo ya elegido (por ejemplo, al llegar al
+    cobro desde el listado), o None si no se puede elegir."""
+    if not puede_elegir(usuario):
+        raise PermissionDenied("Solo el administrador y la cajera eligen clientes.")
+    cliente = Cliente.objects.filter(pk=pk).first()
+    if cliente is None:
+        return None
+    (cliente,) = con_cuenta([cliente])
+    if not cliente.activo and not (para_cobro and cliente.saldo > 0):
+        return None
+    return _para_elegir(cliente)
+
+
 def buscar_para_elegir(usuario, texto, para_cobro=False, hoy=None):
     """Clientes activos por nombre o teléfono, con saldo, límite, disponible y deuda vencida.
 
@@ -459,3 +483,126 @@ def buscar_para_elegir(usuario, texto, para_cobro=False, hoy=None):
     encontrados = list(clientes[: LIMITE_BUSQUEDA + 1])
     hay_mas = len(encontrados) > LIMITE_BUSQUEDA
     return [_para_elegir(c) for c in con_cuenta(encontrados[:LIMITE_BUSQUEDA], hoy)], hay_mas
+
+
+# CU-04 Registrar pago de cliente: el cobro y su anulación (DEC-110, DEC-111, DEC-113; S-6).
+
+
+def puede_cobrar(usuario):
+    """Cobran el Administrador y la cajera (DEC-110)."""
+    return puede_elegir(usuario)
+
+
+def medios_para_cobrar():
+    """Medios activos que ingresan a caja: una deuda no se paga con cuenta corriente (DEC-110)."""
+    return MedioPago.objects.filter(activo=True, ingresa_a_caja=True).order_by("pk")
+
+
+def registrar_cobro(usuario, cliente, monto, medio, entra_a_caja=True):
+    """Cobra parte o todo el saldo del cliente, nunca más (DEC-111).
+
+    El cobro entra a la caja abierta de hoy con su medio (RN-04). La cajera siempre cobra en
+    caja; el Administrador puede registrarlo sin movimiento de caja (DEC-110, criterio de
+    DEC-106). Bloquea caja y después cliente (DEC-128). Se puede cobrar a un cliente dado de
+    baja que todavía debe (DEC-116).
+    """
+    if not puede_cobrar(usuario):
+        raise PermissionDenied("Solo el administrador y la cajera cobran cuentas corrientes.")
+    if not medios_para_cobrar().filter(pk=medio.pk).exists():
+        raise ValidationError(
+            {"medio_pago": "Ese medio de pago no se puede usar para cobrar."}, code="medio_pago"
+        )
+    _validar_monto(monto)
+    if usuario.rol != Rol.ADMINISTRADOR:
+        entra_a_caja = True
+    with transaction.atomic():
+        caja = caja_del_dia_bloqueada() if entra_a_caja else None
+        cliente = bloquear_cliente(cliente.pk)
+        saldo_actual = saldo(cliente)
+        if saldo_actual <= 0:
+            raise ValidationError(f"{cliente} no tiene saldo para cobrar.", code="sin_saldo")
+        if monto > saldo_actual:
+            raise ValidationError(
+                {
+                    "monto": f"El saldo de {cliente} es {pesos(saldo_actual)}: es el máximo a "
+                    "cobrar."
+                },
+                code="supera_el_saldo",
+            )
+        pago = PagoCliente.objects.create(
+            cliente=cliente,
+            monto=monto,
+            medio_pago=medio,
+            usuario=usuario,
+            entra_a_caja=entra_a_caja,
+        )
+        MovimientoCuentaCorriente.objects.create(
+            cliente=cliente,
+            fecha_hora=pago.fecha_hora,
+            tipo=Tipo.PAGO,
+            monto=monto,
+            pago_cliente=pago,
+        )
+        if entra_a_caja:
+            registrar_ingreso_cobro(pago, usuario, caja)
+    return pago
+
+
+def cobro_con_detalles(usuario, pk):
+    """El cobro con lo que muestra su detalle; solo el Administrador (S-10, S-11)."""
+    _exigir_administrador(usuario, "consulta los cobros")
+    return PagoCliente.objects.select_related(
+        "cliente", "medio_pago", "usuario", "anulado_por_usuario"
+    ).get(pk=pk)
+
+
+def impedimento_para_anular_cobro(cobro):
+    """Por qué no se puede anular, o None: ya anulado o su caja ya se cerró (DEC-113)."""
+    if cobro.estado == EstadoPagoCliente.ANULADO:
+        return "El cobro ya está anulado."
+    if cobro.entra_a_caja and ingreso_de_cobro(cobro).caja.estado != EstadoCaja.ABIERTA:
+        return (
+            "La caja de este cobro ya se cerró: un cobro que entró a caja se anula solo con su "
+            "caja abierta."
+        )
+    return None
+
+
+def anular_cobro(usuario, cobro, motivo):
+    """Anula con motivo: `ANULACION_PAGO` vuelve a sumar la deuda y, si entró a caja, un egreso
+    `ANULACION_COBRO` en la caja de su ingreso, que tiene que seguir abierta (DEC-113). Uno que
+    no entró a caja se anula siempre. El cobro y su ingreso no se tocan.
+
+    Bloquea caja, cobro y cliente, en ese orden (DEC-128).
+    """
+    _exigir_administrador(usuario, "anula cobros")
+    motivo = _validar_motivo(motivo, "de la anulación")
+    with transaction.atomic():
+        caja = caja_de_cobro_bloqueada(cobro) if cobro.entra_a_caja else None
+        cobro = PagoCliente.objects.select_for_update().get(pk=cobro.pk)
+        if cobro.estado == EstadoPagoCliente.ANULADO:
+            raise ValidationError("El cobro ya está anulado.", code="ya_anulado")
+        cliente = bloquear_cliente(cobro.cliente_id)
+        if caja is not None:
+            registrar_reversa_cobro(cobro, usuario, motivo, caja)
+        MovimientoCuentaCorriente.objects.create(
+            # RI-15: el mismo cliente que el cobro.
+            cliente=cliente,
+            tipo=Tipo.ANULACION_PAGO,
+            monto=cobro.monto,
+            pago_cliente=cobro,
+        )
+        cobro.estado = EstadoPagoCliente.ANULADO
+        cobro.anulado_en = timezone.now()
+        cobro.anulado_por_usuario = usuario
+        cobro.motivo_anulacion = motivo
+        cobro.save(
+            update_fields=[
+                "estado",
+                "anulado_en",
+                "anulado_por_usuario",
+                "motivo_anulacion",
+                "actualizado_en",
+            ]
+        )
+    return cobro

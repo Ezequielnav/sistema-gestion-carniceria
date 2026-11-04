@@ -26,7 +26,7 @@ class ConceptoMovimientoCaja(models.TextChoices):
     """Gastos y retiros (DEC-43) y reversas de anulaciones (DEC-68, DEC-92, DEC-113)."""
 
     VENTA = "VENTA", "Venta"
-    PAGO_CLIENTE = "PAGO_CLIENTE", "Pago de cliente"
+    PAGO_CLIENTE = "PAGO_CLIENTE", "Cobro de cuenta corriente"
     PAGO_PROVEEDOR = "PAGO_PROVEEDOR", "Pago a proveedor"
     OTRO = "OTRO", "Otro"
     # Reversa de una venta anulada (DEC-45, DEC-68).

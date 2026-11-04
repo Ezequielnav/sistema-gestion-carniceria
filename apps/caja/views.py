@@ -15,6 +15,7 @@ from apps.caja.services import (
     detalle_de_cierre,
     egresos_otros,
     es_de_otro_dia,
+    movimientos_de_cobros,
     movimientos_de_pagos_a_proveedores,
     puede_abrir,
     puede_ver_cierre,
@@ -112,6 +113,7 @@ def cerrar(request):
             "form": form,
             "anulaciones": anulaciones(abierta),
             "pagos_proveedores": movimientos_de_pagos_a_proveedores(abierta),
+            "cobros": movimientos_de_cobros(abierta),
         },
     )
 
@@ -135,6 +137,7 @@ def cierre(request, pk):
             "egresos": egresos_otros(caja),
             "anulaciones": anulaciones(caja),
             "pagos_proveedores": movimientos_de_pagos_a_proveedores(caja),
+            "cobros": movimientos_de_cobros(caja),
             "es_cajera": puede_abrir(request.user),
         },
     )

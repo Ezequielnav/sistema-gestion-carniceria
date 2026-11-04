@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block titulo %}Cobro N.º {{ cobro.pk }}{% endblock %}
+{% block encabezado %}Clientes{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-2xl">
+    <a href="{% url 'clientes:clientes' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a clientes</a>
+    <div class="mt-2 flex flex-wrap items-center gap-3">
+      <h2 class="text-2xl font-semibold tracking-tight">Cobro N.º {{ cobro.pk }}</h2>
+      {% if cobro.estado == "ANULADO" %}
+        <span class="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700">Anulado</span>
+      {% endif %}
+    </div>
+
+    <dl class="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-white p-6 text-sm shadow-xs sm:grid-cols-2">
+      <div><dt class="text-gray-500">Cliente</dt><dd class="font-medium">{{ cobro.cliente }}</dd></div>
+      <div><dt class="text-gray-500">Monto</dt><dd class="cifras font-medium">$ {{ cobro.monto|floatformat:"2g" }}</dd></div>
+      <div><dt class="text-gray-500">Medio</dt><dd>{{ cobro.medio_pago }}{% if ingreso %} · caja {{ ingreso.caja.fecha|date:"d/m/Y" }} {{ ingreso.caja.get_turno_display|lower }} ({{ ingreso.caja.get_estado_display|lower }}){% else %} · sin movimiento de caja{% endif %}</dd></div>
+      <div><dt class="text-gray-500">Fecha</dt><dd class="cifras">{{ cobro.fecha_hora|date:"d/m/Y H:i" }}</dd></div>
+      <div><dt class="text-gray-500">Cobró</dt><dd>{{ cobro.usuario.nombre_completo }}</dd></div>
+      {% if cobro.estado == "ANULADO" %}
+        <div><dt class="text-gray-500">Anulado</dt><dd class="cifras">{{ cobro.anulado_en|date:"d/m/Y H:i" }} por {{ cobro.anulado_por_usuario.nombre_completo }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-gray-500">Motivo de la anulación</dt><dd>{{ cobro.motivo_anulacion }}</dd></div>
+      {% endif %}
+    </dl>
+
+    {% if cobro.estado != "ANULADO" %}
+      {# DEC-113 y S-11 (DEC-130). #}
+      <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-labelledby="titulo-anular">
+        <h3 id="titulo-anular" class="text-base font-semibold">Anular cobro</h3>
+        {% if impedimento %}
+          <p class="mt-2 text-sm text-gray-600">{{ impedimento }}</p>
+        {% else %}
+          <p class="mt-1 text-sm text-gray-600">El cobro no se borra: queda anulado y el saldo del cliente vuelve a subir.{% if ingreso %} La caja devuelve el monto con un egreso de anulación; el ingreso original no se toca.{% endif %}</p>
+          <form method="post" action="{% url 'clientes:cobro_anular' cobro.pk %}" class="mt-4 space-y-4" novalidate
+                onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular el cobro N.º {{ cobro.pk }}? No se puede deshacer.')">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+              </div>
+            {% endif %}
+            <div>
+              <label for="{{ form.motivo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.motivo.label }}</label>
+              {{ form.motivo }}
+              {% for error in form.motivo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="flex justify-end">
+              <button type="submit" class="rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">Anular cobro</button>
+            </div>
+          </form>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

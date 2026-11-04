@@ -393,67 +393,8 @@
       vencida: document.getElementById("cliente-vencida"),
       aviso: document.getElementById("cliente-aviso"),
     };
-    let espera = null;
-    let consulta = 0;
-
-    async function consultarClientes(texto) {
-      const respuesta = await fetch(`${raiz.dataset.clientes}?q=${encodeURIComponent(texto)}`, {
-        headers: { Accept: "application/json" },
-      });
-      return respuesta.json();
-    }
-
-    function mostrarLista(clientes, hayMas) {
-      const items = clientes.map((c) => {
-        const item = document.createElement("li");
-        const boton = document.createElement("button");
-        boton.type = "button";
-        boton.className = "flex w-full justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none";
-        const nombre = document.createElement("span");
-        nombre.className = "font-medium";
-        nombre.textContent = c.nombre;
-        const telefono = document.createElement("span");
-        telefono.className = "cifras text-gray-500";
-        telefono.textContent = c.telefono;
-        boton.append(nombre, telefono);
-        boton.addEventListener("click", () => elegirCliente(c));
-        item.append(boton);
-        return item;
-      });
-      if (!clientes.length) {
-        const vacio = document.createElement("li");
-        vacio.className = "px-3 py-2 text-sm text-gray-500";
-        vacio.textContent = "No hay clientes que coincidan.";
-        items.push(vacio);
-      } else if (hayMas) {
-        const mas = document.createElement("li");
-        mas.className = "px-3 py-2 text-xs text-gray-500";
-        mas.textContent = "Seguí escribiendo para ver más.";
-        items.push(mas);
-      }
-      lista.replaceChildren(...items);
-      lista.classList.remove("hidden");
-    }
-
-    function filtrarClientes() {
-      clearTimeout(espera);
-      const texto = buscarCliente.value.trim();
-      if (!texto) {
-        lista.classList.add("hidden");
-        return;
-      }
-      // Como el buscador de productos: espera 250 ms sin teclas (DEC-97).
-      espera = setTimeout(async () => {
-        const turno = ++consulta;
-        const datos = await consultarClientes(texto);
-        if (turno === consulta) mostrarLista(datos.resultados, datos.hay_mas);
-      }, 250);
-    }
-
     function elegirCliente(c) {
       cliente = c;
-      buscarCliente.value = "";
-      lista.classList.add("hidden");
       mostrarErrores([]);
       dibujar();
       persistir();
@@ -487,7 +428,7 @@
     async function refrescar() {
       if (!cliente) return;
       const anterior = cliente;
-      const datos = await consultarClientes(anterior.nombre);
+      const datos = await consultarClientes(raiz.dataset.clientes, anterior.nombre);
       const actual = datos.resultados.find((c) => c.id === anterior.id) || null;
       if (cliente === anterior) {
         cliente = actual;
@@ -496,9 +437,12 @@
       }
     }
 
-    buscarCliente.addEventListener("input", filtrarClientes);
-    buscarCliente.addEventListener("keydown", (evento) => {
-      if (evento.key === "Escape") lista.classList.add("hidden");
+    // SC-01 con la navegación del buscador de productos (DEC-97).
+    crearElegirCliente({
+      entrada: buscarCliente,
+      lista,
+      url: raiz.dataset.clientes,
+      alElegir: elegirCliente,
     });
     document.getElementById("cambiar-cliente").addEventListener("click", () => {
       cliente = null;

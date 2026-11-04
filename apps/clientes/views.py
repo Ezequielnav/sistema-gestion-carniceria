@@ -4,22 +4,31 @@ from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from apps.clientes.forms import ClienteForm
+from apps.caja.services import hay_caja_del_dia, ingreso_de_cobro
+from apps.clientes.forms import AnularCobroForm, ClienteForm, CobroForm
 from apps.clientes.services import (
     CAMPOS_EDITABLES,
+    anular_cobro,
     buscar_para_elegir,
     cliente_dado_de_baja,
     cliente_editable,
+    cliente_para_elegir,
+    cobro_con_detalles,
     con_cuenta,
     crear_cliente,
     dar_de_baja,
+    impedimento_para_anular_cobro,
     listar_clientes,
     modificar_cliente,
+    puede_gestionar,
     reactivar,
+    registrar_cobro,
     saldo,
 )
+from apps.comun.models import pesos
 from apps.comun.permisos import requiere_funcion
 
 # DEC-118: de a 25, como productos y proveedores (DEC-95).
@@ -124,8 +133,8 @@ def reactivar_cliente(request, pk):
     return redirect("clientes:clientes")
 
 
-# SC-01: la cajera llega desde la venta y, desde la etapa 4, desde el cobro (DEC-116).
-@requiere_funcion("Clientes", "Ventas")
+# SC-01: la cajera llega desde la venta y desde el cobro (DEC-116).
+@requiere_funcion("Clientes", "Ventas", "Cobrar cuenta corriente")
 @require_GET
 def buscar(request):
     """Clientes para elegir, con saldo, límite, disponible y deuda vencida (SC-01)."""
@@ -133,3 +142,94 @@ def buscar(request):
         request.user, request.GET.get("q", ""), para_cobro=request.GET.get("para") == "cobro"
     )
     return JsonResponse({"resultados": resultados, "hay_mas": hay_mas})
+
+
+# CU-04 Registrar pago de cliente (DEC-110, DEC-111, DEC-113; S-2, S-6, S-11)
+
+
+def _cliente_inicial(request, form):
+    """El cliente ya elegido: el del formulario que volvió con errores o el de `?cliente=`."""
+    pk = form.data.get("cliente") if form.is_bound else request.GET.get("cliente", "")
+    if not str(pk).isdecimal():
+        return None
+    return cliente_para_elegir(request.user, int(pk), para_cobro=True)
+
+
+@requiere_funcion("Clientes", "Cobrar cuenta corriente")
+@require_http_methods(["GET", "POST"])
+def cobrar(request):
+    """La cajera cobra en la caja abierta de hoy; el Administrador elige si entra a caja (S-6)."""
+    es_admin = puede_gestionar(request.user)
+    caja_del_dia = hay_caja_del_dia()
+    form = CobroForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        datos = form.cleaned_data
+        try:
+            cobro = registrar_cobro(
+                request.user,
+                datos["cliente"],
+                datos["monto"],
+                datos["medio_pago"],
+                # Sin caja de hoy, el del Administrador va sin movimiento de caja (DEC-110).
+                entra_a_caja=not es_admin or (caja_del_dia and datos["entra_a_caja"]),
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(
+                request,
+                f"Se registró el cobro N.º {cobro.pk} de {pesos(cobro.monto)} a {cobro.cliente}.",
+            )
+            if es_admin:
+                return redirect("clientes:cobro", pk=cobro.pk)
+            return redirect("clientes:cobrar")
+    return render(
+        request,
+        "clientes/cobrar.html",
+        {
+            "form": form,
+            "es_admin": es_admin,
+            "caja_del_dia": caja_del_dia,
+            "cliente_inicial": _cliente_inicial(request, form),
+            "buscar_clientes": reverse("clientes:buscar"),
+        },
+    )
+
+
+def _detalle_cobro(request, cobro, form, status=200):
+    return render(
+        request,
+        "clientes/cobro_detalle.html",
+        {
+            "cobro": cobro,
+            "ingreso": ingreso_de_cobro(cobro),
+            "impedimento": impedimento_para_anular_cobro(cobro),
+            "form": form,
+        },
+        status=status,
+    )
+
+
+@requiere_funcion("Clientes")
+@require_GET
+def cobro(request, pk):
+    cobro = _buscar(lambda clave: cobro_con_detalles(request.user, clave), pk)
+    return _detalle_cobro(request, cobro, AnularCobroForm())
+
+
+@requiere_funcion("Clientes")
+@require_POST
+def cobro_anular(request, pk):
+    """Con su caja abierta si entró a caja; si no, siempre (DEC-113)."""
+    cobro = _buscar(lambda clave: cobro_con_detalles(request.user, clave), pk)
+    form = AnularCobroForm(request.POST)
+    if form.is_valid():
+        try:
+            anular_cobro(request.user, cobro, form.cleaned_data["motivo"])
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, f"Se anuló el cobro N.º {cobro.pk}.")
+            return redirect("clientes:cobro", pk=cobro.pk)
+    cobro = _buscar(lambda clave: cobro_con_detalles(request.user, clave), pk)
+    return _detalle_cobro(request, cobro, form, status=400)

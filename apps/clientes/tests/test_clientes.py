@@ -224,7 +224,7 @@ def test_cp114_la_cajera_y_los_duenios_reciben_403(client, request, cliente, qui
     assert client.post(NUEVO, {"nombre": "X"}).status_code == 403
     assert client.post(_baja(cliente)).status_code == 403
     assert client.post(_reactivar(cliente)).status_code == 403
-    assert LISTADO not in client.get(reverse("inicio")).content.decode()
+    assert f'href="{LISTADO}"' not in client.get(reverse("inicio")).content.decode()
     assert Cliente.objects.count() == 1
 
 

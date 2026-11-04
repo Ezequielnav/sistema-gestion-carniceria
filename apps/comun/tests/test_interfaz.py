@@ -52,12 +52,14 @@ def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
 
 
 @pytest.mark.parametrize("con_permiso", [True, False])
-def test_cp74_cajera_ve_ventas_ventas_de_la_caja_caja_y_productos(con_permiso):
+def test_cp74_cajera_ve_ventas_ventas_de_la_caja_caja_cobro_y_productos(con_permiso):
     # DEC-84: "Ventas de la caja" sin anular. DEC-103: productos con o sin permiso de alta.
+    # S-2 (DEC-121): la cajera cobra cuentas corrientes sin gestionar clientes.
     assert _nombres(_usuario(Rol.CAJERA, puede_crear_productos=con_permiso)) == [
         "Ventas",
         "Ventas de la caja",
         "Caja",
+        "Cobrar cuenta corriente",
         "Productos",
     ]
 

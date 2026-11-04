@@ -9,10 +9,16 @@
       <h2 class="text-2xl font-semibold tracking-tight">Clientes</h2>
       <p class="mt-1 text-sm text-gray-500">Buscá por nombre o teléfono.</p>
     </div>
-    <a href="{% url 'clientes:nuevo' %}"
-       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
-      Nuevo cliente
-    </a>
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <a href="{% url 'clientes:cobrar' %}"
+         class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-xs hover:bg-gray-50">
+        Registrar cobro
+      </a>
+      <a href="{% url 'clientes:nuevo' %}"
+         class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+        Nuevo cliente
+      </a>
+    </div>
   </div>
 
   <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -65,6 +71,9 @@
                   {% endif %}
                 </td>
                 <td class="px-5 py-3 text-right whitespace-nowrap">
+                  {% if cliente.saldo > 0 %}
+                    <a href="{% url 'clientes:cobrar' %}?cliente={{ cliente.pk }}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Cobrar<span class="sr-only"> a «{{ cliente }}»</span></a>
+                  {% endif %}
                   {% if cliente.activo %}
                     <a href="{% url 'clientes:editar' cliente.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ cliente }}»</span></a>
                     <a href="{% url 'clientes:baja' cliente.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja<span class="sr-only"> «{{ cliente }}»</span></a>
