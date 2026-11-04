@@ -232,7 +232,7 @@ Son decisiones de diseño del proyecto, no datos confirmados por el negocio (DEC
 | D-07 | Despliegue | Diferido; por ahora todo corre en local | Diferida |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción | Diferida |
 | D-09 | Pruebas | `pytest`, base de prueba y GitHub Actions en cada Pull Request, activo desde H1 (ver [08-pruebas.md](08-pruebas.md)) | Vigente |
-| D-10 | Reportes PDF y Excel | Diferidos hasta CU-09; se exportan en H5 (DEC-136) con `openpyxl` y `reportlab`, aprobadas para la etapa 4 (DEC-146) | Diferida hasta la etapa 4 de H5 |
+| D-10 | Reportes PDF y Excel | Excel con `openpyxl` 3.1.5 y PDF con `reportlab` 4.4.4, desde la pantalla de cada reporte de CU-09 (DEC-136, DEC-146; etapa 4 de H5) | Vigente |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Diferida |
 | D-12 | Base local | PostgreSQL instalado en la computadora; Docker diferido | Vigente |
 | D-13 | Tailwind | Herramienta de línea de comandos, sin empaquetador; Node además corre las pruebas de JavaScript (`node --test`) | Vigente |

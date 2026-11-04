@@ -29,10 +29,19 @@
   </form>
 
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="{{ titulo }}">
-    <div class="border-b border-gray-200 px-5 py-4">
-      <h3 class="text-sm font-semibold">{{ titulo }}</h3>
-      {% if form.is_valid %}
-        <p class="mt-0.5 text-xs text-gray-500">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
+    <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 class="text-sm font-semibold">{{ titulo }}</h3>
+        {% if form.is_valid %}
+          <p class="mt-0.5 text-xs text-gray-500">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
+        {% endif %}
+      </div>
+      {% if exporta %}
+        {# RF-43, DEC-146: mismo rango y mismos datos que la pantalla. #}
+        <div class="flex gap-2">
+          <a href="?{{ rango }}&amp;formato=excel" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Exportar a Excel</a>
+          <a href="?{{ rango }}&amp;formato=pdf" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Exportar a PDF</a>
+        </div>
       {% endif %}
     </div>
     {% if not form.is_valid %}

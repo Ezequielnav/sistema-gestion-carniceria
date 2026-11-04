@@ -179,7 +179,7 @@ Los casos nuevos de H4 están propuestos en `docs/specs/SPEC-H4.md` y se agregan
 | CP-130 | Ingresos por día | RF-42, DEC-142 | Ventas que no son a cuenta corriente más cobros, sin anulados; "Entró a caja" y "Fuera de caja" (cobros sin caja) por día y en el total del rango | Decidido (DEC-142, supuesto); automatizado (H5, etapa 3) |
 | CP-131 | Consulta de cierres por fecha | DEC-59, DEC-144 | Las cajas cerradas del rango, también dos del mismo turno, con la diferencia total del cierre y el enlace a su reporte | Decidido (DEC-144); automatizado (H5, etapa 3) |
 | CP-132 | Rango de fechas del reporte | DEC-145, CU-09 A2 | Sin rango, el día de hoy; desde posterior a hasta, hasta posterior a hoy o una fecha vacía piden corregir el rango y el reporte no se calcula; la cajera recibe 403, el dueño consulta y ninguna pantalla acepta POST | Decidido (DEC-145); automatizado (H5, etapa 3) |
-| CP-63 | Exportar a PDF y a Excel | RF-43 | El archivo se genera y los montos coinciden con la pantalla | Confirmado |
+| CP-63 | Exportar a PDF y a Excel | RF-43, RF-44, DEC-146 | Los cuatro reportes de RF-42 se descargan en `.xlsx` y en PDF con el negocio, el reporte y el rango; el Excel tiene las mismas filas y totales que la pantalla, con montos numéricos en formato de pesos y cantidades con su unidad, y el de producto más vendido lleva todo el ranking, no solo la página; el PDF muestra los montos como la pantalla. Sin datos no hay archivo y se ve "Sin registros disponibles"; con un rango inválido tampoco; la consulta de cierres no se exporta; el dueño exporta y la cajera recibe 403 | Confirmado; automatizado (H5, etapa 4, `apps/reportes/tests/test_exportacion.py`) |
 
 ### 4.7 Integridad general de la base de datos
 

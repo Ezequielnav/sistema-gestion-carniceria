@@ -38,7 +38,7 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
 | D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1) | Propuesta | Fácil |
-| D-10 | Reportes PDF y Excel | Diferidos hasta CU-09; se exportan en H5 (DEC-136) con `openpyxl` (Excel) y `reportlab` (PDF), aprobadas para la etapa 4 (DEC-146) | Propuesta | Fácil |
+| D-10 | Reportes PDF y Excel | `openpyxl` 3.1.5 (Excel) y `reportlab` 4.4.4 (PDF, sin bibliotecas del sistema), fijadas en `requirements.txt`; implementado en la etapa 4 de H5 (DEC-136, DEC-146) | Vigente | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
 | D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |

@@ -1,10 +1,8 @@
 """CP-60 a CP-62 y CP-129 a CP-132: CU-09 Generar reportes en pantalla (H5, etapa 3).
 
-Un escenario fijo con dos cajas en la misma fecha y turno (DEC-83), una venta a cuenta
-corriente, una venta anulada, cobros con caja y sin caja y un cobro anulado.
+Usa el escenario fijo de datos.py (fixture `escenario` en conftest.py).
 """
 
-import datetime
 from decimal import Decimal
 
 import pytest
@@ -12,17 +10,12 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.caja.models import Caja, CierreCajaDetalle, EstadoCaja, MedioPago, Turno
-from apps.catalogo.models import Producto, UnidadMedida
-from apps.clientes.models import Cliente, EstadoPagoCliente, PagoCliente
 from apps.reportes import services
-from apps.usuarios.models import Rol, Usuario
-from apps.ventas.models import DetalleVenta, EstadoVenta, Venta
+from apps.reportes.tests.datos import D15, D16, usuario
+from apps.usuarios.models import Rol
 
 pytestmark = pytest.mark.django_db
 
-D15 = datetime.date(2026, 1, 15)
-D16 = datetime.date(2026, 1, 16)
 URLS = [
     "reportes:ventas",
     "reportes:productos",
@@ -30,114 +23,6 @@ URLS = [
     "reportes:medios",
     "reportes:cierres",
 ]
-
-
-def _usuario(username, rol):
-    return Usuario.objects.create_user(
-        username=username, password="clave-de-prueba-123", nombre_completo=username, rol=rol
-    )
-
-
-def _caja(fecha, turno, cajera):
-    return Caja.objects.create(
-        fecha=fecha,
-        turno=turno,
-        usuario=cajera,
-        estado=EstadoCaja.CERRADA,
-        cerrada_en=timezone.make_aware(datetime.datetime.combine(fecha, datetime.time(14))),
-        cerrada_por_usuario=cajera,
-    )
-
-
-def _venta(caja, medio, monto, renglones=(), anulada=False, cliente=None):
-    venta = Venta.objects.create(
-        caja=caja,
-        usuario=caja.usuario,
-        medio_pago=medio,
-        monto_total=Decimal(monto),
-        cliente=cliente,
-    )
-    for producto, cantidad, subtotal in renglones:
-        DetalleVenta.objects.create(
-            venta=venta,
-            producto=producto,
-            cantidad=Decimal(cantidad),
-            precio_unitario=Decimal(subtotal) / Decimal(cantidad),
-            subtotal=Decimal(subtotal),
-        )
-    if anulada:
-        Venta.objects.filter(pk=venta.pk).update(
-            estado=EstadoVenta.ANULADA,
-            anulada_en=timezone.now(),
-            anulada_por_usuario=caja.usuario,
-            motivo_anulacion="Error de carga",
-        )
-    return venta
-
-
-def _cobro(fecha, medio, monto, entra_a_caja, usuario, cliente, anulado=False):
-    cobro = PagoCliente.objects.create(
-        cliente=cliente,
-        monto=Decimal(monto),
-        medio_pago=medio,
-        usuario=usuario,
-        entra_a_caja=entra_a_caja,
-        fecha_hora=timezone.make_aware(datetime.datetime.combine(fecha, datetime.time(11))),
-    )
-    if anulado:
-        PagoCliente.objects.filter(pk=cobro.pk).update(
-            estado=EstadoPagoCliente.ANULADO,
-            anulado_en=timezone.now(),
-            anulado_por_usuario=usuario,
-            motivo_anulacion="Error de carga",
-        )
-    return cobro
-
-
-@pytest.fixture
-def admin(db):
-    return _usuario("admin", Rol.ADMINISTRADOR)
-
-
-@pytest.fixture
-def escenario(admin):
-    cajera = _usuario("cajera", Rol.CAJERA)
-    efectivo = MedioPago.objects.create(nombre="Efectivo", es_efectivo=True)
-    tarjeta = MedioPago.objects.create(nombre="Tarjeta")
-    cuenta = MedioPago.objects.create(nombre="Cuenta corriente", ingresa_a_caja=False)
-    cliente = Cliente.objects.create(nombre="Cliente")
-    asado = Producto.objects.create(
-        nombre="Asado",
-        precio_venta=Decimal("500"),
-        unidad_medida=UnidadMedida.KG,
-        controla_stock=False,
-    )
-    yerba = Producto.objects.create(
-        nombre="Yerba",
-        precio_venta=Decimal("100"),
-        unidad_medida=UnidadMedida.UNIDAD,
-        controla_stock=False,
-    )
-    # Dos cajas el 15 a la mañana (DEC-83), una a la tarde y una el 16.
-    manana_1 = _caja(D15, Turno.MANANA, cajera)
-    manana_2 = _caja(D15, Turno.MANANA, cajera)
-    tarde = _caja(D15, Turno.TARDE, cajera)
-    dia_16 = _caja(D16, Turno.MANANA, cajera)
-    _venta(manana_1, efectivo, "1000", [(asado, "2", "1000")])
-    _venta(manana_2, tarjeta, "500", [(yerba, "5", "500")])
-    _venta(tarde, cuenta, "300", [(yerba, "3", "300")], cliente=cliente)
-    _venta(tarde, efectivo, "200", [(asado, "0.4", "200")], anulada=True)
-    _venta(dia_16, efectivo, "700", [(asado, "1.4", "700")])
-    _cobro(D15, efectivo, "400", True, cajera, cliente)
-    _cobro(D15, tarjeta, "250", False, admin, cliente)
-    _cobro(D16, efectivo, "100", True, cajera, cliente, anulado=True)
-    CierreCajaDetalle.objects.create(
-        caja=manana_1,
-        medio_pago=efectivo,
-        monto_sistema=Decimal("1000"),
-        monto_contado=Decimal("900"),
-    )
-    return {"manana_1": manana_1, "manana_2": manana_2, "tarde": tarde, "dia_16": dia_16}
 
 
 # CP-60 (DEC-140): ventas diarias por fecha y turno
@@ -284,7 +169,7 @@ def test_cp132_un_rango_invalido_pide_corregirlo_sin_calcular(
 
 @pytest.mark.parametrize("url", URLS)
 def test_rf45_el_duenio_consulta_los_reportes(client, escenario, url):
-    client.force_login(_usuario("duenio", Rol.DUENIO))
+    client.force_login(usuario("duenio", Rol.DUENIO))
 
     assert client.get(reverse(url), {"desde": D15, "hasta": D16}).status_code == 200
     assert client.post(reverse(url)).status_code == 405
@@ -292,7 +177,7 @@ def test_rf45_el_duenio_consulta_los_reportes(client, escenario, url):
 
 @pytest.mark.parametrize("url", ["reportes:inicio", *URLS])
 def test_rf45_la_cajera_no_ve_reportes(client, url):
-    cajera = _usuario("cajera", Rol.CAJERA)
+    cajera = usuario("cajera", Rol.CAJERA)
     client.force_login(cajera)
 
     assert client.get(reverse(url)).status_code == 403
