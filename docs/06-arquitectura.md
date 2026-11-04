@@ -162,9 +162,9 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | Módulo | Entidades ([05-modelo-datos.md](05-modelo-datos.md)) | Casos de uso |
 |---|---|---|
 | `usuarios` | `usuario` | CU-10, CU-14 |
-| `caja` | `caja`, `cierre_caja_detalle`, `movimiento_caja`, `medio_pago` | CU-02, CU-03, SC-02 |
+| `caja` | `caja`, `cierre_caja_detalle`, `movimiento_caja`, `medio_pago` | CU-02, CU-03, SC-02; medios de pago (DEC-155) |
 | `ventas` | `venta`, `detalle_venta` | CU-01, SC-03, SC-04 |
-| `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11 |
+| `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11; categorías y consulta de ajustes (DEC-155) |
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
 | `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |

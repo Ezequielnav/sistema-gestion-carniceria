@@ -1,7 +1,9 @@
 from django import forms
+from django.db.models import Q
 from django.forms.models import fields_for_model
+from django.utils import timezone
 
-from apps.catalogo.models import MotivoAjuste, Producto, UnidadMedida
+from apps.catalogo.models import Categoria, MotivoAjuste, Producto, UnidadMedida
 from apps.catalogo.services import CAMPOS_EDITABLES, MOTIVOS_DE_MODIFICACION
 
 ETIQUETAS = {
@@ -66,6 +68,10 @@ class ProductoForm(forms.Form):
         if con_stock:
             self.fields.update(campos_de_stock(es_alta))
         self.fields["categoria"].empty_label = "Sin categoría"
+        # DEC-155: solo las activas, más la que el producto ya tiene aunque esté dada de baja.
+        self.fields["categoria"].queryset = Categoria.objects.filter(
+            Q(activo=True) | Q(pk=self.initial.get("categoria"))
+        ).order_by("nombre")
         # Sin unidad por defecto: la primera opción no es válida y obliga a elegir (DEC-79).
         self.fields["unidad_medida"].choices = [("", "Elegí una unidad"), *UnidadMedida.choices]
         for campo in self.fields.values():
@@ -78,3 +84,52 @@ class ProductoForm(forms.Form):
         self.fields["stock_minimo"].widget.attrs["min"] = "0"
         if con_stock:
             self.fields["stock"].widget.attrs.update({"min": "0", "step": "0.001"})
+
+
+class CategoriaForm(forms.Form):
+    """Nombre de una categoría (DEC-155); el servicio valida que no se repita."""
+
+    nombre = forms.CharField(label="Nombre", max_length=80)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["nombre"].widget.attrs["class"] = "campo"
+
+
+class FiltroFechasForm(forms.Form):
+    """Desde y hasta, opcionales; desde no puede ser posterior a hasta ni hasta a hoy
+    (DEC-145)."""
+
+    desde = forms.DateField(
+        label="Desde", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    hasta = forms.DateField(
+        label="Hasta", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.fields.values():
+            campo.widget.attrs["class"] = "campo"
+
+    def clean(self):
+        datos = super().clean()
+        desde, hasta = datos.get("desde"), datos.get("hasta")
+        if hasta and hasta > timezone.localdate():
+            self.add_error("hasta", "La fecha no puede ser posterior a hoy.")
+        if desde and hasta and desde > hasta:
+            self.add_error("desde", "«Desde» no puede ser posterior a «hasta».")
+        return datos
+
+
+class FiltroAjustesForm(FiltroFechasForm):
+    """Filtro de la consulta de ajustes de stock: fechas y producto (DEC-155)."""
+
+    producto = forms.ModelChoiceField(
+        label="Producto", queryset=Producto.objects.none(), required=False, empty_label="Todos"
+    )
+
+    def __init__(self, *args, productos=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if productos is not None:
+            self.fields["producto"].queryset = productos

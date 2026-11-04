@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block titulo %}Categorías{% endblock %}
+{% block encabezado %}Productos{% endblock %}
+
+{% block contenido %}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight">Categorías</h2>
+      <p class="mt-1 text-sm text-gray-500">Agrupan los productos en el listado y en los filtros.</p>
+    </div>
+    <a href="{% url 'catalogo:categoria_nueva' %}"
+       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+      Nueva categoría
+    </a>
+  </div>
+  {% include "catalogo/_pestanas.html" with activa="categorias" %}
+
+  <form method="get" class="mt-6 flex items-center gap-3">
+    <label class="flex items-center gap-2 text-sm text-gray-700">
+      <input type="checkbox" name="inactivas" value="1" class="casilla" {% if incluir_inactivas %}checked{% endif %} onchange="this.form.submit()">
+      Incluir dadas de baja
+    </label>
+    <noscript><button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50">Ver</button></noscript>
+  </form>
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de categorías">
+    {% if categorias %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">Categoría</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Productos</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for categoria in categorias %}
+              <tr class="{% if not categoria.activo %}bg-gray-50 text-gray-500{% endif %}">
+                <td class="px-5 py-3">
+                  <span class="font-medium">{{ categoria.nombre }}</span>
+                  {% if not categoria.activo %}
+                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Dada de baja</span>
+                  {% endif %}
+                </td>
+                <td class="cifras px-5 py-3 text-right">{{ categoria.productos }}</td>
+                <td class="px-5 py-3 text-right whitespace-nowrap">
+                  {% if categoria.activo %}
+                    <a href="{% url 'catalogo:categoria_editar' categoria.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ categoria }}»</span></a>
+                    <a href="{% url 'catalogo:categoria_baja' categoria.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja<span class="sr-only"> «{{ categoria }}»</span></a>
+                  {% else %}
+                    <form method="post" action="{% url 'catalogo:categoria_reactivar' categoria.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Reactivar<span class="sr-only"> «{{ categoria }}»</span></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="px-5 py-12 text-center text-sm font-medium">Todavía no hay categorías</p>
+    {% endif %}
+  </section>
+{% endblock %}

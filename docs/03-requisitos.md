@@ -45,6 +45,7 @@
 | RF-13 | La cajera debe poder seleccionar el medio de pago de la venta. Medios mencionados: efectivo, tarjeta, transferencia, QR y cuenta corriente | Base (2.1, CU-01) | Alta | Confirmado; lista decidida (DEC-41) |
 | RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44); lo ven la cajera, si la venta es de la caja abierta, y el Administrador (DEC-84) |
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
+| RF-54 | El Administrador debe poder dar de alta medios de pago, modificar su nombre y activarlos o desactivarlos, sin borrarlos; el efectivo no se desactiva | Propuesta (L18) | Media | Decidido (DEC-155) |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
 | RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | Decidido (DEC-108, DEC-109, supuestos): límite opcional que bloquea; la deuda vencida solo alerta. Implementado en H4, etapa 3 |
@@ -67,6 +68,8 @@
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
 | RF-50 | El Administrador debe poder cambiar el stock de un producto con control de stock al modificarlo; el sistema aplica la diferencia y registra el ajuste con usuario, fecha, stock anterior, stock nuevo y motivo | Propuesta (PR-32) | Media | Decidido (DEC-98, supuesto del proyecto) |
 | RF-51 | Al dar de alta un producto con control de stock, el Administrador debe poder cargar su stock, que se registra como ajuste "Stock inicial" | Propuesta (PR-32) | Baja | Decidido (DEC-99, supuesto del proyecto) |
+| RF-52 | El Administrador debe poder dar de alta, modificar, dar de baja (baja lógica) y reactivar categorías de productos | Propuesta (L18) | Media | Decidido (DEC-155) |
+| RF-53 | El Administrador debe poder consultar los ajustes de stock, en solo lectura, filtrando por fecha y producto | Propuesta (L18) | Media | Decidido (DEC-155) |
 
 ### 2.5 Proveedores
 
@@ -142,7 +145,8 @@
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
 | CU-09 Generar reportes | RF-42 a RF-46 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
-| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51 |
+| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51, RF-52, RF-53 |
+| Medios de pago (DEC-155, sin caso de uso propio) | RF-54 |
 | CU-12 Gestionar clientes | RF-35 |
 | CU-13 Gestionar proveedores | RF-29 |
 | CU-14 Gestionar usuarios | RF-03 |

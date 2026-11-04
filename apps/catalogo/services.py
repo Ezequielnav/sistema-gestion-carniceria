@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import BooleanField, ExpressionWrapper, F, Q
+from django.db.models import BooleanField, Count, ExpressionWrapper, F, Q
 
 from apps.catalogo.models import AjusteStock, Categoria, MotivoAjuste, Producto, UnidadMedida
 from apps.usuarios.models import Rol
@@ -198,6 +198,13 @@ def _plus_repetido(plus):
     )
 
 
+def _validar_categoria(categoria):
+    """Una categoría dada de baja no se asigna; el producto que ya la tiene la conserva
+    (DEC-155)."""
+    if categoria is not None and not categoria.activo:
+        raise ValidationError({"categoria": f"La categoría «{categoria}» está dada de baja."})
+
+
 def crear_producto(usuario, datos, stock=None):
     """Alta de producto. El nombre repetido no se bloquea (propuesta no confirmada de CU-11).
 
@@ -209,6 +216,7 @@ def crear_producto(usuario, datos, stock=None):
     if stock and not puede_modificar(usuario):
         raise PermissionDenied("Solo el administrador carga el stock.")
     producto = Producto(**{campo: datos.get(campo) for campo in CAMPOS_EDITABLES})
+    _validar_categoria(producto.categoria)
     producto.stock_actual = 0
     if stock:
         validar_stock_editado(producto, stock)
@@ -227,6 +235,8 @@ def modificar_producto(usuario, producto, datos, stock=None, stock_mostrado=None
     """
     if not puede_modificar(usuario):
         raise PermissionDenied("Solo el administrador puede modificar productos.")
+    if datos.get("categoria") is not None and datos["categoria"].pk != producto.categoria_id:
+        _validar_categoria(datos["categoria"])
     for campo in CAMPOS_EDITABLES:
         setattr(producto, campo, datos.get(campo))
     cambia_stock = stock_cambiado(producto, stock, stock_mostrado)
@@ -304,3 +314,89 @@ def _registrar_ajuste(usuario, producto, stock_nuevo, motivo):
         stock_nuevo=stock_nuevo,
         motivo=motivo,
     )
+
+
+# Categorías y consulta de ajustes de stock, solo del Administrador (DEC-155, L18).
+
+
+def _exigir_administrador(usuario):
+    if not puede_modificar(usuario):
+        raise PermissionDenied("Solo el administrador gestiona el catálogo.")
+
+
+def listar_categorias(usuario, incluir_inactivas=False):
+    _exigir_administrador(usuario)
+    categorias = Categoria.objects.order_by("nombre", "pk")
+    return categorias if incluir_inactivas else categorias.filter(activo=True)
+
+
+def categoria_editable(pk):
+    """Categoría activa; una dada de baja primero se reactiva. Categoria.DoesNotExist si no."""
+    return Categoria.objects.get(pk=pk, activo=True)
+
+
+def categoria_dada_de_baja(pk):
+    return Categoria.objects.get(pk=pk, activo=False)
+
+
+def _guardar_categoria(categoria, nombre):
+    categoria.nombre = (nombre or "").strip()
+    # El nombre es único sin distinguir mayúsculas (DEC-31); full_clean da el mensaje.
+    categoria.full_clean()
+    categoria.save()
+    return categoria
+
+
+def crear_categoria(usuario, nombre):
+    _exigir_administrador(usuario)
+    return _guardar_categoria(Categoria(), nombre)
+
+
+def modificar_categoria(usuario, categoria, nombre):
+    _exigir_administrador(usuario)
+    return _guardar_categoria(categoria, nombre)
+
+
+def dar_de_baja_categoria(usuario, categoria):
+    """Baja lógica: los productos que la tienen la conservan (DEC-155, RI-11)."""
+    _exigir_administrador(usuario)
+    categoria.activo = False
+    categoria.save(update_fields=["activo", "actualizado_en"])
+    return categoria
+
+
+def reactivar_categoria(usuario, categoria):
+    _exigir_administrador(usuario)
+    categoria.activo = True
+    categoria.save(update_fields=["activo", "actualizado_en"])
+    return categoria
+
+
+def productos_por_categoria(ids):
+    """Cantidad de productos de cada categoría, en una sola consulta: {id: cantidad}."""
+    filas = (
+        Producto.objects.filter(categoria_id__in=ids)
+        .values("categoria_id")
+        .annotate(cantidad=Count("pk"))
+    )
+    return {fila["categoria_id"]: fila["cantidad"] for fila in filas}
+
+
+def listar_ajustes(usuario, desde=None, hasta=None, producto=None):
+    """Ajustes de stock, más nuevos primero, en solo lectura (DEC-155, RI-17)."""
+    _exigir_administrador(usuario)
+    ajustes = AjusteStock.objects.select_related("producto", "usuario").order_by(
+        "-fecha_hora", "-pk"
+    )
+    if desde:
+        ajustes = ajustes.filter(fecha_hora__date__gte=desde)
+    if hasta:
+        ajustes = ajustes.filter(fecha_hora__date__lte=hasta)
+    if producto:
+        ajustes = ajustes.filter(producto=producto)
+    return ajustes
+
+
+def productos_con_ajustes():
+    """Para el filtro: solo los productos que tienen algún ajuste."""
+    return Producto.objects.filter(ajustestock__isnull=False).distinct().order_by("nombre", "pk")

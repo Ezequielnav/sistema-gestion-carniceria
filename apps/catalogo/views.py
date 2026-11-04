@@ -4,24 +4,34 @@ from django.core.paginator import Paginator
 from django.forms.models import model_to_dict
 from django.http import Http404
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from apps.catalogo.forms import ProductoForm
+from apps.catalogo.forms import CategoriaForm, FiltroAjustesForm, ProductoForm
 from apps.catalogo.models import cantidad_para_editar
 from apps.catalogo.services import (
     CAMPOS_EDITABLES,
+    categoria_dada_de_baja,
+    categoria_editable,
     categorias_para_filtrar,
+    crear_categoria,
     crear_producto,
     dar_de_baja,
+    dar_de_baja_categoria,
+    listar_ajustes,
+    listar_categorias,
     listar_productos,
+    modificar_categoria,
     modificar_producto,
     producto_dado_de_baja,
     producto_editable,
+    productos_con_ajustes,
+    productos_por_categoria,
     proveedores_para_filtrar,
     puede_crear,
     puede_modificar,
     puede_ver_stock,
     reactivar,
+    reactivar_categoria,
 )
 from apps.comun.permisos import requiere_funcion
 
@@ -164,3 +174,128 @@ def reactivar_producto(request, pk):
     reactivar(request.user, producto)
     messages.success(request, f"Se reactivó «{producto}».")
     return redirect("catalogo:productos")
+
+
+# Categorías y ajustes de stock (DEC-155, L18): solo el Administrador, como modificar
+# productos. La vista y el servicio controlan el permiso.
+
+
+def _solo_administrador(request):
+    if not puede_modificar(request.user):
+        raise PermissionDenied
+
+
+def _categoria(funcion, pk):
+    try:
+        return funcion(pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+
+
+@requiere_funcion("Productos")
+@require_GET
+def categorias(request):
+    _solo_administrador(request)
+    incluir_inactivas = request.GET.get("inactivas") == "1"
+    lista = list(listar_categorias(request.user, incluir_inactivas))
+    cantidades = productos_por_categoria([c.pk for c in lista])
+    for categoria in lista:
+        categoria.productos = cantidades.get(categoria.pk, 0)
+    return render(
+        request,
+        "catalogo/categorias.html",
+        {"categorias": lista, "incluir_inactivas": incluir_inactivas},
+    )
+
+
+def _guardar_categoria(request, form, operacion, mensaje):
+    if request.method == "POST" and form.is_valid():
+        try:
+            categoria = operacion(form.cleaned_data["nombre"])
+        except ValidationError as error:
+            # El único dato es el nombre: el error de nombre repetido va junto al campo.
+            form.add_error("nombre", error.messages)
+        else:
+            messages.success(request, mensaje.format(categoria=categoria))
+            return redirect("catalogo:categorias")
+    return None
+
+
+@requiere_funcion("Productos")
+@require_http_methods(["GET", "POST"])
+def categoria_nueva(request):
+    _solo_administrador(request)
+    form = CategoriaForm(request.POST or None)
+    respuesta = _guardar_categoria(
+        request,
+        form,
+        lambda nombre: crear_categoria(request.user, nombre),
+        "Se dio de alta la categoría «{categoria}».",
+    )
+    return respuesta or render(request, "catalogo/categoria_form.html", {"form": form})
+
+
+@requiere_funcion("Productos")
+@require_http_methods(["GET", "POST"])
+def categoria_editar(request, pk):
+    _solo_administrador(request)
+    categoria = _categoria(categoria_editable, pk)
+    form = CategoriaForm(request.POST or None, initial={"nombre": categoria.nombre})
+    respuesta = _guardar_categoria(
+        request,
+        form,
+        lambda nombre: modificar_categoria(request.user, categoria, nombre),
+        "Se guardaron los cambios de «{categoria}».",
+    )
+    if respuesta:
+        return respuesta
+    if request.method == "POST":
+        categoria.refresh_from_db()
+    return render(request, "catalogo/categoria_form.html", {"form": form, "categoria": categoria})
+
+
+@requiere_funcion("Productos")
+@require_http_methods(["GET", "POST"])
+def categoria_baja(request, pk):
+    _solo_administrador(request)
+    categoria = _categoria(categoria_editable, pk)
+    if request.method == "POST":
+        dar_de_baja_categoria(request.user, categoria)
+        messages.success(request, f"Se dio de baja la categoría «{categoria}».")
+        return redirect("catalogo:categorias")
+    cantidad = productos_por_categoria([categoria.pk]).get(categoria.pk, 0)
+    return render(
+        request, "catalogo/categoria_baja.html", {"categoria": categoria, "productos": cantidad}
+    )
+
+
+@requiere_funcion("Productos")
+@require_POST
+def categoria_reactivar(request, pk):
+    _solo_administrador(request)
+    categoria = _categoria(categoria_dada_de_baja, pk)
+    reactivar_categoria(request.user, categoria)
+    messages.success(request, f"Se reactivó la categoría «{categoria}».")
+    return redirect("catalogo:categorias")
+
+
+@requiere_funcion("Productos")
+@require_GET
+def ajustes(request):
+    """Consulta de ajustes de stock, de solo lectura (DEC-155, RI-17)."""
+    _solo_administrador(request)
+    form = FiltroAjustesForm(request.GET or None, productos=productos_con_ajustes())
+    datos = form.cleaned_data if form.is_valid() else {}
+    lista = listar_ajustes(
+        request.user, datos.get("desde"), datos.get("hasta"), datos.get("producto")
+    )
+    if form.is_bound and not form.is_valid():
+        lista = lista.none()
+    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
+    filtros = request.GET.copy()
+    filtros.pop("pagina", None)
+    return render(
+        request,
+        "catalogo/ajustes.html",
+        {"form": form, "pagina": pagina, "filtros": filtros.urlencode()},
+    )

@@ -17,6 +17,7 @@
       </a>
     {% endif %}
   </div>
+  {% if puede_modificar %}{% include "catalogo/_pestanas.html" with activa="productos" %}{% endif %}
 
   <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
     <label for="buscar" class="sr-only">Buscar producto</label>

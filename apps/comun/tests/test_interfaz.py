@@ -47,6 +47,7 @@ def test_cp74_administrador_ve_todo_salvo_lo_exclusivo_de_la_cajera():
         "Clientes",
         "Proveedores",
         "Reportes",
+        "Medios de pago",  # DEC-155 (L18)
         "Usuarios",
     ]
 

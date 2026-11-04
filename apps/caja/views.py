@@ -5,16 +5,21 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from apps.caja.forms import AbrirCajaForm, CierreForm, EgresoForm
+from apps.caja.forms import AbrirCajaForm, CierreForm, EgresoForm, MedioPagoForm
+from apps.caja.models import MedioPago
 from apps.caja.services import (
     abrir_caja,
     anulaciones,
     caja_abierta,
     caja_cerrada,
+    cambiar_activo,
     cerrar_caja,
+    crear_medio,
     detalle_de_cierre,
     egresos_otros,
     es_de_otro_dia,
+    listar_medios,
+    modificar_medio,
     movimientos_de_cobros,
     movimientos_de_pagos_a_proveedores,
     puede_abrir,
@@ -141,3 +146,80 @@ def cierre(request, pk):
             "es_cajera": puede_abrir(request.user),
         },
     )
+
+
+# Medios de pago (DEC-155, L18): solo el Administrador, sin borrado.
+
+
+def _medio(pk):
+    try:
+        return MedioPago.objects.get(pk=pk)
+    except MedioPago.DoesNotExist as error:
+        raise Http404 from error
+
+
+@requiere_funcion("Medios de pago")
+@require_GET
+def medios(request):
+    return render(request, "caja/medios.html", {"medios": listar_medios(request.user)})
+
+
+def _guardar_medio(request, form, operacion, mensaje):
+    if request.method == "POST" and form.is_valid():
+        try:
+            medio = operacion(form.cleaned_data)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, mensaje.format(medio=medio))
+            return redirect("caja:medios")
+    return None
+
+
+@requiere_funcion("Medios de pago")
+@require_http_methods(["GET", "POST"])
+def medio_nuevo(request):
+    form = MedioPagoForm(request.POST or None)
+    respuesta = _guardar_medio(
+        request,
+        form,
+        lambda datos: crear_medio(
+            request.user, datos["nombre"], datos["ingresa_a_caja"], datos["es_efectivo"]
+        ),
+        "Se dio de alta el medio de pago «{medio}».",
+    )
+    return respuesta or render(request, "caja/medio_form.html", {"form": form})
+
+
+@requiere_funcion("Medios de pago")
+@require_http_methods(["GET", "POST"])
+def medio_editar(request, pk):
+    medio = _medio(pk)
+    form = MedioPagoForm(request.POST or None, es_alta=False, initial={"nombre": medio.nombre})
+    respuesta = _guardar_medio(
+        request,
+        form,
+        lambda datos: modificar_medio(request.user, medio, datos["nombre"]),
+        "Se guardaron los cambios de «{medio}».",
+    )
+    if respuesta:
+        return respuesta
+    if request.method == "POST":
+        medio.refresh_from_db()
+    return render(request, "caja/medio_form.html", {"form": form, "medio": medio})
+
+
+@requiere_funcion("Medios de pago")
+@require_POST
+def medio_activo(request, pk):
+    """Activa o desactiva según el botón (DEC-155); el efectivo no se desactiva."""
+    medio = _medio(pk)
+    activo = request.POST.get("activo") == "1"
+    try:
+        cambiar_activo(request.user, medio, activo)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        estado = "Se activó" if activo else "Se desactivó"
+        messages.success(request, f"{estado} el medio de pago «{medio}».")
+    return redirect("caja:medios")

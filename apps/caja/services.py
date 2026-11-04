@@ -503,3 +503,60 @@ def detalle_de_cierre(caja):
         (d.medio_pago, d.monto_sistema, d.monto_contado, d.monto_contado - d.monto_sistema)
         for d in caja.cierrecajadetalle_set.select_related("medio_pago").order_by("medio_pago")
     ]
+
+
+# Medios de pago, solo del Administrador y sin borrado (DEC-155, L18).
+
+MEDIO_EFECTIVO_ACTIVO = (
+    "El efectivo no se desactiva: lo usan el fondo de cambio y los egresos (DEC-55)."
+)
+
+
+def puede_gestionar_medios(usuario):
+    return usuario.is_authenticated and usuario.rol == Rol.ADMINISTRADOR
+
+
+def _exigir_medios(usuario):
+    if not puede_gestionar_medios(usuario):
+        raise PermissionDenied("Solo el administrador gestiona los medios de pago.")
+
+
+def listar_medios(usuario):
+    """Activos primero, después por nombre."""
+    _exigir_medios(usuario)
+    return MedioPago.objects.order_by("-activo", "nombre", "pk")
+
+
+def _guardar_medio(medio):
+    medio.nombre = (medio.nombre or "").strip()
+    # Nombre único sin mayúsculas, un solo efectivo y un solo medio que no ingresa a caja
+    # (DEC-41, DEC-55): full_clean da el mensaje de cada restricción.
+    medio.full_clean()
+    medio.save()
+    return medio
+
+
+def crear_medio(usuario, nombre, ingresa_a_caja, es_efectivo):
+    """Las marcas se fijan en el alta y después no cambian (DEC-155)."""
+    _exigir_medios(usuario)
+    medio = MedioPago(nombre=nombre, ingresa_a_caja=ingresa_a_caja, es_efectivo=es_efectivo)
+    return _guardar_medio(medio)
+
+
+def modificar_medio(usuario, medio, nombre):
+    """Solo el nombre: cambiar las marcas de un medio usado cambiaría cómo se leen los
+    cierres ya hechos (DEC-155)."""
+    _exigir_medios(usuario)
+    medio.nombre = nombre
+    return _guardar_medio(medio)
+
+
+def cambiar_activo(usuario, medio, activo):
+    """Activar o desactivar; un medio desactivado deja de ofrecerse en la venta, el cobro y
+    los pagos, y sus movimientos siguen como están. El efectivo no se desactiva."""
+    _exigir_medios(usuario)
+    if not activo and medio.es_efectivo:
+        raise ValidationError(MEDIO_EFECTIVO_ACTIVO)
+    medio.activo = activo
+    medio.save(update_fields=["activo", "actualizado_en"])
+    return medio

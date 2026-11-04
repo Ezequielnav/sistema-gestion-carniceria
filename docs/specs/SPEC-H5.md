@@ -1,6 +1,6 @@
 # SPEC - H5 Reportes y usuarios (CU-09, CU-14)
 
-**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4. Etapa 1 implementada.
+**Estado:** aprobado, con S-1 a S-14 como DEC-140 a DEC-153 y R-1 a R-4 como DEC-154 (09). Al aprobarlo se cerraron S-3 (ingresos por día), S-11 (sin panel para los Administradores de CU-14) y las dependencias de la etapa 4. Etapas 1 y 2 implementadas.
 
 Fuente de verdad: `/docs`. Este spec no agrega reglas del negocio. Toma las de CU-09, CU-10 y CU-14 (04), RF-02, RF-03, RF-42 a RF-46 y RNF-09 (03), RN-06 (04), DEC-59, DEC-83 y DEC-86 (09), DEC-133 a DEC-139 (09) y los casos CP-53, CP-60 a CP-63 y CP-74 y el recorrido RM-08 (08). Las preguntas de H5 (PR-25, PR-26, PR-27 y PR-35) están cerradas como **supuestos del proyecto, no datos confirmados por el negocio** (DEC-133). Si el spec cambia después de aprobado, se anota en "Cambios después de aprobar el spec".
 
@@ -9,12 +9,13 @@ Fuente de verdad: `/docs`. Este spec no agrega reglas del negocio. Toma las de C
 | Módulo | Qué hace | Depende de |
 |---|---|---|
 | `roles` (CU-10) | Dueños solo en Reportes (DEC-134); inicio por rol (DEC-137); panel sin borrado de productos (DEC-138) ni de usuarios (DEC-135) | — |
-| `usuarios` (CU-14) | Alta, edición de datos y rol, desactivación y reactivación, restablecer contraseña (DEC-135) | `roles` |
+| `usuarios` (CU-14) | Alta, edición de datos y rol, desactivación y reactivación, restablecer contraseña (DEC-135, DEC-156) | `roles` |
+| `configuracion` (L18) | Categorías, medios de pago y consulta de ajustes de stock en pantallas del Administrador (DEC-155) | — |
 | `reportes` (CU-09) | Los cuatro reportes de RF-42 y la consulta de cierres por fecha (DEC-136), en pantalla | ventas, caja, clientes, catálogo (solo lectura) |
 | `exportacion` (CU-09) | Excel y PDF de los cuatro reportes, con los mismos datos que la pantalla (RF-43) | `reportes` |
 | `filtros-proveedores` (CU-05, CU-07) | Fechas y proveedor en los listados de ingresos y pagos (DEC-139) | — |
 
-Orden de construcción: `roles` → `usuarios` → `reportes` → `exportacion` → `filtros-proveedores` → cierre.
+Orden de construcción: `roles` → `usuarios` y `configuracion` → `reportes` → `exportacion` → `filtros-proveedores` → cierre.
 
 ## 1. Objetivo
 
@@ -49,6 +50,7 @@ El Administrador gestiona los usuarios del sistema, uno por persona, y consulta 
 
 - El Administrador da de alta una cajera con contraseña inicial, le cambia el rol, la desactiva (no puede ingresar) y la reactiva; restablece su contraseña y ella ingresa con la nueva.
 - Ningún usuario se borra, ni desde `/usuarios/` ni desde el panel.
+- El Administrador mantiene categorías y medios de pago y consulta los ajustes de stock sin entrar al panel (DEC-155).
 - Un dueño ingresa, ve solo "Reportes" en el menú y en el inicio, consulta los cuatro reportes y los cierres por fecha, y recibe 403 en el resto.
 - La cajera ve en el inicio la caja abierta (o que no hay una) y los tres accesos, sin totales del negocio.
 - Cada reporte coincide con las ventas, cobros y cajas cargados en el rango, y su Excel y su PDF tienen los mismos montos.
@@ -78,13 +80,15 @@ apps/catalogo/admin.py            productos sin borrado en el panel (S-14)
 apps/usuarios/admin.py            usuarios sin borrado en el panel (S-14)
 apps/usuarios/services.py         alta, edición, desactivación, reactivación y contraseña (S-10 a S-12)
 apps/usuarios/forms.py, views.py  CU-14 en /usuarios/
+apps/catalogo/                    categorías y consulta de ajustes de stock (DEC-155)
+apps/caja/                        medios de pago (DEC-155)
 apps/reportes/                    app nueva (R-1): servicios, vistas y plantillas de CU-09
 apps/proveedores/views.py         filtros de ingresos y pagos (S-13)
 apps/comun/tests/test_flujo_h5.py prueba integral (CP-134)
 docs/                             03, 04, 05, 06, 07, 08 y 09 al día
 ```
 
-**Migraciones previstas:** ninguna. `usuario` ya tiene `is_active`, `rol` y `puede_crear_productos` (DEC-27) y los reportes se calculan al consultar (DEC-21). Si al construir hace falta una, se pide antes.
+**Migraciones previstas:** `catalogo/0006`, `categoria.activo` para la baja lógica de categorías (DEC-155, pedida por el alumno). `usuario` ya tiene `is_active`, `rol` y `puede_crear_productos` (DEC-27) y los reportes se calculan al consultar (DEC-21). Cualquier otra se pide antes.
 
 **Dependencias nuevas (aprobadas para la etapa 4, S-7):** `openpyxl` para Excel y `reportlab` para PDF (no necesita bibliotecas del sistema). Se agregan al llegar a la etapa 4, con versión fija en `requirements.txt`.
 
@@ -114,7 +118,7 @@ El mismo de H2 a H4: vistas finas con `requiere_funcion` y el control del servic
 |---|---|---|---|
 | 0. Decisiones y spec | PR-25, PR-26, PR-27 y PR-35 cerradas como supuestos; L14 y filtros de L12 dentro del hito; docs al día; este borrador | DEC-132 a DEC-139 | — |
 | 1. Roles, inicio y panel | Dueños solo en Reportes (menú, inicio y 403); inicio de la cajera; R-4; panel sin borrado de productos ni de usuarios | CU-10; RF-02; RN-06; DEC-134, DEC-135, DEC-137, DEC-138; S-8, S-9, S-14 | CP-53, CP-74, CP-126, CP-127, CP-128 |
-| 2. Usuarios | CU-14 en `/usuarios/`: listado, alta, edición, desactivación y reactivación, restablecer contraseña; menú "Usuarios" | CU-14; RF-03; RNF-07; DEC-135; S-10 a S-12 | CP-50, CP-51, CP-59, CP-124, CP-125 |
+| 2. Usuarios y configuración | CU-14 en `/usuarios/`: listado, alta, edición, desactivación y reactivación, restablecer contraseña; menú "Usuarios". L18: categorías (migración `catalogo/0006`) y ajustes de stock como pestañas de Productos, y medios de pago con su función de menú | CU-14, CU-11; RF-03, RF-52 a RF-54; RNF-07; DEC-135, DEC-155, DEC-156; S-10 a S-12 | CP-50, CP-51, CP-59, CP-124, CP-125, CP-135 a CP-137 |
 | 3. Reportes en pantalla | App `reportes` (R-1 a R-3); los cuatro reportes con rango y "Sin registros disponibles"; consulta de cierres por fecha; menú "Reportes" para el Administrador y los dueños | CU-09; RF-42, RF-44, RF-45; DEC-59, DEC-83, DEC-136; S-1 a S-6 | CP-60, CP-61, CP-62, CP-129 a CP-132 |
 | 4. Exportación | Excel y PDF de los cuatro reportes con `openpyxl` y `reportlab` (aprobadas) | CU-09; RF-43; D-10; S-7 | CP-63 |
 | 5. Filtros de ingresos y pagos | Desde, hasta y proveedor en `/proveedores/ingresos/` y `/proveedores/pagos/` | CU-05, CU-07; DEC-139; S-13 | CP-133 |
@@ -138,3 +142,10 @@ El mismo de H2 a H4: vistas finas con `requiere_funcion` y el control del servic
 | S-12 | **Restablecer contraseña:** el Administrador escribe una contraseña nueva para el usuario (no hay email); el usuario ingresa con ella. No se obliga a cambiarla al ingresar. Desactivar a un usuario con sesión abierta lo deja afuera en su próximo pedido | Lo más simple sin correo saliente; Django ya rechaza la sesión de un usuario inactivo |
 | S-13 | **Filtros de ingresos y pagos:** desde, hasta y proveedor (incluye los dados de baja), combinables y conservados al paginar, como el historial de ventas (DEC-86), con la validación de rango de S-6. Se filtra por la fecha del ingreso o del pago | DEC-139 con el mismo comportamiento que ya conocen los usuarios |
 | S-14 | **Panel:** productos y usuarios sin permiso de borrado (sin "Eliminar" y sin la acción de borrar varios a la vez); la baja sigue siendo lógica | DEC-138 (L14) y DEC-135 (un usuario no se borra) |
+
+## Cambios después de aprobar el spec
+
+| Cambio | Decisión | Etapa |
+|---|---|---|
+| L18: categorías, medios de pago y consulta de ajustes de stock en pantallas del Administrador, porque DEC-150 lo deja fuera del panel | DEC-155 | 2 |
+| CU-14 no le cambia el rol, no desactiva ni le restablece la contraseña a un usuario con acceso al panel | DEC-156 (precisa S-11 y S-12) | 2 |
