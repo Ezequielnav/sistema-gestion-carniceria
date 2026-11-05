@@ -77,7 +77,7 @@ El detalle de lo que el sistema hará y no hará está en [02-alcance-objetivos.
 | Cajera | Formación básica, uso limitado de tecnología. Registra ventas y pagos, cierre de caja por turno; en algunos casos agrega productos. |
 | Dueños (gerentes) | Nivel medio-alto. Acceso de consulta a reportes, sin modificar datos operativos. |
 
-**Pendiente:** confirmar quién es "Administrador" (el administrativo, los dueños u otra persona). Ver PR-25 en [01-relevamiento.md](01-relevamiento.md).
+**Decidido como supuesto del proyecto, no confirmado por el negocio (DEC-134):** "Administrador" es un rol con acceso completo, no una persona; los dueños entran en solo lectura y ven únicamente los reportes. Ver PR-25 en [01-relevamiento.md](01-relevamiento.md).
 
 ## 6. Glosario
 

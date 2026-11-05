@@ -5,6 +5,7 @@ from django import forms
 from django.forms.models import fields_for_model
 
 from apps.caja.models import MedioPago
+from apps.comun.forms import RangoFechasForm
 from apps.comun.models import pesos
 from apps.proveedores.models import CondicionPago, IngresoMercaderia, Proveedor
 from apps.proveedores.services import (
@@ -170,4 +171,21 @@ class AnularPagoForm(forms.Form):
         max_length=255,
         widget=forms.Textarea(attrs={"rows": 3, "class": "campo"}),
         error_messages={"required": "Escribí por qué se anula el pago."},
+    )
+
+
+class ProveedorElegido(forms.ModelChoiceField):
+    def label_from_instance(self, proveedor):
+        return proveedor.nombre if proveedor.activo else f"{proveedor.nombre} (dado de baja)"
+
+
+class FiltroListadoForm(RangoFechasForm):
+    """Filtro de los listados de ingresos y pagos (DEC-139, DEC-152): fechas opcionales con la
+    validación de CU-09 (DEC-145) y proveedor, también uno dado de baja."""
+
+    proveedor = ProveedorElegido(
+        label="Proveedor",
+        queryset=Proveedor.objects.order_by("nombre", "pk"),
+        required=False,
+        empty_label="Todos",
     )

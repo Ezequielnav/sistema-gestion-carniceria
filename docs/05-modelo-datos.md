@@ -148,6 +148,7 @@ classDiagram
     class categoria {
         +int id
         +string nombre
+        +bool activo
     }
     class producto {
         +int id
@@ -295,9 +296,9 @@ classDiagram
 | nombre | string | S | Único. Valores mencionados: efectivo, tarjeta, transferencia, QR, cuenta corriente (DEC-41) |
 | ingresa_a_caja | boolean | S | `false` para cuenta corriente (DEC-41), que es el único medio con `false`; el efectivo siempre ingresa a caja (R-6, migración `caja/0010`) |
 | es_efectivo | boolean | S | `true` solo en el medio en efectivo: fondo de cambio y egresos "otros" (DEC-55) |
-| activo | boolean | S | |
+| activo | boolean | S | Un medio desactivado no se ofrece en la venta, el cobro ni los pagos; el efectivo no se desactiva (DEC-155) |
 
-Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambiar el código.
+Es una tabla y no una lista fija para poder ajustar los medios de pago sin cambiar el código. Desde H5 el Administrador los gestiona en `/caja/medios/` (DEC-155): `ingresa_a_caja` y `es_efectivo` se fijan en el alta y no se editan.
 
 **caja**
 
@@ -380,6 +381,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 |---|---|---|---|
 | id | int | S | |
 | nombre | string | S | Único |
+| activo | boolean | S | Baja lógica (DEC-155, migración `catalogo/0006`): una categoría dada de baja no se asigna a productos; los que ya la tienen la conservan |
 
 **producto**
 

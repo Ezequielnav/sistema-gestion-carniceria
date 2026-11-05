@@ -38,11 +38,12 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
 | D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1) | Propuesta | Fácil |
-| D-10 | Reportes PDF y Excel | Diferidos hasta CU-09 | Propuesta | Fácil |
+| D-10 | Reportes PDF y Excel | `openpyxl` 3.1.5 (Excel) y `reportlab` 4.4.4 (PDF, sin bibliotecas del sistema), fijadas en `requirements.txt`; implementado en la etapa 4 de H5 (DEC-136, DEC-146) | Vigente | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
 | D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |
 | D-14 | Credenciales de la base local | `.env.example` solo con nombres y valores de ejemplo; el `.env` local queda fuera de GitHub y del permiso de lectura de los agentes; las pruebas usan una base de prueba con credenciales exclusivas de desarrollo | Decidida (sección 6) | Fácil |
+| D-15 | Gráficos del Resumen de Reportes | **Chart.js 4.4.9** (licencia MIT) como archivo estático propio en `static/vendor/chart.js/chart-4.4.9.umd.js`, sin CDN; la versión queda fijada en `package.json` (dependencia de desarrollo) y el archivo se copia desde `node_modules` (DEC-158) | Pedido del alumno | Fácil |
 
 ### 2.1 Autenticación: por qué sesiones y no JWT (D-06)
 
@@ -162,13 +163,13 @@ Cada módulo es una aplicación del proyecto. Los nombres son una propuesta.
 | Módulo | Entidades ([05-modelo-datos.md](05-modelo-datos.md)) | Casos de uso |
 |---|---|---|
 | `usuarios` | `usuario` | CU-10, CU-14 |
-| `caja` | `caja`, `cierre_caja_detalle`, `movimiento_caja`, `medio_pago` | CU-02, CU-03, SC-02 |
+| `caja` | `caja`, `cierre_caja_detalle`, `movimiento_caja`, `medio_pago` | CU-02, CU-03, SC-02; medios de pago (DEC-155) |
 | `ventas` | `venta`, `detalle_venta` | CU-01, SC-03, SC-04 |
-| `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11 |
+| `catalogo` | `categoria`, `producto`, `ajuste_stock` | CU-06, CU-11; categorías y consulta de ajustes (DEC-155) |
 | `proveedores` | `proveedor`, `producto_proveedor`, `ingreso_mercaderia`, `detalle_ingreso`, `pago_proveedor` | CU-05, CU-07, CU-13 |
 | `clientes` | `cliente`, `pago_cliente`, `movimiento_cuenta_corriente` | CU-04, CU-08, CU-12, SC-01 |
-| `reportes` | (consultas sobre las anteriores; la aplicación se crea en H5) | CU-09 |
-| `comun` | Ninguna propia: el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades. Además reúne la navegación: menú y permisos por rol (`menu.py`, `permisos.py` y el procesador de contexto del menú), la pantalla de inicio y los datos de ejemplo con el comando `cargar_datos_ejemplo` | CU-10 (inicio después de ingresar) |
+| `reportes` | Ninguna propia: consultas agrupadas de solo lectura sobre `venta`, `detalle_venta`, `pago_cliente`, `caja` y `cierre_caja_detalle`; ninguna otra aplicación la importa (R-1 de H5, DEC-154) | CU-09 |
+| `comun` | Ninguna propia: el modelo base abstracto con `creado_en` y `actualizado_en` que heredan todas las entidades. Además reúne la navegación: menú y permisos por rol (`menu.py`, `permisos.py` y el procesador de contexto del menú), la pantalla de inicio, los datos de ejemplo con el comando `cargar_datos_ejemplo` y el filtro de rango de fechas (`forms.py`, DEC-145) con su paginación (`listados.py` y `templates/comun/_filtro.html`), que comparten los reportes, la consulta de ajustes de stock y los listados de ingresos y pagos | CU-10 (inicio después de ingresar) |
 
 ### Estructura propuesta del repositorio
 
@@ -282,7 +283,7 @@ CU-11 se elige para el hito porque no depende de otros casos de uso y ejercita t
 | Aspecto | Decisión |
 |---|---|
 | Contraseñas | Con el sistema de hash del framework, nunca en texto plano (RNF-07) |
-| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02). Cada pantalla se protege con `requiere_funcion`, que usa la tabla del menú: sin sesión redirige al ingreso y sin permiso responde 403. El panel de Django es solo para el Administrador (DEC-32). Qué ve la cajera en el inicio está a confirmar (PR-35) |
+| Permisos | Por rol y por función; Dueños solo ven reportes; la cajera solo ve sus funciones (RF-02). Cada pantalla se protege con `requiere_funcion`, que usa la tabla del menú: sin sesión redirige al ingreso y sin permiso responde 403. El panel de Django es solo para el Administrador (DEC-32). La cajera ve en el inicio el estado de la caja y accesos a sus operaciones, sin totales, y los dueños solo Reportes (DEC-134, DEC-137, supuestos) |
 | Sesiones | Cookies protegidas y cierre por inactividad. El tiempo está a confirmar (PR-34); mientras tanto queda el valor por defecto de Django (dos semanas). Salir cierra la sesión en el servidor |
 | Formularios | Protección contra falsificación de solicitudes del framework |
 | Base de datos | Consultas por el ORM, que evita la inyección SQL |
@@ -341,7 +342,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 | PR-23 | Cantidad de usuarios y dispositivos |
 | PR-29 | Contingencia ante caída de internet |
 | PR-34 | Tiempo de cierre de sesión por inactividad |
-| PR-35 | Qué ve la cajera en el inicio (total del día y últimas ventas, o solo su caja) |
+| PR-35 | Cerrada por decisión de diseño (DEC-137, supuesto): la cajera ve en el inicio el estado de la caja y accesos a sus operaciones, sin totales del negocio |
 
 ## 13. Mantenimiento
 

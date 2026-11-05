@@ -20,7 +20,7 @@
 | Cajera | Registra ventas y pagos, abre y cierra caja; en algunos casos agrega productos |
 | Dueños (gerentes) | Acceso en modo consulta a reportes, sin modificar datos operativos |
 
-Quién es exactamente el "Administrador" y qué ven los dueños queda pendiente en PR-25.
+**Decidido como supuesto del proyecto, no confirmado por el negocio (DEC-134, PR-25):** "Administrador" es un rol con acceso completo, sin atarlo a una persona. Los dueños entran en solo lectura y ven únicamente Reportes (CU-09), que incluye la consulta de cierres por fecha (DEC-59). Cada persona tiene su propio usuario (DEC-135).
 
 ### Matriz de actores y casos de uso
 
@@ -33,10 +33,10 @@ C = confirmado, ? = a confirmar, vacío = no participa.
 | CU-03 Cerrar caja por turno | | C | |
 | CU-04 Registrar pago de cliente | C; anula cobros (DEC-113) | C (DEC-110, supuesto) | |
 | CU-05 Registrar ingreso de mercadería | C | | |
-| CU-06 Consultar stock | C | C, solo lectura (DEC-103) | ? (PR-25) |
+| CU-06 Consultar stock | C | C, solo lectura (DEC-103) | |
 | CU-07 Registrar pago a proveedor | C | | |
-| CU-08 Gestionar cuentas corrientes | C | | ? (PR-25) |
-| CU-09 Generar reportes | C | | C (solo consulta) |
+| CU-08 Gestionar cuentas corrientes | C | | |
+| CU-09 Generar reportes | C | | C (solo consulta; lo único que ven, DEC-134) |
 | CU-10 Iniciar sesión | C | C | C |
 | CU-11 Gestionar productos | C | consulta y stock en solo lectura (DEC-103); alta con permiso | |
 | CU-12 Gestionar clientes | C | elige un cliente existente en la venta y el cobro, sin alta (DEC-116) | |
@@ -334,7 +334,7 @@ flowchart LR
 **Implementación (H3, etapas 3 y 4):** pantallas en `/proveedores/ingresos/`, solo del Administrador, con la pestaña "Ingresos de mercadería" junto a "Proveedores".
 - **Carga:** proveedor activo, remito u observación y líneas armadas en el navegador. La búsqueda filtra mientras se escribe, como en la venta (DEC-97), y trae también la carne. El precio se completa con el último precio de compra con ese proveedor y se puede cambiar; si se cambia de proveedor, se vuelven a completar los que no se tocaron (DEC-90). Una línea por producto, como en la venta (DEC-53). "Crear producto" abre un diálogo con el servicio de CU-11, sin stock inicial, y agrega el producto (A1, DEC-91, DEC-99).
 - **Confirmación:** el servidor valida y guarda en una operación el ingreso con la fecha de hoy (DEC-93), los detalles, el stock con `mover_stock` (la carne no lo mueve, DEC-94) y el precio en `producto_proveedor`. El total es la suma de los subtotales redondeados (DEC-89). El precio admite hasta 2 decimales y no puede ser negativo.
-- **Listado y detalle:** listado paginado de a 25 (DEC-95) con total y saldo; el detalle muestra las líneas, el total y el saldo derivado. El listado de proveedores muestra el saldo de cada uno (ingresos vigentes menos pagos, sin guardarlo).
+- **Listado y detalle:** listado paginado de a 25 (DEC-95) con total y saldo; el detalle muestra las líneas, el total y el saldo derivado. El listado de proveedores muestra el saldo de cada uno (ingresos vigentes menos pagos, sin guardarlo). **Filtros del listado de ingresos (H5, etapa 5, DEC-139, DEC-152):** desde, hasta y proveedor (también uno dado de baja, marcado así en la lista), combinables y conservados al paginar; las fechas usan la validación de CU-09 (DEC-145) y un filtro inválido muestra el error sin listar (CP-133). Se filtra por la fecha del ingreso.
 - **Contado (etapa 4, DEC-81):** la carga ofrece "A crédito" o "Contado"; al contado se elige el medio (cualquiera activo salvo cuenta corriente) y, en efectivo, si sale de la caja abierta (DEC-106); el pago por el total se registra con el servicio de CU-07 en la misma operación: si se rechaza (por ejemplo, por falta de efectivo), no se guarda nada.
 - **Anulación (DEC-92):** desde el detalle, con motivo obligatorio y confirmación, solo si no tiene pagos vigentes (un contado se anula después de anular su pago). El ingreso queda `ANULADO` con fecha, usuario y motivo (migración `proveedores/0003`), su deuda deja de contar y el stock vuelve, aunque quede negativo; el precio de compra no se revierte.
 
@@ -342,7 +342,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador y cajera, en solo lectura (DEC-103); dueños, a confirmar: PR-25 |
+| Actor principal | Administrador y cajera, en solo lectura (DEC-103); los dueños no acceden (DEC-134) |
 | Requisitos | RF-25, RF-26, RF-28 |
 | Precondiciones | Existen productos registrados |
 | Poscondiciones | Ninguna (solo consulta) |
@@ -360,12 +360,12 @@ flowchart LR
 | ID | Condición | Resultado | Estado |
 |---|---|---|---|
 | A1 | Los filtros no devuelven productos | El sistema muestra "Sin productos para el filtro seleccionado" | Propuesta |
-| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; hoy los dueños (PR-25) |
+| A2 | El usuario no tiene permiso de consulta | El sistema no muestra el módulo | Propuesta; los dueños (DEC-134) |
 
 **Alcance:** el stock y las alertas son solo de productos no cárnicos; el listado también muestra la carne, como "Sin control" (DEC-105).
 **Implementación (H3, etapa 5, DEC-105):** en `/productos/`, para el Administrador y toda cajera: filtros por categoría, por proveedor (los activos con productos, por la relación inversa de `producto_proveedor`, R-7) y "Solo stock bajo", que se pueden combinar con la búsqueda y se conservan al paginar, y la marca "Stock bajo" en cada fila. La alerta se define una sola vez en el servicio de catálogo (R-8). El inicio del Administrador tiene la tarjeta "Stock bajo" con la cantidad de productos, que lleva al listado filtrado.
-**Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; para la cajera queda pendiente (L9, PR-35).
-**Pendientes:** PR-21 (vencimientos), PR-25 (si los dueños consultan el stock).
+**Stock mínimo (DEC-82 y DEC-101, supuestos del proyecto):** un producto con control de stock muestra la alerta si `stock_actual <= stock_minimo`; sin mínimo, si `stock_actual <= 0` (sin stock o negativo, DEC-46). Sin mínimo y con stock mayor a 0 no hay alerta. El Administrador corrige el stock al modificar el producto (CU-11, DEC-98). La carne no tiene alerta (DEC-36). La tarjeta "stock bajo" del inicio se muestra solo al Administrador; la cajera no la ve, porque su inicio no muestra totales del negocio (DEC-137, supuesto).
+**Pendientes:** PR-21 (vencimientos). Los dueños no consultan el stock (DEC-134).
 
 ### CU-07 Registrar pago a proveedor
 
@@ -401,6 +401,7 @@ flowchart LR
 - **Deuda (DEC-81):** se elige un ingreso del proveedor con saldo pendiente; el saldo del proveedor es la suma de los totales de sus ingresos menos la suma de sus pagos.
 
 **Implementación (H3, etapa 4):** pantallas en `/proveedores/pagos/`, solo del Administrador, con la pestaña "Pagos".
+- **Filtros del listado (H5, etapa 5, DEC-139, DEC-152):** desde, hasta y proveedor (también uno dado de baja, marcado así en la lista), combinables y conservados al paginar; las fechas usan la validación de CU-09 (DEC-145) y un filtro inválido muestra el error sin listar Se filtra por la fecha del pago (CP-133).
 - **Registro:** "Registrar pago" desde el listado o desde el detalle de un ingreso con saldo, que precarga el ingreso y el saldo. Se elige un ingreso vigente de un proveedor activo con saldo; el monto, mayor a 0, con centavos y no mayor al saldo (RI-08, A2), y el medio: cualquiera activo salvo cuenta corriente (DEC-106).
 - **Efectivo:** aparece "Sale de la caja abierta", marcada, con lo disponible en la caja abierta de hoy. Marcada, el pago va en la caja abierta del día con el egreso `PAGO_PROVEEDOR` a nombre de quien registra, con las funciones públicas de caja (R-3); sin caja, con la de otro día o sin efectivo suficiente se rechaza mostrando el máximo (A1). Desmarcada, se registra sin movimiento y sin exigir caja.
 - **Otros medios:** sin movimiento de caja.
@@ -411,7 +412,7 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador (dueños en consulta, a confirmar: PR-25) |
+| Actor principal | Administrador (los dueños no acceden, DEC-134) |
 | Requisitos | RF-39 a RF-41 |
 | Precondiciones | El cliente está registrado |
 | Poscondiciones | Estado de cuenta actualizado |
@@ -441,10 +442,10 @@ flowchart LR
 
 | Campo | Detalle |
 |---|---|
-| Actor principal | Administrador; dueños en modo consulta (a confirmar: PR-25) |
-| Requisitos | RF-42 a RF-46 |
+| Actor principal | Administrador; dueños en solo lectura (DEC-134) |
+| Requisitos | RF-42 a RF-45 (RF-46 descartado, DEC-136) |
 | Precondiciones | Existen ventas y pagos registrados |
-| Poscondiciones | Reporte generado (PDF o Excel) y disponible para descarga |
+| Poscondiciones | Reporte visible en pantalla y, si se pide, exportado a Excel o PDF para descargar |
 | Prototipo (referencia v0, a rediseñar) | ![Generar reportes](prototipos/CU-09-generar-reportes.png) |
 
 **Flujo normal (PDF)**
@@ -464,7 +465,15 @@ flowchart LR
 | A1 | No hay datos para el período | El sistema muestra "Sin registros disponibles" | PDF |
 | A2 | La fecha "desde" es posterior a "hasta" | El sistema pide corregir el rango | Propuesta |
 
-**Pendientes:** PR-27 (lista de reportes y si son automáticos o a pedido).
+**Decisiones de diseño (DEC-133):** cuatro reportes, los de RF-42: ventas diarias, producto más vendido, ingresos por día y totales por medio de pago. Son a pedido, con rango de fechas, se ven en pantalla y se exportan a Excel o PDF; ninguno se genera solo (DEC-136, supuesto). CU-09 incluye además la consulta de cierres de caja por fecha (DEC-59), que lleva al reporte de cierre de cada caja. La meta de reportes al cierre la cubre el resumen de cierre de CU-03 (H-13). Lo ven el Administrador y los dueños, en solo lectura (DEC-134).
+
+**Implementación (H5, etapa 3):** app `reportes`, que solo lee ventas, caja, clientes y catálogo y que ninguna otra importa (R-1). Menú "Reportes" para el Administrador y los dueños (la cajera recibe 403); `/reportes/` abre el "Resumen" (etapa 6, DEC-158) y las pestañas llevan a "Ventas diarias", "Producto más vendido", "Ingresos por día", "Totales por medio de pago" y "Cierres de caja", conservando el rango. El rango es obligatorio y por defecto el día de hoy (en el Resumen, los últimos 30 días); uno inválido pide corregirlo y no calcula (A2). Las ventas se cuentan por la fecha y el turno de su caja (DEC-83, DEC-140), que es su fecha porque una caja de otro día no recibe ventas (DEC-50); los cobros, por la fecha del cobro, porque pueden no tener caja (DEC-110) (DEC-157). Sin datos, "Sin registros disponibles" (A1). Producto más vendido pagina de a 25. Cierres de caja enlaza al reporte de cierre de cada caja. Todo es de solo lectura: las pantallas no aceptan POST (CP-60 a CP-62, CP-129 a CP-132).
+
+**Resumen (H5, etapa 6, DEC-158, RF-55):** primera pestaña de Reportes y la que abre `/reportes/`. Usa el mismo rango que las demás (por defecto, los últimos 30 días) y es de solo lectura. Muestra lo vendido en el rango con la cantidad de ventas y el ticket promedio, las ventas por día (gráfico de línea), los ingresos del rango, las ventas por medio de pago y los 5 productos más vendidos (gráficos de barras, Chart.js) y, al día de hoy, el saldo total y la deuda vencida total de las cuentas corrientes (sin nombres de clientes), los productos con stock bajo y la deuda total con proveedores. Los números salen de los mismos servicios que las demás pestañas y que las pantallas de clientes, proveedores y productos. Los bloques enlazan a las otras pestañas con el mismo rango; cuentas corrientes, stock bajo y proveedores enlazan a su pantalla solo para el Administrador (el dueño ve el total, sin enlace, DEC-134). Sin datos, cada bloque muestra "Sin registros disponibles". El Resumen no se exporta.
+
+**Exportación (H5, etapa 4, DEC-146):** los cuatro reportes ofrecen "Exportar a Excel" y "Exportar a PDF", con el mismo rango y el mismo resultado del servicio que la pantalla (R-3). El Excel (`openpyxl`) lleva el negocio, el reporte, el rango y la fecha de generación, y los montos y cantidades como números con su formato, para poder sumarlos; el PDF (`reportlab`, A4) muestra lo mismo con los montos como en pantalla. Producto más vendido exporta todo el ranking, no solo la página que se ve. Sin datos no se genera el archivo: la pantalla muestra "Sin registros disponibles" y el aviso de que no hay nada para exportar (A1). La consulta de cierres no se exporta (DEC-144). El nombre del archivo lleva el reporte y el rango, por ejemplo `ventas-diarias_2026-01-15_2026-01-16.xlsx` (CP-63).
+
+**Decisiones del spec (SPEC-H5):** ventas diarias por fecha y turno, con las ventas a cuenta corriente (DEC-140); producto más vendido por importe (DEC-141); ingresos por día con las ventas no fiadas y los cobros, sin anuladas, y una columna que separa lo que entró a caja de lo que quedó fuera de caja (DEC-142, supuesto); totales por medio de pago (DEC-143); consulta de cierres (DEC-144); rango por defecto hoy, sin fechas futuras (DEC-145); Excel y PDF (DEC-146).
 
 ### CU-10 Iniciar sesión
 
@@ -492,7 +501,11 @@ flowchart LR
 
 **Implementación (H1):** pantalla propia de ingreso para los tres roles. A1 y A2 muestran el mismo mensaje genérico ("Usuario o contraseña incorrectos."), para no revelar si la cuenta existe o está dada de baja. A3 cierra la sesión con un botón y vuelve al ingreso. Solo el Administrador entra además al panel de administración (DEC-32).
 
-**Pendientes:** PR-26 (usuarios individuales), PR-34 (cierre de sesión por inactividad).
+**Inicio por rol (DEC-137, supuesto, H5):** después de ingresar, la cajera ve el estado de la caja (la caja abierta, o que no hay una) y accesos a Registrar venta, Cobrar cuenta corriente y Cerrar caja, sin totales del negocio. El inicio del Administrador no cambia. El dueño ve en el inicio solo el acceso a Reportes, sin totales (DEC-147); los indicadores del negocio están en la pestaña "Resumen" de Reportes (DEC-158), no en el inicio.
+
+**Implementación (H5, etapa 1):** la vista de inicio elige la plantilla por rol y solo calcula los totales para el Administrador (R-4, DEC-154): `comun/inicio_cajera.html` con la caja abierta (turno, fecha, quién la abrió y la hora) o "No hay caja abierta" con "Abrir caja", y los accesos a `/ventas/nueva/`, `/clientes/cobrar/` y `/caja/cerrar/`, que avisan si falta la caja (DEC-148); `comun/inicio_duenio.html` con el acceso a Reportes, "Pronto" hasta la etapa 3. Un dueño recibe 403 en el resto de las pantallas; abre el reporte de cierre por enlace (DEC-59) (CP-126, CP-127).
+
+**Pendientes:** PR-34 (cierre de sesión por inactividad). Cada persona tiene su propio usuario (DEC-135, PR-26).
 
 ### CU-11 Gestionar productos
 
@@ -519,6 +532,10 @@ flowchart LR
 | A2 | La cajera sin permiso intenta crear un producto | El sistema lo impide (RN-05) |
 
 **Implementación (H1):** pantalla `/productos/` con búsqueda por nombre o plus interno y, por defecto, solo los productos activos. El Administrador da de alta, modifica y da de baja (con confirmación), ve el stock y puede incluir los dados de baja en el listado; un producto dado de baja no se edita desde esta pantalla (ni por su URL): primero se reactiva con "Reactivar" en el listado de dados de baja, solo el Administrador y sin condición de stock (DEC-85). La unidad de medida no viene elegida: el formulario muestra "Elegí una unidad" y obliga a elegir (DEC-79). Toda cajera, con o sin permiso de alta, ve el listado con el stock en solo lectura, sin editar ni dar de baja; la cajera con permiso además da de alta (DEC-103, que reemplaza en esto a DEC-33). Los dueños no acceden. El stock actual arranca en 0 y no se edita en esta pantalla (RI-07); el alta durante la venta (CU-01 A1, RF-17) se implementó en la etapa 4 de H2 (DEC-62 a DEC-65).
+
+**Categorías y ajustes de stock (H5, etapa 2, DEC-155, L18):** el Administrador ve en Productos las pestañas "Categorías" y "Ajustes de stock" (la cajera no). Categorías (`/productos/categorias/`): listado con la cantidad de productos e "Incluir dadas de baja", alta, edición del nombre (único sin distinguir mayúsculas), baja lógica con confirmación y "Reactivar"; una categoría dada de baja no se ofrece al crear un producto ni al cambiarle la categoría, y quien ya la tiene la conserva (también lo valida el servicio) (CP-135). Ajustes de stock (`/productos/ajustes/`): solo consulta, más nuevos primero, paginada de a 25, con filtro por fecha desde y hasta y por producto (los que tienen ajustes); un rango inválido muestra el error (CP-136).
+
+**Panel sin borrado (H5, etapa 1, DEC-138, L14):** el panel de administración no borra productos, tengan o no referencias, ni ofrece borrar varios a la vez; se dan de baja (CP-128).
 
 **Stock editable (etapa 1b de H3, DEC-98 a DEC-100, supuestos del proyecto):** el Administrador ve y edita el stock al crear y al modificar un producto, en `/productos/` y en el panel de administración, que guarda con el mismo servicio de catálogo. Solo para productos que controlan stock; mayor o igual a 0 y con el formato de DEC-79. Si al guardar el stock cambió, el servicio lo aplica con `mover_stock` y registra un ajuste (`ajuste_stock`) con usuario, fecha, stock anterior, stock nuevo y motivo: en el alta, "Stock inicial"; al modificar, el que se elija (por defecto "Modificación manual"; también conteo, vencimiento, rotura u otro). El cambio se mide contra el stock que mostró el formulario, así una venta hecha mientras se editaba no se deshace. Solo el Administrador cambia el stock: la cajera lo ve en el listado pero su alta no carga stock y arranca en 0 (DEC-103), igual que el alta durante la venta y desde el ingreso. Los ajustes no se editan ni se borran: se consultan en el panel ("Ajustes de stock"), de solo lectura.
 
@@ -559,7 +576,12 @@ flowchart LR
 | Poscondiciones | Usuarios actualizados con su rol |
 
 **Flujo normal (alta):** el Administrador crea el usuario, le asigna un rol (Administrador, Cajera o Dueños) y una contraseña inicial; el sistema lo guarda. También permite modificar, dar de baja y restablecer contraseña.
-**Pendientes:** PR-25, PR-26.
+
+**Decisiones de diseño (DEC-133):** un usuario por persona y sin autorregistro: solo el Administrador da de alta usuarios. CU-14 es solo del Administrador: alta con rol y contraseña inicial, edición de los datos y del rol, desactivación (baja lógica: el usuario no puede ingresar, CU-10 A2) y restablecimiento de la contraseña. Un usuario no se borra, porque sus operaciones lo referencian. La auditoría es el usuario que registra cada operación, sin un registro aparte (DEC-135, supuesto). Pantalla y reglas en DEC-149 a DEC-151: los Administradores creados en CU-14 no entran al panel de administración, que queda para el superusuario técnico (DEC-150, supuesto). El panel tampoco borra usuarios (DEC-153, H5 etapa 1).
+
+**Implementación (H5, etapa 2):** pantalla `/usuarios/`, solo del Administrador (la cajera y los dueños reciben 403; menú "Usuarios"). Listado de activos paginado de a 25 con búsqueda por usuario o nombre e "Incluir desactivados". Alta con usuario, nombre completo, teléfono y email opcionales, rol, "Puede crear productos" (solo queda marcado para la cajera, RN-05) y contraseña inicial repetida, con los validadores de contraseña de Django; el usuario se crea sin acceso al panel. Edición de esos datos salvo la contraseña. "Desactivar" con confirmación: el usuario no ingresa y su sesión abierta deja de valer en el próximo pedido; "Reactivar" en el listado de desactivados. "Contraseña" restablece la clave; la propia, sin cerrar la sesión. Nadie se desactiva ni se cambia el rol a sí mismo, siempre queda un Administrador activo (con bloqueo, para dos pedidos al mismo tiempo) y un usuario con acceso al panel se marca "Técnico": su rol, su estado y su contraseña se gestionan con `manage.py` (DEC-156). Ningún usuario se borra (CP-124, CP-125).
+
+**Medios de pago (DEC-155, L18):** sin caso de uso propio; el Administrador los gestiona en `/caja/medios/` (menú "Medios de pago"): alta con nombre, "Ingresa a caja" y "Es efectivo", con las reglas de DEC-41 y DEC-55; edición solo del nombre; activar y desactivar, sin borrado; el efectivo no se desactiva (CP-137).
 
 ### CU-15 Ajustar stock (integrado a CU-11)
 

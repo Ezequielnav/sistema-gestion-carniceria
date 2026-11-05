@@ -1,0 +1,43 @@
+{% extends "reportes/_reporte.html" %}
+
+{# DEC-143: ventas no anuladas y cobros vigentes por medio de pago. #}
+{% block reporte %}
+  {% if reporte.medios %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+          <tr>
+            <th scope="col" class="px-5 py-3 font-medium">Medio de pago</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Ventas</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Monto de ventas</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Cobros</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for medio in reporte.medios %}
+            <tr>
+              <td class="px-5 py-3 font-medium">{{ medio.medio }}</td>
+              <td class="cifras px-5 py-3 text-right">{{ medio.cantidad }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ medio.ventas|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ medio.cobros|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">$ {{ medio.total|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="border-t border-gray-200 font-semibold">
+          <tr>
+            <td class="px-5 py-3">Total</td>
+            <td class="cifras px-5 py-3 text-right">{{ reporte.totales.cantidad }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.ventas|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.cobros|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.total|floatformat:"2g" }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Sin ventas anuladas ni cobros anulados. La cuenta corriente muestra lo vendido a cuenta, no dinero recibido.</p>
+  {% else %}
+    {% include "reportes/_sin_registros.html" %}
+  {% endif %}
+{% endblock %}

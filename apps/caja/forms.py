@@ -81,3 +81,32 @@ class CierreForm(forms.Form):
 
     def contados(self):
         return {medio.pk: self.cleaned_data[f"contado_{medio.pk}"] for medio, _ in self.resumen}
+
+
+class MedioPagoForm(forms.Form):
+    """Medio de pago (DEC-155). En la edición solo el nombre; las reglas, en el servicio."""
+
+    nombre = forms.CharField(label="Nombre", max_length=50)
+    ingresa_a_caja = forms.BooleanField(
+        label="Ingresa a caja",
+        required=False,
+        initial=True,
+        help_text=(
+            "Desmarcado solo para la cuenta corriente: la venta queda como deuda del cliente "
+            "(DEC-41)."
+        ),
+    )
+    es_efectivo = forms.BooleanField(
+        label="Es efectivo",
+        required=False,
+        help_text="Uno solo: el del fondo de cambio y los egresos (DEC-55).",
+    )
+
+    def __init__(self, *args, es_alta=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not es_alta:
+            del self.fields["ingresa_a_caja"]
+            del self.fields["es_efectivo"]
+        for campo in self.fields.values():
+            clase = "casilla" if isinstance(campo.widget, forms.CheckboxInput) else "campo"
+            campo.widget.attrs["class"] = clase

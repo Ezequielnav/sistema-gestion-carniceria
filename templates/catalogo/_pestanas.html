@@ -1,0 +1,9 @@
+{# Solo el Administrador: categorías y ajustes de stock fuera del panel (DEC-155, L18). #}
+<nav class="mt-4 flex gap-1 overflow-x-auto border-b border-gray-200 text-sm" aria-label="Secciones de productos">
+  <a href="{% url 'catalogo:productos' %}" {% if activa == "productos" %}aria-current="page"{% endif %}
+     class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-gray-500 hover:text-gray-900 aria-[current=page]:border-red-600 aria-[current=page]:text-gray-900">Productos</a>
+  <a href="{% url 'catalogo:categorias' %}" {% if activa == "categorias" %}aria-current="page"{% endif %}
+     class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-gray-500 hover:text-gray-900 aria-[current=page]:border-red-600 aria-[current=page]:text-gray-900">Categorías</a>
+  <a href="{% url 'catalogo:ajustes' %}" {% if activa == "ajustes" %}aria-current="page"{% endif %}
+     class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-gray-500 hover:text-gray-900 aria-[current=page]:border-red-600 aria-[current=page]:text-gray-900">Ajustes de stock</a>
+</nav>

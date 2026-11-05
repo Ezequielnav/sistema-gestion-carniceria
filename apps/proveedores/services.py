@@ -266,10 +266,18 @@ def saldo_de_proveedor(proveedor):
     return saldos_de_proveedores([proveedor])[proveedor.pk]
 
 
-def listar_ingresos(usuario):
-    """Más nuevos primero (DEC-95 pagina de a 25 en la vista)."""
+def listar_ingresos(usuario, desde=None, hasta=None, proveedor=None):
+    """Más nuevos primero (DEC-95 pagina de a 25 en la vista); filtra por la fecha del
+    ingreso y por proveedor, también uno dado de baja (DEC-139, DEC-152)."""
     _exigir_permiso(usuario)
-    return IngresoMercaderia.objects.select_related("proveedor").order_by("-fecha", "-pk")
+    ingresos = IngresoMercaderia.objects.select_related("proveedor").order_by("-fecha", "-pk")
+    if desde:
+        ingresos = ingresos.filter(fecha__gte=desde)
+    if hasta:
+        ingresos = ingresos.filter(fecha__lte=hasta)
+    if proveedor:
+        ingresos = ingresos.filter(proveedor=proveedor)
+    return ingresos
 
 
 def ingreso_con_detalles(usuario, pk):
@@ -397,12 +405,20 @@ def registrar_pago(usuario, ingreso, monto, medio, proveedor=None, sale_de_caja=
     return pago
 
 
-def listar_pagos(usuario):
-    """Más nuevos primero (DEC-95 pagina de a 25 en la vista)."""
+def listar_pagos(usuario, desde=None, hasta=None, proveedor=None):
+    """Más nuevos primero (DEC-95 pagina de a 25 en la vista); filtra por la fecha del pago
+    y por proveedor, también uno dado de baja (DEC-139, DEC-152)."""
     _exigir_permiso(usuario)
-    return PagoProveedor.objects.select_related("proveedor", "ingreso", "medio_pago").order_by(
+    pagos = PagoProveedor.objects.select_related("proveedor", "ingreso", "medio_pago").order_by(
         "-fecha_hora", "-pk"
     )
+    if desde:
+        pagos = pagos.filter(fecha_hora__date__gte=desde)
+    if hasta:
+        pagos = pagos.filter(fecha_hora__date__lte=hasta)
+    if proveedor:
+        pagos = pagos.filter(proveedor=proveedor)
+    return pagos
 
 
 def pago_con_detalles(usuario, pk):

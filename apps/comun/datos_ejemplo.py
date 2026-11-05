@@ -14,12 +14,15 @@ from apps.clientes.models import Cliente
 from apps.proveedores.models import Proveedor
 from apps.usuarios.models import Rol, Usuario
 
-# (usuario, nombre completo, rol, puede crear productos)
+# (usuario, nombre completo, rol, puede crear productos, entra al panel)
+# "admin" es el superusuario técnico; "admin_negocio" es el Administrador del negocio, sin
+# panel, como los que se crean en CU-14 (DEC-150).
 USUARIOS = [
-    ("admin", "Ana Administradora", Rol.ADMINISTRADOR, False),
-    ("cajera_alta", "Carla Cajera", Rol.CAJERA, True),
-    ("cajera", "Clara Cajera", Rol.CAJERA, False),
-    ("duenio", "Daniel Dueño", Rol.DUENIO, False),
+    ("admin", "Ana Administradora", Rol.ADMINISTRADOR, False, True),
+    ("admin_negocio", "Andrés Administrador", Rol.ADMINISTRADOR, False, False),
+    ("cajera_alta", "Carla Cajera", Rol.CAJERA, True, False),
+    ("cajera", "Clara Cajera", Rol.CAJERA, False, False),
+    ("duenio", "Daniel Dueño", Rol.DUENIO, False, False),
 ]
 
 # (nombre, ingresa a caja). Cuenta corriente es el único que no ingresa (DEC-41, R-6).
@@ -88,19 +91,18 @@ def cargar(clave):
     creados = {}
 
     nuevos = 0
-    for username, nombre, rol, puede_crear in USUARIOS:
+    for username, nombre, rol, puede_crear, con_panel in USUARIOS:
         if Usuario.objects.filter(username=username).exists():
             continue
-        # Solo el Administrador accede al panel de Django (DEC-32).
-        es_admin = rol == Rol.ADMINISTRADOR
+        # Solo el superusuario técnico entra al panel (DEC-32, DEC-150).
         Usuario.objects.create_user(
             username=username,
             password=clave,
             nombre_completo=nombre,
             rol=rol,
             puede_crear_productos=puede_crear,
-            is_staff=es_admin,
-            is_superuser=es_admin,
+            is_staff=con_panel,
+            is_superuser=con_panel,
         )
         nuevos += 1
     creados["usuarios"] = nuevos

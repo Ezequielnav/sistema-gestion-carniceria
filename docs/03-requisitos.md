@@ -21,8 +21,8 @@
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
 | RF-01 | El sistema debe permitir el inicio de sesión de los usuarios | Base (CU-02, precondición) | Alta | Confirmado |
-| RF-02 | El sistema debe aplicar permisos según el rol: Administrador (acceso completo), Cajera (ventas, pagos, caja, alta de productos con permiso) y Dueños (solo consulta de reportes) | Base (2.2) | Alta | Confirmado |
-| RF-03 | El Administrador debe poder crear, modificar y dar de baja usuarios y asignarles un rol | Propuesta (H-04) | Media | A confirmar (PR-25, PR-26) |
+| RF-02 | El sistema debe aplicar permisos según el rol: Administrador (acceso completo), Cajera (ventas, pagos, caja, alta de productos con permiso) y Dueños (solo consulta de reportes) | Base (2.2) | Alta | Confirmado. Desde H5 el dueño ve solo Reportes y la cajera su inicio sin totales (DEC-134, DEC-137); implementado en H5, etapa 1 |
+| RF-03 | El Administrador debe poder crear, modificar y dar de baja usuarios y asignarles un rol | Propuesta (H-04) | Media | Decidido (DEC-134, DEC-135, supuestos): un usuario por persona; solo el Administrador da de alta, edita el rol, desactiva (baja lógica, sin borrado) y restablece la contraseña; sin autorregistro. Implementado en H5, etapa 2 |
 
 ### 2.2 Caja
 
@@ -45,6 +45,7 @@
 | RF-13 | La cajera debe poder seleccionar el medio de pago de la venta. Medios mencionados: efectivo, tarjeta, transferencia, QR y cuenta corriente | Base (2.1, CU-01) | Alta | Confirmado; lista decidida (DEC-41) |
 | RF-14 | El sistema debe emitir un ticket o comprobante al confirmar la venta | Base (CU-01) | Alta | Confirmado; contenido decidido (DEC-44); lo ven la cajera, si la venta es de la caja abierta, y el Administrador (DEC-84) |
 | RF-15 | Al confirmar una venta, el sistema debe registrar el monto y el medio de pago en la caja abierta | Base (CU-01) | Alta | Confirmado |
+| RF-54 | El Administrador debe poder dar de alta medios de pago, modificar su nombre y activarlos o desactivarlos, sin borrarlos; el efectivo no se desactiva | Propuesta (L18) | Media | Decidido (DEC-155). Implementado en H5, etapa 2 |
 | RF-16 | Al confirmar una venta, el sistema debe descontar el stock de los productos con control de stock | Base (CU-01) | Alta | Confirmado para no cárnicos; la carne no descuenta stock (DEC-36) |
 | RF-17 | Si el producto no existe en el catálogo, la cajera con permiso debe poder crearlo durante la venta | Base (CU-01, A1) | Media | Confirmado |
 | RF-18 | El sistema debe permitir vender a cuenta corriente asociando la venta a un cliente | Base (2.1, CU-08) | Alta | Decidido (DEC-108, DEC-109, supuestos): límite opcional que bloquea; la deuda vencida solo alerta. Implementado en H4, etapa 3 |
@@ -67,6 +68,8 @@
 | RF-28 | El sistema debe controlar los vencimientos de productos | Base (beneficio esperado) | Baja | A confirmar (PR-21) |
 | RF-50 | El Administrador debe poder cambiar el stock de un producto con control de stock al modificarlo; el sistema aplica la diferencia y registra el ajuste con usuario, fecha, stock anterior, stock nuevo y motivo | Propuesta (PR-32) | Media | Decidido (DEC-98, supuesto del proyecto) |
 | RF-51 | Al dar de alta un producto con control de stock, el Administrador debe poder cargar su stock, que se registra como ajuste "Stock inicial" | Propuesta (PR-32) | Baja | Decidido (DEC-99, supuesto del proyecto) |
+| RF-52 | El Administrador debe poder dar de alta, modificar, dar de baja (baja lógica) y reactivar categorías de productos | Propuesta (L18) | Media | Decidido (DEC-155). Implementado en H5, etapa 2 |
+| RF-53 | El Administrador debe poder consultar los ajustes de stock, en solo lectura, filtrando por fecha y producto | Propuesta (L18) | Media | Decidido (DEC-155). Implementado en H5, etapa 2 |
 
 ### 2.5 Proveedores
 
@@ -95,11 +98,12 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-42 | El sistema debe generar reportes de ventas diarias, producto más vendido, ingresos por día y totales por medio de pago | Base (2.1, CU-09) | Alta | Confirmado (lista final: PR-27) |
-| RF-43 | El usuario debe poder indicar rango de fechas y formato de exportación (PDF o Excel) y descargar el reporte | Base (CU-09) | Media | Confirmado |
-| RF-44 | Si no hay datos en el período, el sistema debe mostrar "Sin registros disponibles" | Base (CU-09, A1) | Baja | Confirmado |
-| RF-45 | Los Dueños deben poder consultar los reportes sin modificar datos operativos | Base (2.2) | Alta | Confirmado |
-| RF-46 | El sistema debe generar reportes de ventas y stock automáticamente al finalizar cada jornada | Base (meta) | Media | A confirmar (PR-27) |
+| RF-42 | El sistema debe generar reportes de ventas diarias, producto más vendido, ingresos por día y totales por medio de pago | Base (2.1, CU-09) | Alta | Confirmado; lista decidida (DEC-136, supuesto): estos cuatro reportes, a pedido. Qué cuenta cada uno: DEC-140 a DEC-143; los ingresos son ventas no fiadas y cobros, sin anuladas, separando lo que entró a caja (DEC-142). Implementado en H5, etapa 3 |
+| RF-43 | El usuario debe poder indicar rango de fechas y formato de exportación (PDF o Excel) y descargar el reporte | Base (CU-09) | Media | Confirmado; el reporte también se ve en pantalla (DEC-136); Excel con `openpyxl` y PDF con `reportlab` (DEC-146). Implementado en H5, etapas 3 y 4 |
+| RF-44 | Si no hay datos en el período, el sistema debe mostrar "Sin registros disponibles" | Base (CU-09, A1) | Baja | Confirmado. Implementado en H5, etapas 3 y 4 (sin datos no se exporta) |
+| RF-45 | Los Dueños deben poder consultar los reportes sin modificar datos operativos | Base (2.2) | Alta | Confirmado; los Dueños ven solo los reportes, incluida la consulta de cierres por fecha (DEC-134, supuesto). Implementado en H5, etapas 1 y 3 |
+| RF-46 | El sistema debe generar reportes de ventas y stock automáticamente al finalizar cada jornada | Base (meta) | Media | Descartado (DEC-136, supuesto): los reportes son a pedido; el resumen de cierre de CU-03 cubre el cierre de cada turno y el stock se consulta en CU-06 |
+| RF-55 | El Administrador y los Dueños deben ver en Reportes un resumen de solo lectura del rango elegido (por defecto, los últimos 30 días): lo vendido, el ticket promedio, los ingresos y gráficos de ventas por día, por medio de pago y de los productos más vendidos, más el saldo y la deuda vencida de las cuentas corrientes (totales), el stock bajo y la deuda con proveedores al día de hoy, con enlaces a cada reporte | Propuesta (pedido del alumno) | Media | Decidido (DEC-158). Implementado en H5, etapa 6 |
 
 ### 2.8 Datos iniciales
 
@@ -119,7 +123,7 @@
 | RNF-06 | Seguridad | El acceso requiere autenticación y las funciones se restringen por rol | Base (2.2) | Alta | Confirmado |
 | RNF-07 | Seguridad | Las contraseñas no deben almacenarse en texto plano | Propuesta | Alta | Propuesta |
 | RNF-08 | Seguridad | Los datos de clientes y saldos deben protegerse de accesos no autorizados | Propuesta | Alta | Propuesta |
-| RNF-09 | Integridad | Una caja cerrada no debe poder modificarse; los movimientos deben registrar fecha y usuario | Base (CU-03) y propuesta | Alta | Confirmado en el bloqueo; auditoría: propuesta |
+| RNF-09 | Integridad | Una caja cerrada no debe poder modificarse; los movimientos deben registrar fecha y usuario | Base (CU-03) y propuesta | Alta | Confirmado en el bloqueo; auditoría decidida (DEC-135, supuesto): el usuario que registra cada operación, sin registro de auditoría aparte |
 | RNF-10 | Integridad | Las operaciones que afectan varias tablas (venta, ingreso de mercadería, pagos) deben completarse enteras o no aplicarse | Propuesta | Alta | Propuesta |
 | RNF-11 | Respaldo | Debe haber copias de seguridad periódicas de la base de datos | Propuesta | Alta | A confirmar (frecuencia) |
 | RNF-12 | Rendimiento | Las operaciones de mostrador (buscar producto, registrar venta) deben responder de forma fluida; los reportes en un tiempo razonable | Propuesta | Media | A definir (umbral) |
@@ -140,9 +144,10 @@
 | CU-06 Consultar stock | RF-25, RF-26, RF-28 |
 | CU-07 Registrar pago a proveedor | RF-06, RF-31, RF-32, RF-33 |
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
-| CU-09 Generar reportes | RF-42 a RF-46 |
+| CU-09 Generar reportes | RF-42 a RF-46, RF-55 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
-| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51 |
+| CU-11 Gestionar productos | RF-21, RF-17, RF-24, RF-50, RF-51, RF-52, RF-53 |
+| Medios de pago (DEC-155, sin caso de uso propio) | RF-54 |
 | CU-12 Gestionar clientes | RF-35 |
 | CU-13 Gestionar proveedores | RF-29 |
 | CU-14 Gestionar usuarios | RF-03 |
@@ -155,8 +160,6 @@ Los requisitos "A confirmar" dependen de las brechas de [01-relevamiento.md](01-
 | Requisito | Brecha | Qué se necesita saber |
 |---|---|---|
 | RF-34 | PR-19 | Si los pedidos a proveedores se gestionan en el sistema |
-| RF-03, RF-45 | PR-25 | Quién es el Administrador y qué ven los dueños |
-| RF-46 | PR-27 | Reportes automáticos o a pedido |
 
 ## 6. Mantenimiento
 

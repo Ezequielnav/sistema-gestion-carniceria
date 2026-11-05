@@ -16,6 +16,9 @@
   </div>
   {% include "proveedores/_pestanas.html" with activa="pagos" %}
 
+  {# DEC-139, DEC-152: fechas y proveedor, combinables y conservados al paginar. #}
+  {% include "comun/_filtro.html" %}
+
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de pagos">
     {% if pagina.object_list %}
       <div class="overflow-x-auto">
@@ -59,10 +62,10 @@
           <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
             {% endif %}
           </span>
         </nav>
@@ -72,7 +75,7 @@
         <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
           {% include "comun/_icono.html" with nombre="camion" %}
         </span>
-        <p class="mt-3 text-sm font-medium">Todavía no hay pagos a proveedores</p>
+        <p class="mt-3 text-sm font-medium">{% if form.errors %}Corregí el filtro para ver el listado{% elif filtros %}No hay resultados con ese filtro{% else %}Todavía no hay pagos a proveedores{% endif %}</p>
       </div>
     {% endif %}
   </section>

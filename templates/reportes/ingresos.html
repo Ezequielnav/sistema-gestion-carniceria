@@ -1,0 +1,46 @@
+{% extends "reportes/_reporte.html" %}
+
+{# DEC-142: ventas que no son a cuenta corriente más cobros, sin anuladas. #}
+{% block reporte %}
+  {% if reporte.dias %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+          <tr>
+            <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Ventas</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Cobros de cuenta corriente</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Entró a caja</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Fuera de caja</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for dia in reporte.dias %}
+            <tr>
+              <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ dia.fecha|date:"D j/m/Y" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.ventas|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.cobros|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.en_caja|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.fuera|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">$ {{ dia.total|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="border-t border-gray-200 font-semibold">
+          <tr>
+            <td class="px-5 py-3">Total del rango</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.ventas|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.cobros|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.en_caja|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.fuera|floatformat:"2g" }}</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.total|floatformat:"2g" }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Las ventas a cuenta corriente no son ingreso: son deuda del cliente hasta que se cobra. "Fuera de caja" son los cobros registrados sin caja. No se restan egresos.</p>
+  {% else %}
+    {% include "reportes/_sin_registros.html" %}
+  {% endif %}
+{% endblock %}

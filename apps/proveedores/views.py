@@ -10,12 +10,14 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from apps.caja.services import efectivo_disponible, egreso_de_pago
 from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import crear_producto
+from apps.comun.listados import filtrar_y_paginar
 from apps.comun.models import subtotal
 from apps.comun.permisos import requiere_funcion
 from apps.proveedores.forms import (
     AnularIngresoForm,
     AnularPagoForm,
     ConfirmarIngresoForm,
+    FiltroListadoForm,
     PagoForm,
     ProveedorForm,
 )
@@ -46,6 +48,19 @@ from apps.proveedores.services import (
 
 # DEC-95: de a 25, como productos y el historial de ventas.
 POR_PAGINA = 25
+
+
+def _filtrar(request, listar):
+    """Listado filtrado por fechas y proveedor (DEC-152)."""
+    form = FiltroListadoForm(request.GET or None)
+    pagina, filtros = filtrar_y_paginar(
+        request,
+        form,
+        lambda datos: listar(
+            request.user, datos.get("desde"), datos.get("hasta"), datos.get("proveedor")
+        ),
+    )
+    return form, pagina, filtros
 
 
 def _buscar(funcion, pk):
@@ -160,11 +175,14 @@ def _producto(producto, precio):
 @requiere_funcion("Proveedores")
 @require_GET
 def ingresos(request):
-    lista = listar_ingresos(request.user)
-    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
+    form, pagina, filtros = _filtrar(request, listar_ingresos)
     for ingreso in pagina.object_list:
         ingreso.saldo = saldo_de_ingreso(ingreso)
-    return render(request, "proveedores/ingresos.html", {"pagina": pagina})
+    return render(
+        request,
+        "proveedores/ingresos.html",
+        {"pagina": pagina, "form": form, "filtros": filtros},
+    )
 
 
 @requiere_funcion("Proveedores")
@@ -285,9 +303,12 @@ def ingreso_anular(request, pk):
 @requiere_funcion("Proveedores")
 @require_GET
 def pagos(request):
-    lista = listar_pagos(request.user)
-    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
-    return render(request, "proveedores/pagos.html", {"pagina": pagina})
+    form, pagina, filtros = _filtrar(request, listar_pagos)
+    return render(
+        request,
+        "proveedores/pagos.html",
+        {"pagina": pagina, "form": form, "filtros": filtros},
+    )
 
 
 @requiere_funcion("Proveedores")

@@ -1,0 +1,47 @@
+{% extends "reportes/_reporte.html" %}
+{% load cantidades %}
+
+{# DEC-141: ranking por importe, con la cantidad en su unidad. #}
+{% block reporte %}
+  {% if reporte.pagina.object_list %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+          <tr>
+            <th scope="col" class="px-5 py-3 font-medium">#</th>
+            <th scope="col" class="px-5 py-3 font-medium">Producto</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Cantidad</th>
+            <th scope="col" class="px-5 py-3 text-right font-medium">Importe</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for fila in reporte.pagina %}
+            <tr>
+              <td class="cifras px-5 py-3 text-gray-500">{{ reporte.pagina.start_index|add:forloop.counter0 }}</td>
+              <td class="px-5 py-3 font-medium">{{ fila.producto__nombre }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ fila.cantidad|cantidad:fila.producto__unidad_medida }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ fila.importe|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="border-t border-gray-200 font-semibold">
+          <tr>
+            <td class="px-5 py-3" colspan="3">Total vendido en el rango</td>
+            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.total|floatformat:"2g" }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% if reporte.pagina.has_other_pages %}
+      <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
+        <span class="text-gray-500">Página {{ reporte.pagina.number }} de {{ reporte.pagina.paginator.num_pages }}</span>
+        <span class="flex gap-2">
+          {% if reporte.pagina.has_previous %}<a href="?{{ rango }}&amp;pagina={{ reporte.pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>{% endif %}
+          {% if reporte.pagina.has_next %}<a href="?{{ rango }}&amp;pagina={{ reporte.pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>{% endif %}
+        </span>
+      </nav>
+    {% endif %}
+  {% else %}
+    {% include "reportes/_sin_registros.html" %}
+  {% endif %}
+{% endblock %}

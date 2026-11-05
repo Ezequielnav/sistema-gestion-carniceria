@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block titulo %}Medios de pago{% endblock %}
+{% block encabezado %}Medios de pago{% endblock %}
+
+{% block contenido %}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight">Medios de pago</h2>
+      <p class="mt-1 text-sm text-gray-500">Los que se ofrecen en la venta, el cobro y los pagos. No se borran: se desactivan.</p>
+    </div>
+    <a href="{% url 'caja:medio_nuevo' %}"
+       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+      Nuevo medio de pago
+    </a>
+  </div>
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de medios de pago">
+    {% if medios %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">Medio</th>
+              <th scope="col" class="px-5 py-3 font-medium">Caja</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for medio in medios %}
+              <tr class="{% if not medio.activo %}bg-gray-50 text-gray-500{% endif %}">
+                <td class="px-5 py-3">
+                  <span class="font-medium">{{ medio.nombre }}</span>
+                  {% if medio.es_efectivo %}<span class="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Efectivo</span>{% endif %}
+                  {% if not medio.activo %}<span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Desactivado</span>{% endif %}
+                </td>
+                <td class="px-5 py-3 text-gray-600">{% if medio.ingresa_a_caja %}Ingresa a caja{% else %}No ingresa (cuenta corriente){% endif %}</td>
+                <td class="px-5 py-3 text-right whitespace-nowrap">
+                  <a href="{% url 'caja:medio_editar' medio.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ medio }}»</span></a>
+                  {% if not medio.es_efectivo %}
+                    <form method="post" action="{% url 'caja:medio_activo' medio.pk %}" class="inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="activo" value="{% if medio.activo %}0{% else %}1{% endif %}">
+                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium {% if medio.activo %}text-red-700 hover:bg-red-50{% else %}text-gray-700 hover:bg-gray-100{% endif %}">{% if medio.activo %}Desactivar{% else %}Activar{% endif %}<span class="sr-only"> «{{ medio }}»</span></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="px-5 py-12 text-center text-sm font-medium">Todavía no hay medios de pago</p>
+    {% endif %}
+  </section>
+{% endblock %}

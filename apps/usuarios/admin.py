@@ -47,3 +47,8 @@ class UsuarioAdmin(UserAdmin, ModelAdmin):
     list_filter = ("rol", "is_active")
     search_fields = ("username", "nombre_completo", "email")
     ordering = ("username",)
+
+    def has_delete_permission(self, request, obj=None):
+        """Un usuario no se borra: se desactiva (DEC-135, DEC-153), y sus operaciones lo
+        siguen referenciando (RNF-09)."""
+        return False

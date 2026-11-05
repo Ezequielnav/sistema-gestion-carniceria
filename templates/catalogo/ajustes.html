@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load cantidades %}
+
+{% block titulo %}Ajustes de stock{% endblock %}
+{% block encabezado %}Productos{% endblock %}
+
+{% block contenido %}
+  <div>
+    <h2 class="text-2xl font-semibold tracking-tight">Ajustes de stock</h2>
+    <p class="mt-1 text-sm text-gray-500">Cambios de stock hechos a mano al crear o modificar productos. Solo consulta: no se editan ni se borran.</p>
+  </div>
+  {% include "catalogo/_pestanas.html" with activa="ajustes" %}
+
+  {% include "comun/_filtro.html" %}
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de ajustes de stock">
+    {% if pagina.object_list %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
+              <th scope="col" class="px-5 py-3 font-medium">Producto</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Anterior</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium">Nuevo</th>
+              <th scope="col" class="px-5 py-3 font-medium">Motivo</th>
+              <th scope="col" class="px-5 py-3 font-medium">Usuario</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for ajuste in pagina %}
+              <tr>
+                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ ajuste.fecha_hora|date:"j/m/Y H:i" }}</td>
+                <td class="px-5 py-3 font-medium">{{ ajuste.producto.nombre }}</td>
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ ajuste.stock_anterior|cantidad:ajuste.producto.unidad_medida }}</td>
+                <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ ajuste.stock_nuevo|cantidad:ajuste.producto.unidad_medida }}</td>
+                <td class="px-5 py-3">{{ ajuste.get_motivo_display }}</td>
+                <td class="px-5 py-3 text-gray-600">{{ ajuste.usuario.nombre_completo|default:ajuste.usuario.username }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if pagina.has_other_pages %}
+        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
+          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+          <span class="flex gap-2">
+            {% if pagina.has_previous %}<a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>{% endif %}
+            {% if pagina.has_next %}<a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>{% endif %}
+          </span>
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="px-5 py-12 text-center text-sm font-medium">{% if form.errors %}Corregí el filtro para ver los ajustes{% else %}No hay ajustes de stock{% if filtros %} con ese filtro{% endif %}{% endif %}</p>
+    {% endif %}
+  </section>
+{% endblock %}

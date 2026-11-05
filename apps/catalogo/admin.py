@@ -87,6 +87,12 @@ class ProductoAdmin(AdminBase):
     list_filter = ("activo", "controla_stock", "categoria")
     search_fields = ("nombre", "plus_interno")
 
+    def has_delete_permission(self, request, obj=None):
+        """Un producto no se borra, tenga o no referencias: se da de baja (DEC-138, DEC-153).
+
+        Sin este permiso el panel tampoco ofrece la acción de borrar varios a la vez."""
+        return False
+
     # DEC-48: "6" por unidad y "1,250 kg" por kg, como en /productos/.
     @admin.display(description="Stock", ordering="stock_actual")
     def stock(self, obj):

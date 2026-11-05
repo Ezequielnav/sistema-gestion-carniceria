@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block titulo %}Usuarios{% endblock %}
+{% block encabezado %}Usuarios{% endblock %}
+
+{% block contenido %}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight">Usuarios</h2>
+      <p class="mt-1 text-sm text-gray-500">Un usuario por persona. Buscá por usuario o nombre.</p>
+    </div>
+    <a href="{% url 'usuarios:nuevo' %}"
+       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+      Nuevo usuario
+    </a>
+  </div>
+
+  <form method="get" role="search" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+    <label for="buscar" class="sr-only">Buscar usuario</label>
+    <input id="buscar" type="search" name="q" value="{{ texto }}" placeholder="Usuario o nombre" autofocus
+           class="campo sm:max-w-sm">
+    <label class="flex items-center gap-2 text-sm text-gray-700">
+      <input type="checkbox" name="inactivos" value="1" class="casilla" {% if incluir_inactivos %}checked{% endif %}>
+      Incluir desactivados
+    </label>
+    <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Buscar</button>
+  </form>
+
+  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de usuarios">
+    {% if pagina.object_list %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+            <tr>
+              <th scope="col" class="px-5 py-3 font-medium">Usuario</th>
+              <th scope="col" class="px-5 py-3 font-medium">Nombre</th>
+              <th scope="col" class="px-5 py-3 font-medium">Rol</th>
+              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for usuario in pagina %}
+              <tr class="{% if not usuario.is_active %}bg-gray-50 text-gray-500{% endif %}">
+                <td class="px-5 py-3">
+                  <span class="font-medium">{{ usuario.username }}</span>
+                  {% if not usuario.is_active %}
+                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Desactivado</span>
+                  {% endif %}
+                  {% if usuario.con_panel %}
+                    {# DEC-150 y DEC-156: se gestiona con manage.py. #}
+                    <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600" title="Entra al panel de administración; se gestiona con manage.py">Técnico</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3 text-gray-600">{{ usuario.nombre_completo }}</td>
+                <td class="px-5 py-3 whitespace-nowrap">
+                  {{ usuario.get_rol_display }}{% if usuario.puede_crear_productos %}<span class="block text-xs text-gray-500">Crea productos</span>{% endif %}
+                </td>
+                <td class="px-5 py-3 text-right whitespace-nowrap">
+                  {% if usuario.is_active %}
+                    <a href="{% url 'usuarios:editar' usuario.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ usuario }}»</span></a>
+                    {% if not usuario.con_panel %}
+                      <a href="{% url 'usuarios:contrasena' usuario.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Contraseña<span class="sr-only"> de «{{ usuario }}»</span></a>
+                      {% if usuario.pk != user.pk %}
+                        <a href="{% url 'usuarios:baja' usuario.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Desactivar<span class="sr-only"> «{{ usuario }}»</span></a>
+                      {% endif %}
+                    {% endif %}
+                  {% else %}
+                    <form method="post" action="{% url 'usuarios:reactivar' usuario.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Reactivar<span class="sr-only"> «{{ usuario }}»</span></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if pagina.has_other_pages %}
+        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
+          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+          <span class="flex gap-2">
+            {% if pagina.has_previous %}
+              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+            {% endif %}
+            {% if pagina.has_next %}
+              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+            {% endif %}
+          </span>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="px-5 py-12 text-center">
+        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          {% include "comun/_icono.html" with nombre="usuario" %}
+        </span>
+        <p class="mt-3 text-sm font-medium">{% if texto %}No hay usuarios que coincidan con «{{ texto }}»{% else %}No hay usuarios{% endif %}</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

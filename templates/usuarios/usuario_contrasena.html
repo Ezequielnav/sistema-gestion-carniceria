@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block titulo %}Restablecer contraseña{% endblock %}
+{% block encabezado %}Usuarios{% endblock %}
+
+{% block contenido %}
+  <div class="mx-auto max-w-md">
+    <a href="{% url 'usuarios:usuarios' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a usuarios</a>
+    <h2 class="mt-2 text-2xl font-semibold tracking-tight">Contraseña de «{{ usuario.username }}»</h2>
+    <p class="mt-1 text-sm text-gray-500">Escribí la contraseña nueva y pasásela a {{ usuario.nombre_completo }}. La anterior deja de valer.</p>
+
+    {% if con_panel %}
+      <div role="alert" class="mt-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+        Este usuario entra al panel de administración: su contraseña se cambia con manage.py.
+      </div>
+    {% else %}
+      <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        {% for campo in form %}
+          <div>
+            <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
+            {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <a href="{% url 'usuarios:usuarios' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
+          <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Cambiar contraseña</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

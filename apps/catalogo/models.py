@@ -39,6 +39,8 @@ def cantidad_para_editar(cantidad, unidad):
 
 class Categoria(ModeloBase):
     nombre = models.CharField(max_length=80)
+    # Baja lógica (DEC-155): una categoría dada de baja no se ofrece a productos nuevos.
+    activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = "categoria"
