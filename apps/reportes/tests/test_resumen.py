@@ -14,10 +14,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.catalogo.models import Producto, UnidadMedida
+from apps.clientes.models import Cliente
 from apps.clientes.services import cargar_saldo_inicial
 from apps.proveedores.models import CondicionPago, IngresoMercaderia, PagoProveedor, Proveedor
+from apps.reportes import resumen as modulo
 from apps.reportes import services
-from apps.reportes.tablero import tablero
+from apps.reportes.resumen import resumen as calcular_resumen
 from apps.reportes.tests.datos import D15, D16, usuario
 from apps.usuarios.models import Rol
 
@@ -62,7 +64,7 @@ def completo(admin, escenario):
 
 
 def test_cp138_ventas_e_ingresos_iguales_a_los_reportes(admin, completo):
-    datos = tablero(admin, DESDE, D16)
+    datos = calcular_resumen(admin, DESDE, D16)
 
     del_rango = services.ventas_diarias(admin, DESDE, D16)
     assert datos["ventas"] == {"cantidad": del_rango["cantidad"], "total": del_rango["total"]}
@@ -71,17 +73,20 @@ def test_cp138_ventas_e_ingresos_iguales_a_los_reportes(admin, completo):
     assert datos["ingresos"] == services.ingresos_por_dia(admin, DESDE, D16)["totales"]
     assert datos["ingresos"]["fuera"] == Decimal("250.00")
     # Con un rango de un solo día, todo es de ese día.
-    assert tablero(admin, D16, D16)["ventas"] == {"cantidad": 1, "total": Decimal("700.00")}
+    assert calcular_resumen(admin, D16, D16)["ventas"] == {
+        "cantidad": 1,
+        "total": Decimal("700.00"),
+    }
 
 
 def test_cp138_graficos_iguales_a_los_reportes(admin, completo):
-    datos = tablero(admin, DESDE, D16)
+    datos = calcular_resumen(admin, DESDE, D16)
 
     assert len(datos["serie"]) == 30
     assert datos["serie"][0] == (DESDE, Decimal("0.00"))
     assert dict(datos["serie"])[D15] == Decimal("1800.00")
     assert sum(total for _, total in datos["serie"]) == Decimal("2500.00")
-    assert len(tablero(admin, D15, D16)["serie"]) == 2
+    assert len(calcular_resumen(admin, D15, D16)["serie"]) == 2
     medios = services.totales_por_medio(admin, DESDE, D16)["medios"]
     assert [(m["medio"], m["ventas"]) for m in datos["medios"]] == [
         (m["medio"], m["ventas"]) for m in medios
@@ -91,7 +96,7 @@ def test_cp138_graficos_iguales_a_los_reportes(admin, completo):
 
 
 def test_cp138_cuentas_corrientes_stock_y_proveedores_al_dia_de_hoy(admin, completo):
-    datos = tablero(admin, D16, D16)
+    datos = calcular_resumen(admin, D16, D16)
 
     # Saldo inicial de 800 con origen hace más de 30 días: todo vencido (DEC-109, DEC-119).
     assert datos["cuentas_corrientes"] == {"saldo": Decimal("800.00"), "vencida": Decimal("800.00")}
@@ -105,16 +110,17 @@ def test_cp138_la_pantalla_muestra_los_numeros_y_enlaza_con_el_rango(client, adm
     respuesta = client.get(reverse("reportes:resumen"), RANGO)
     contenido = respuesta.content.decode()
 
-    assert respuesta.context["reporte"] == tablero(admin, DESDE, D16)
+    assert respuesta.context["reporte"] == calcular_resumen(admin, DESDE, D16)
     for monto in ("$ 2.500,00", "$ 625,00", "$ 800,00", "$ 4.000,00"):
         assert monto in contenido
     rango = "desde=2025-12-18&amp;hasta=2026-01-16"
     for url in ("reportes:ventas", "reportes:ingresos", "reportes:medios", "reportes:productos"):
         assert f"{reverse(url)}?{rango}" in contenido
     graficos = json.loads(
-        contenido.split('id="datos-tablero" type="application/json">')[1].split("</script>")[0]
+        contenido.split('id="datos-resumen" type="application/json">')[1].split("</script>")[0]
     )
-    assert graficos["serie"]["etiquetas"][0] == "18/12"
+    # El rango cruza de año: la fecha lleva el año.
+    assert graficos["serie"]["etiquetas"][:2] == ["18/12/25", "19/12/25"]
     assert graficos["top"]["etiquetas"] == ["Asado", "Yerba"]
     assert "vendor/chart.js/chart-4.4.9.umd.js" in contenido
     # El Resumen no se exporta (DEC-158).
@@ -135,6 +141,45 @@ def test_cp138_abre_por_defecto_con_los_ultimos_30_dias(client, admin):
     # Las demás pestañas siguen abriendo con el día de hoy.
     ventas = client.get(reverse("reportes:ventas")).context["form"]
     assert ventas.cleaned_data["desde"] == hoy
+
+
+def test_cp138_dentro_del_mismo_ano_las_fechas_van_sin_ano(client, admin, completo):
+    client.force_login(admin)
+
+    respuesta = client.get(
+        reverse("reportes:resumen"), {"desde": "2026-01-14", "hasta": "2026-01-16"}
+    )
+
+    assert respuesta.context["graficos"]["serie"]["etiquetas"] == ["14/01", "15/01", "16/01"]
+
+
+def test_cp138_la_deuda_vencida_se_calcula_solo_para_los_clientes_que_deben(
+    admin, completo, monkeypatch
+):
+    Cliente.objects.bulk_create(Cliente(nombre=f"Sin deuda {n}") for n in range(20))
+    pedidos = []
+    original = modulo.deudas_vencidas_de_clientes
+
+    def contar(clientes, *args, **kwargs):
+        pedidos.append([c.pk for c in clientes])
+        return original(clientes, *args, **kwargs)
+
+    monkeypatch.setattr(modulo, "deudas_vencidas_de_clientes", contar)
+
+    datos = calcular_resumen(admin, DESDE, D16)
+
+    assert pedidos == [[completo["cliente"].pk]]
+    assert datos["cuentas_corrientes"]["vencida"] == Decimal("800.00")
+
+
+def test_cp138_la_cantidad_de_consultas_no_crece_con_los_datos(
+    admin, completo, django_assert_max_num_queries
+):
+    Cliente.objects.bulk_create(Cliente(nombre=f"Cliente {n}") for n in range(30))
+    Proveedor.objects.bulk_create(Proveedor(nombre=f"Proveedor {n}") for n in range(30))
+
+    with django_assert_max_num_queries(15):
+        calcular_resumen(admin, DESDE, D16)
 
 
 # CP-139: quién ve el Resumen
@@ -168,7 +213,7 @@ def test_cp139_la_cajera_no_ve_el_resumen(client, completo):
 
     assert client.get(reverse("reportes:resumen")).status_code == 403
     with pytest.raises(PermissionDenied):
-        tablero(cajera, DESDE, D16)
+        calcular_resumen(cajera, DESDE, D16)
 
 
 def test_cp139_es_de_solo_lectura_y_el_inicio_no_cambia(client, admin):

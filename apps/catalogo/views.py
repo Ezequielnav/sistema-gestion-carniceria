@@ -33,6 +33,7 @@ from apps.catalogo.services import (
     reactivar,
     reactivar_categoria,
 )
+from apps.comun.listados import filtrar_y_paginar
 from apps.comun.permisos import requiere_funcion
 
 POR_PAGINA = 25
@@ -285,17 +286,13 @@ def ajustes(request):
     """Consulta de ajustes de stock, de solo lectura (DEC-155, RI-17)."""
     _solo_administrador(request)
     form = FiltroAjustesForm(request.GET or None, productos=productos_con_ajustes())
-    datos = form.cleaned_data if form.is_valid() else {}
-    lista = listar_ajustes(
-        request.user, datos.get("desde"), datos.get("hasta"), datos.get("producto")
-    )
-    if form.is_bound and not form.is_valid():
-        lista = lista.none()
-    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
-    filtros = request.GET.copy()
-    filtros.pop("pagina", None)
-    return render(
+    pagina, filtros = filtrar_y_paginar(
         request,
-        "catalogo/ajustes.html",
-        {"form": form, "pagina": pagina, "filtros": filtros.urlencode()},
+        form,
+        lambda datos: listar_ajustes(
+            request.user, datos.get("desde"), datos.get("hasta"), datos.get("producto")
+        ),
+    )
+    return render(
+        request, "catalogo/ajustes.html", {"form": form, "pagina": pagina, "filtros": filtros}
     )

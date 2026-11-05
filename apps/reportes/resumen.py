@@ -21,7 +21,7 @@ CERO = Decimal("0.00")
 CENTAVO = Decimal("0.01")
 
 
-def tablero(usuario, desde, hasta):
+def resumen(usuario, desde, hasta):
     """Datos del Resumen; los permisos son los de los reportes (DEC-134)."""
     ventas = services.ventas_diarias(usuario, desde, hasta)
     ingresos = services.ingresos_por_dia(usuario, desde, hasta)
@@ -29,10 +29,13 @@ def tablero(usuario, desde, hasta):
     productos = services.productos_mas_vendidos(usuario, desde, hasta)
 
     # Totales de los mismos cálculos que el listado de clientes y el de proveedores (DEC-21).
-    clientes = list(Cliente.objects.only("pk"))
+    saldos = saldos_de_clientes(list(Cliente.objects.only("pk")))
+    saldo_clientes = sum(saldos.values(), CERO)
+    # La deuda vencida necesita los movimientos de cada cliente (DEC-109): solo se calcula para
+    # los que deben, porque con saldo 0 no hay nada vencido.
+    deudores = [Cliente(pk=pk) for pk, saldo in saldos.items() if saldo > 0]
+    vencida = sum(deudas_vencidas_de_clientes(deudores).values(), CERO)
     proveedores = list(Proveedor.objects.only("pk"))
-    saldo_clientes = sum(saldos_de_clientes(clientes).values(), CERO)
-    vencida = sum(deudas_vencidas_de_clientes(clientes).values(), CERO)
     deuda_proveedores = sum(saldos_de_proveedores(proveedores).values(), CERO)
 
     por_dia = {dia["fecha"]: dia["total"] for dia in ventas["dias"]}

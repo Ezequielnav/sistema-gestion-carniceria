@@ -193,3 +193,13 @@ def test_el_inicio_de_reportes_abre_el_resumen_con_el_rango(client, admin):
     )
 
     assert respuesta.url == reverse("reportes:resumen") + "?desde=2026-01-15&hasta=2026-01-16"
+
+
+def test_con_un_rango_invalido_no_se_ofrece_exportar(client, admin):
+    client.force_login(admin)
+
+    respuesta = client.get(
+        reverse("reportes:ventas"), {"desde": "2026-01-16", "hasta": "2026-01-15"}
+    )
+
+    assert "formato=excel" not in respuesta.content.decode()

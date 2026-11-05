@@ -10,6 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from apps.caja.services import efectivo_disponible, egreso_de_pago
 from apps.catalogo.forms import ProductoForm
 from apps.catalogo.services import crear_producto
+from apps.comun.listados import filtrar_y_paginar
 from apps.comun.models import subtotal
 from apps.comun.permisos import requiere_funcion
 from apps.proveedores.forms import (
@@ -50,17 +51,16 @@ POR_PAGINA = 25
 
 
 def _filtrar(request, listar):
-    """Listado filtrado por fechas y proveedor (DEC-152): un filtro inválido muestra el error
-    y no lista. Devuelve el formulario, la página y los filtros para conservarlos al paginar."""
+    """Listado filtrado por fechas y proveedor (DEC-152)."""
     form = FiltroListadoForm(request.GET or None)
-    datos = form.cleaned_data if form.is_valid() else {}
-    lista = listar(request.user, datos.get("desde"), datos.get("hasta"), datos.get("proveedor"))
-    if form.is_bound and not form.is_valid():
-        lista = lista.none()
-    pagina = Paginator(lista, POR_PAGINA).get_page(request.GET.get("pagina"))
-    filtros = request.GET.copy()
-    filtros.pop("pagina", None)
-    return form, pagina, filtros.urlencode()
+    pagina, filtros = filtrar_y_paginar(
+        request,
+        form,
+        lambda datos: listar(
+            request.user, datos.get("desde"), datos.get("hasta"), datos.get("proveedor")
+        ),
+    )
+    return form, pagina, filtros
 
 
 def _buscar(funcion, pk):

@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  const fuente = document.getElementById("datos-tablero");
+  const fuente = document.getElementById("datos-resumen");
   if (!fuente || !window.Chart) return;
   const datos = JSON.parse(fuente.textContent);
 

@@ -2,7 +2,7 @@
 {% load static %}
 
 {# Pestaña "Resumen" de Reportes (RF-55, DEC-158): solo lectura, del rango elegido; no se exporta. #}
-{% block scripts %}<script src="{% static 'vendor/chart.js/chart-4.4.9.umd.js' %}" defer></script><script src="{% static 'js/tablero.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'vendor/chart.js/chart-4.4.9.umd.js' %}" defer></script><script src="{% static 'js/resumen.js' %}" defer></script>{% endblock %}
 
 {% block seccion %}
   {% if not form.is_valid %}
@@ -123,6 +123,6 @@
     </section>
   </div>
   {% endwith %}
-  {{ graficos|json_script:"datos-tablero" }}
+  {{ graficos|json_script:"datos-resumen" }}
   {% endif %}
 {% endblock %}
