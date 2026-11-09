@@ -238,14 +238,14 @@ def test_dec156_cu14_no_cambia_rol_estado_ni_clave_de_un_usuario_con_panel(clien
         username="tecnico", password=CLAVE, nombre_completo="Técnico", rol=Rol.ADMINISTRADOR
     )
 
-    with pytest.raises(ValidationError, match="manage.py"):
+    with pytest.raises(ValidationError, match="soporte técnico"):
         desactivar(admin, tecnico)
-    with pytest.raises(ValidationError, match="manage.py"):
+    with pytest.raises(ValidationError, match="soporte técnico"):
         restablecer_contrasena(admin, tecnico, CLAVE_NUEVA)
     respuesta = cliente_admin.post(
         reverse("usuarios:editar", args=[tecnico.pk]), _datos_de(tecnico, rol=Rol.CAJERA)
     )
-    assert "manage.py" in respuesta.context["form"].errors["rol"][0]
+    assert "soporte técnico" in respuesta.context["form"].errors["rol"][0]
 
     # Sus otros datos sí se editan.
     cliente_admin.post(

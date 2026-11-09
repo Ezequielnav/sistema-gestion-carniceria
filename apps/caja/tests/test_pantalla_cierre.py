@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from apps.caja.models import Caja, EstadoCaja, MedioPago, MovimientoCaja, Turno
 from apps.caja.services import abrir_caja, cerrar_caja, registrar_egreso_otro
+from apps.comun.templatetags.montos import monto
 from apps.usuarios.models import Rol, Usuario
 
 pytestmark = pytest.mark.django_db
@@ -130,7 +131,7 @@ def test_cp06_con_diferencia_pide_motivo_y_despues_cierra(
 
     respuesta = client.post(CERRAR, {**datos, "observacion": "Vuelto mal dado"})
     contenido = client.get(respuesta.url).content.decode()
-    assert "Vuelto mal dado" in contenido and "$ -200,00" in contenido
+    assert "Vuelto mal dado" in contenido and "−$ 200,00" in contenido
 
 
 def test_contado_vacio_o_negativo_muestra_el_error_junto_al_campo(
@@ -201,3 +202,9 @@ def test_administrador_y_duenios_no_cierran_ni_registran_egresos(
     assert client.post(EGRESO, {"monto": "10", "descripcion": "Bolsas"}).status_code == 403
     assert Caja.objects.get().estado == EstadoCaja.ABIERTA
     assert not MovimientoCaja.objects.exists()
+
+
+def test_rm13_los_montos_negativos_llevan_el_signo_adelante():
+    assert monto(Decimal("-100")) == "−$ 100,00"
+    assert monto(Decimal("1234.5")) == "$ 1.234,50"
+    assert monto(Decimal("0")) == "$ 0,00"

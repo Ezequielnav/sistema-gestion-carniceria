@@ -25,6 +25,9 @@ CENTAVO = Decimal("0.01")
 # Máximo por línea, en kg o unidades: supuesto del proyecto, no confirmado por el negocio
 # (DEC-76, pendiente de relevamiento PR-36). Frena errores como un código en el peso (DF-01).
 CANTIDAD_MAXIMA = Decimal("100")
+# Máximo de líneas por venta, después de agrupar (DEC-162, supuesto del proyecto; DEC-173).
+LINEAS_MAXIMAS = 50
+MENSAJE_LINEAS_MAXIMAS = f"La venta llegó a {LINEAS_MAXIMAS} productos: confirmala y empezá otra."
 MOTIVO_MAXIMO = 255
 
 
@@ -149,6 +152,9 @@ def registrar_venta(usuario, lineas, medio_pago, cliente=None):
             {"cliente": "Elegí el cliente de la cuenta corriente."}, code="sin_cliente"
         )
     cantidades = _agrupar(lineas)
+    if len(cantidades) > LINEAS_MAXIMAS:
+        # El formulario ya frena la línea 51; esta es la barrera del servidor (DEC-173).
+        raise ValidationError(MENSAJE_LINEAS_MAXIMAS, code="lineas_maximas")
     with transaction.atomic():
         caja = _caja_para_vender()
         cliente = bloquear_cliente(cliente.pk) if a_cuenta else None
@@ -240,16 +246,25 @@ def puede_ver_venta(usuario, venta):
 
 
 def ventas_de_la_caja_abierta():
-    """Las ventas de la caja abierta, de la última a la primera (DEC-71)."""
+    """Las ventas de la caja abierta, de la última a la primera (DEC-71); la vista las pagina
+    (L6, DEC-174)."""
     caja = caja_abierta()
     if caja is None:
-        return None, []
+        return None, Venta.objects.none()
     ventas = (
         Venta.objects.filter(caja=caja)
         .select_related("usuario", "medio_pago", "cliente")
         .order_by("-fecha_hora", "-pk")
     )
-    return caja, list(ventas)
+    return caja, ventas
+
+
+def stock_para_venta(ids):
+    """Stock actual de los productos de una venta guardada, para recalcular el aviso al
+    retomarla (L11, DEC-165, DEC-176). `None` si el producto no controla stock (la carne) y
+    sin entrada si no existe. Solo lectura: el servidor nunca toma stock del navegador."""
+    productos = Producto.objects.filter(pk__in=ids).only("pk", "controla_stock", "stock_actual")
+    return {p.pk: (p.stock_actual if p.controla_stock else None) for p in productos}
 
 
 def cajas_para_filtrar():

@@ -12,6 +12,8 @@ from apps.usuarios.models import Rol
 MILESIMA = Decimal("0.001")
 # campo_cantidad: 12 dígitos con 3 decimales. El ingreso no tiene el tope de la venta (DEC-76).
 CANTIDAD_FUERA_DE_RANGO = Decimal("1000000000")
+# Rango de stock_actual, la misma columna: hasta ±999.999.999,999 (L19, DEC-169, DEC-175).
+STOCK_MAXIMO = CANTIDAD_FUERA_DE_RANGO - MILESIMA
 
 # Campos que se cargan desde la pantalla. stock_actual no está: el Administrador lo edita
 # aparte y el servicio lo cambia con mover_stock y un ajuste registrado (DEC-98, RI-17);
@@ -61,12 +63,24 @@ def validar_stock_contado(producto, cantidad):
 def mover_stock(producto, cantidad):
     """Suma `cantidad` al stock (resta si es negativa) si el producto lo controla (RI-07).
 
-    Única forma de cambiar stock_actual (DEC-96). Puede quedar negativo (DEC-46). Se llama
-    dentro de la transacción de la operación que mueve el stock.
+    Única forma de cambiar stock_actual (DEC-96). Puede quedar negativo (DEC-46), pero no fuera
+    del rango de la columna: ese movimiento se rechaza con un mensaje en lugar del error de la
+    base (L19, DEC-169, DEC-175). Se llama dentro de la transacción de la operación que mueve
+    el stock, que así no registra nada.
     """
     if not producto.controla_stock:
         return
-    Producto.objects.filter(pk=producto.pk).update(stock_actual=F("stock_actual") + cantidad)
+    # La condición va en el mismo UPDATE: compara con el stock de ese momento.
+    movidos = Producto.objects.filter(
+        pk=producto.pk,
+        stock_actual__lte=STOCK_MAXIMO - cantidad,
+        stock_actual__gte=-STOCK_MAXIMO - cantidad,
+    ).update(stock_actual=F("stock_actual") + cantidad)
+    if not movidos:
+        raise ValidationError(
+            f"El stock de «{producto.nombre}» quedaría fuera del rango permitido.",
+            code="stock_fuera_de_rango",
+        )
 
 
 def cantidad_de_productos_activos():

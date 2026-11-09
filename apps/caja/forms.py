@@ -91,15 +91,15 @@ class MedioPagoForm(forms.Form):
         label="Ingresa a caja",
         required=False,
         initial=True,
+        # DEC-41.
         help_text=(
-            "Desmarcado solo para la cuenta corriente: la venta queda como deuda del cliente "
-            "(DEC-41)."
+            "Desmarcado solo para la cuenta corriente: la venta queda como deuda del cliente."
         ),
     )
     es_efectivo = forms.BooleanField(
         label="Es efectivo",
         required=False,
-        help_text="Uno solo: el del fondo de cambio y los egresos (DEC-55).",
+        help_text="Uno solo: el del fondo de cambio y los egresos.",  # DEC-55
     )
 
     def __init__(self, *args, es_alta=True, **kwargs):

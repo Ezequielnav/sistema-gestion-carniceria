@@ -40,7 +40,7 @@ AYUDAS = {
     "username": "Con el que ingresa. Letras, números y @ . + - _",
     "telefono": "Opcional.",
     "email": "Opcional.",
-    "puede_crear_productos": "Solo para la cajera (RN-05).",
+    "puede_crear_productos": "Solo para la cajera.",  # RN-05
 }
 
 

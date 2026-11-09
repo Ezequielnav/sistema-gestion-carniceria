@@ -35,6 +35,8 @@ def _ventas(desde, hasta):
 
 
 def _cobros(desde, hasta):
+    # DEC-186: solo los vigentes, por la fecha del cobro; un cobro anulado con su caja ya
+    # cerrada deja de contar acá, aunque el cierre de esa caja conserve el ingreso.
     return PagoCliente.objects.filter(
         estado=EstadoPagoCliente.VIGENTE, fecha_hora__date__range=(desde, hasta)
     )

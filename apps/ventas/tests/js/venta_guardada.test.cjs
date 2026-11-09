@@ -97,3 +97,28 @@ test("si el navegador no deja guardar, no falla", () => {
   assert.doesNotThrow(() => guardada.borrar());
   assert.equal(guardada.leer(), null);
 });
+
+// CP-145 (L11, DEC-165, DEC-176): al retomar, el aviso usa el stock que manda el servidor.
+const { conStockActual } = require(path.join(__dirname, "../../../../static/js/venta_guardada.js"));
+
+test("conStockActual pone el stock del servidor y deja sin aviso lo que no vino", () => {
+  const aceite = { id: 3, nombre: "Aceite", plus: "", precio: "100.00", unidad: "UNIDAD", stock: "10.000" };
+  const lineas = [
+    { producto: aceite, cantidad: "2" },
+    { producto: { ...pan, stock: "5.000" }, cantidad: "1" },
+  ];
+
+  const actualizadas = conStockActual(lineas, { 3: "1.000" });
+
+  assert.equal(actualizadas[0].producto.stock, "1.000");
+  assert.equal(actualizadas[1].producto.stock, null);
+  assert.equal(actualizadas[0].cantidad, "2");
+  // No cambia las líneas originales.
+  assert.equal(aceite.stock, "10.000");
+});
+
+test("conStockActual con {} deja todas las líneas sin aviso mientras llega el stock", () => {
+  const lineas = [{ producto: { ...queso, stock: "2.000" }, cantidad: "0.500" }];
+
+  assert.equal(conStockActual(lineas, {})[0].producto.stock, null);
+});

@@ -8,7 +8,7 @@
     <a href="{% url 'usuarios:usuarios' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a usuarios</a>
     <h2 class="mt-2 text-2xl font-semibold tracking-tight">{% if usuario %}Editar «{{ usuario.username }}»{% else %}Nuevo usuario{% endif %}</h2>
     {% if not usuario %}
-      <p class="mt-1 text-sm text-gray-500">La persona ingresa con este usuario y la contraseña inicial. No entra al panel de administración (DEC-150).</p>
+      <p class="mt-1 text-sm text-gray-500">La persona ingresa con este usuario y la contraseña inicial. No entra al panel de administración.</p>{# DEC-150 #}
     {% endif %}
 
     <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>

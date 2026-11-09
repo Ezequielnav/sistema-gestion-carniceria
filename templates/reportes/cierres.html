@@ -1,9 +1,10 @@
 {% extends "reportes/_reporte.html" %}
+{% load montos %}
 
 {# DEC-144 (DEC-59): cajas cerradas del rango, con enlace a su reporte de cierre. #}
 {% block reporte %}
   {% if reporte.cajas %}
-    <div class="overflow-x-auto">
+    <div class="relative overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
           <tr>
@@ -20,7 +21,7 @@
               <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ caja.fecha|date:"D j/m/Y" }}</td>
               <td class="px-5 py-3">{{ caja.get_turno_display }}</td>
               <td class="px-5 py-3 text-gray-600">{{ caja.cerrada_por_usuario.nombre_completo|default:caja.cerrada_por_usuario.username }} <span class="cifras text-gray-400">{{ caja.cerrada_en|date:"H:i" }}</span></td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap {% if caja.diferencia < 0 %}text-red-700{% elif caja.diferencia > 0 %}text-amber-700{% endif %}">$ {{ caja.diferencia|floatformat:"2g" }}</td>
+              <td class="cifras px-5 py-3 text-right whitespace-nowrap {% if caja.diferencia < 0 %}text-red-700{% elif caja.diferencia > 0 %}text-amber-700{% endif %}">{{ caja.diferencia|monto }}</td>
               <td class="px-5 py-3 text-right whitespace-nowrap">
                 <a href="{% url 'caja:cierre' caja.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ver cierre<span class="sr-only"> del {{ caja.fecha|date:"j/m" }}, turno {{ caja.get_turno_display|lower }}</span></a>
               </td>

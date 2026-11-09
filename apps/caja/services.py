@@ -158,6 +158,34 @@ def _caja_abierta_bloqueada():
     return caja
 
 
+# Reversas de cobros y pagos (DEC-92, DEC-113; con la caja cerrada, DEC-166 y DEC-178)
+
+MENSAJE_SIN_CAJA_PARA_REVERSA = (
+    "La caja de origen ya se cerró y no hay una caja abierta para registrar la reversa: abrí "
+    "la caja para corregirlo."
+)
+
+
+def caja_que_recibe_la_reversa(caja_origen):
+    """Sin bloquear, para mostrarla: la caja de origen si sigue abierta (aunque sea de otro día,
+    DEC-72); si se cerró, la caja abierta, que también puede ser de otro día (DEC-178); o None
+    si no hay ninguna. Una caja cerrada nunca recibe la reversa (RN-03)."""
+    if caja_origen.estado == EstadoCaja.ABIERTA:
+        return caja_origen
+    return caja_abierta()
+
+
+def _caja_para_reversa_bloqueada(caja_origen_id):
+    """La caja de `caja_que_recibe_la_reversa`, bloqueada (DEC-128: primero la caja)."""
+    caja = Caja.objects.select_for_update().get(pk=caja_origen_id)
+    if caja.estado == EstadoCaja.ABIERTA:
+        return caja
+    abierta = Caja.objects.select_for_update().filter(estado=EstadoCaja.ABIERTA).first()
+    if abierta is None:
+        raise ValidationError(MENSAJE_SIN_CAJA_PARA_REVERSA, code="sin_caja_para_reversa")
+    return abierta
+
+
 def anulaciones(caja):
     """Reversas de ventas anuladas de la caja, con su venta (DEC-77)."""
     return list(
@@ -283,20 +311,20 @@ def egreso_de_pago(pago):
     )
 
 
-def registrar_reversa_pago_proveedor(pago, usuario, motivo):
+def caja_para_reversa_de_pago(pago):
+    """La caja que recibe la reversa del pago, bloqueada: la de su egreso si sigue abierta
+    (DEC-92); si se cerró, la caja abierta (DEC-166, DEC-178). Sin ninguna, se rechaza."""
+    return _caja_para_reversa_bloqueada(egreso_de_pago(pago).caja_id)
+
+
+def registrar_reversa_pago_proveedor(pago, usuario, motivo, caja):
     """Ingreso `ANULACION_PAGO` que revierte el egreso de un pago anulado (DEC-92).
 
-    Va en la caja del egreso, que tiene que seguir abierta aunque sea de otro día (como
-    DEC-72). El egreso no se toca; un pago tiene a lo sumo una reversa (la base lo exige).
+    En la caja ya bloqueada con `caja_para_reversa_de_pago`: la del egreso o, si se cerró, la
+    caja abierta (DEC-166). El egreso no se toca; un pago tiene a lo sumo una reversa (la base
+    lo exige).
     """
     egreso = egreso_de_pago(pago)
-    caja = Caja.objects.select_for_update().get(pk=egreso.caja_id)
-    if caja.estado != EstadoCaja.ABIERTA:
-        raise ValidationError(
-            "La caja de este pago ya se cerró: un pago que salió de caja se anula solo con su "
-            "caja abierta.",
-            code="caja_cerrada",
-        )
     return MovimientoCaja.objects.create(
         caja=caja,
         tipo=TipoMovimientoCaja.INGRESO,
@@ -356,25 +384,19 @@ def ingreso_de_cobro(pago):
     )
 
 
-def caja_de_cobro_bloqueada(pago):
-    """La caja donde entró el cobro, bloqueada; tiene que seguir abierta, aunque sea de otro día
-    (DEC-113, mismo criterio que DEC-92 y DEC-72)."""
-    ingreso = ingreso_de_cobro(pago)
-    caja = Caja.objects.select_for_update().get(pk=ingreso.caja_id)
-    if caja.estado != EstadoCaja.ABIERTA:
-        raise ValidationError(
-            "La caja de este cobro ya se cerró: un cobro que entró a caja se anula solo con su "
-            "caja abierta.",
-            code="caja_cerrada",
-        )
-    return caja
+def caja_para_reversa_de_cobro(pago):
+    """La caja que recibe la reversa del cobro, bloqueada: la de su ingreso si sigue abierta,
+    aunque sea de otro día (DEC-113, DEC-72); si se cerró, la caja abierta (DEC-166, DEC-178).
+    Sin ninguna, se rechaza."""
+    return _caja_para_reversa_bloqueada(ingreso_de_cobro(pago).caja_id)
 
 
 def registrar_reversa_cobro(pago, usuario, motivo, caja):
     """Egreso `ANULACION_COBRO` que revierte el ingreso de un cobro anulado (DEC-113).
 
-    En la caja del ingreso, ya bloqueada con `caja_de_cobro_bloqueada`. En efectivo no puede
-    dejar el efectivo esperado por debajo de 0 (DEC-69). El ingreso no se toca.
+    En la caja ya bloqueada con `caja_para_reversa_de_cobro`: la del ingreso o, si se cerró, la
+    caja abierta (DEC-166). En efectivo no puede dejar el efectivo esperado de esa caja por
+    debajo de 0 (DEC-69). El ingreso no se toca.
     """
     ingreso = ingreso_de_cobro(pago)
     medio = ingreso.medio_pago
@@ -507,9 +529,8 @@ def detalle_de_cierre(caja):
 
 # Medios de pago, solo del Administrador y sin borrado (DEC-155, L18).
 
-MEDIO_EFECTIVO_ACTIVO = (
-    "El efectivo no se desactiva: lo usan el fondo de cambio y los egresos (DEC-55)."
-)
+# DEC-55.
+MEDIO_EFECTIVO_ACTIVO = "El efectivo no se desactiva: lo usan el fondo de cambio y los egresos."
 
 
 def puede_gestionar_medios(usuario):

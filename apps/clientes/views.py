@@ -17,17 +17,21 @@ from apps.clientes.forms import (
     CondicionesForm,
     SaldoInicialForm,
 )
+from apps.clientes.models import EstadoPagoCliente
 from apps.clientes.services import (
     CAMPOS_EDITABLES,
     anular_cobro,
     anular_saldo_inicial,
     buscar_para_elegir,
+    caja_de_la_reversa,
     cargar_saldo_inicial,
     cliente_con_cuenta,
     cliente_dado_de_baja,
     cliente_editable,
     cliente_para_elegir,
     cobro_con_detalles,
+    cobros_de_la_caja_del_dia,
+    comprobante_de_cobro,
     con_anulacion,
     con_cuenta,
     crear_cliente,
@@ -198,7 +202,8 @@ def cobrar(request):
             )
             if es_admin:
                 return redirect("clientes:cobro", pk=cobro.pk)
-            return redirect("clientes:cobrar")
+            # DEC-185: a la cajera se le ofrece el comprobante al terminar, como el ticket.
+            return redirect("clientes:comprobante", pk=cobro.pk)
     return render(
         request,
         "clientes/cobrar.html",
@@ -208,18 +213,27 @@ def cobrar(request):
             "caja_del_dia": caja_del_dia,
             "cliente_inicial": _cliente_inicial(request, form),
             "buscar_clientes": reverse("clientes:buscar"),
+            # DEC-185: la cajera reimprime los comprobantes de la caja abierta de hoy.
+            "cobros_de_la_caja": (
+                None if es_admin else cobros_de_la_caja_del_dia(request.user)[:POR_PAGINA]
+            ),
         },
     )
 
 
 def _detalle_cobro(request, cobro, form, status=200):
+    # DEC-166, DEC-178: dónde va la reversa si la caja del ingreso ya se cerró; se calcula una
+    # vez y la usan el aviso y el impedimento.
+    vigente_en_caja = cobro.entra_a_caja and cobro.estado != EstadoPagoCliente.ANULADO
+    caja_reversa = caja_de_la_reversa(cobro) if vigente_en_caja else None
     return render(
         request,
         "clientes/cobro_detalle.html",
         {
             "cobro": cobro,
             "ingreso": ingreso_de_cobro(cobro),
-            "impedimento": impedimento_para_anular_cobro(cobro),
+            "caja_reversa": caja_reversa,
+            "impedimento": impedimento_para_anular_cobro(cobro, caja_reversa),
             "form": form,
         },
         status=status,
@@ -231,6 +245,21 @@ def _detalle_cobro(request, cobro, form, status=200):
 def cobro(request, pk):
     cobro = _buscar(lambda clave: cobro_con_detalles(request.user, clave), pk)
     return _detalle_cobro(request, cobro, AnularCobroForm())
+
+
+@requiere_funcion("Clientes", "Cobrar cuenta corriente")
+@require_GET
+def comprobante(request, pk):
+    """Comprobante sin validez fiscal del cobro, para imprimir (L16, DEC-167, DEC-185)."""
+    try:
+        cobro = comprobante_de_cobro(request.user, pk)
+    except ObjectDoesNotExist as error:
+        raise Http404 from error
+    return render(
+        request,
+        "clientes/comprobante_cobro.html",
+        {"cobro": cobro, "es_admin": puede_gestionar(request.user)},
+    )
 
 
 @requiere_funcion("Clientes")

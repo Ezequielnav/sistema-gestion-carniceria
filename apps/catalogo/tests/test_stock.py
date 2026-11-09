@@ -7,7 +7,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from apps.catalogo.models import Producto, UnidadMedida
-from apps.catalogo.services import mover_stock, validar_cantidad
+from apps.catalogo.services import STOCK_MAXIMO, mover_stock, validar_cantidad
 
 pytestmark = pytest.mark.django_db
 
@@ -94,3 +94,37 @@ def test_solo_catalogo_cambia_el_stock_actual():
     ]
 
     assert otros == []
+
+
+# CP-143: rango de stock_actual (L19, DEC-169, DEC-175)
+
+
+def test_cp143_hasta_el_maximo_de_la_columna_se_mueve(producto):
+    mover_stock(producto, STOCK_MAXIMO)
+
+    producto.refresh_from_db()
+    assert producto.stock_actual == Decimal("999999999.999")
+
+
+def test_cp143_pasar_el_maximo_se_rechaza_con_mensaje_y_no_cambia(producto):
+    mover_stock(producto, STOCK_MAXIMO)
+
+    with pytest.raises(ValidationError) as error:
+        mover_stock(producto, Decimal("0.001"))
+
+    assert error.value.messages == [
+        f"El stock de «{producto.nombre}» quedaría fuera del rango permitido."
+    ]
+    producto.refresh_from_db()
+    assert producto.stock_actual == STOCK_MAXIMO
+
+
+def test_cp143_el_negativo_sigue_permitido_hasta_el_minimo(producto):
+    # DEC-46 se mantiene dentro del rango; por debajo del mínimo, mensaje.
+    mover_stock(producto, -STOCK_MAXIMO)
+
+    with pytest.raises(ValidationError):
+        mover_stock(producto, Decimal("-0.001"))
+
+    producto.refresh_from_db()
+    assert producto.stock_actual == -STOCK_MAXIMO

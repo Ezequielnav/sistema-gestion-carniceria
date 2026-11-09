@@ -18,4 +18,5 @@ urlpatterns = [
     path("cobrar/", views.cobrar, name="cobrar"),
     path("cobros/<int:pk>/", views.cobro, name="cobro"),
     path("cobros/<int:pk>/anular/", views.cobro_anular, name="cobro_anular"),
+    path("cobros/<int:pk>/comprobante/", views.comprobante, name="comprobante"),
 ]

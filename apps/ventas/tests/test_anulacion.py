@@ -458,7 +458,7 @@ def test_cp95_la_cajera_ve_lista_detalle_y_ticket_sin_anular(client, usuario, ve
 
     lista = client.get(LISTA)
     assert lista.status_code == 200
-    assert lista.context["ventas"] == [venta_efectivo]
+    assert list(lista.context["pagina"].object_list) == [venta_efectivo]
     contenido = client.get(detalle).content.decode()
     assert "Ver ticket" in contenido
     assert "Anular venta" not in contenido

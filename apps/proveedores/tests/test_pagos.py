@@ -10,7 +10,8 @@ from unittest import mock
 
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -25,6 +26,7 @@ from apps.caja.models import (
 from apps.caja.services import abrir_caja, cerrar_caja
 from apps.catalogo.models import Producto
 from apps.proveedores import services as servicios
+from apps.proveedores.forms import PagoForm
 from apps.proveedores.models import (
     CondicionPago,
     EstadoIngreso,
@@ -36,8 +38,8 @@ from apps.proveedores.models import (
 from apps.proveedores.services import (
     anular_ingreso,
     anular_pago,
+    deudas_para_pagar,
     impedimento_para_anular_pago,
-    ingresos_con_saldo,
     registrar_ingreso,
     registrar_pago,
     saldo_de_ingreso,
@@ -86,7 +88,7 @@ def test_cp33_cp90_pago_por_transferencia_baja_el_saldo_sin_caja(
     assert saldo_de_ingreso(ingreso_2000) == Decimal("1500")
     assert saldo_de_proveedor(proveedor) == Decimal("1500.00")
     assert not MovimientoCaja.objects.exists()  # tampoco hizo falta caja abierta
-    assert ingresos_con_saldo() == [ingreso_2000]
+    assert list(deudas_para_pagar()) == [ingreso_2000]
 
 
 def test_cp90_cualquier_medio_activo_sin_movimiento_de_caja(admin, ingreso_2000, tarjeta):
@@ -184,7 +186,7 @@ def test_cp34_los_pagos_no_superan_el_total(admin, ingreso_2000, transferencia):
 
     registrar_pago(admin, ingreso_2000, Decimal("500"), transferencia)
     assert saldo_de_ingreso(ingreso_2000) == 0
-    assert ingresos_con_saldo() == []
+    assert not deudas_para_pagar().exists()
 
 
 @pytest.mark.parametrize("monto", ["0", "-1", "10.001"])
@@ -384,7 +386,7 @@ def test_cp102_anular_efectivo_con_su_caja_abierta_deja_una_reversa(
         )
 
 
-def test_cp102_con_la_caja_del_egreso_cerrada_se_rechaza(
+def test_cp102_dec166_con_la_caja_cerrada_y_sin_caja_abierta_se_rechaza(
     admin, usuario, ingreso_2000, efectivo, caja_de_hoy
 ):
     pago = registrar_pago(admin, ingreso_2000, Decimal("800"), efectivo)
@@ -393,7 +395,7 @@ def test_cp102_con_la_caja_del_egreso_cerrada_se_rechaza(
     with pytest.raises(ValidationError) as error:
         anular_pago(admin, pago, "Tarde")
 
-    assert error.value.code == "caja_cerrada"
+    assert error.value.code == "sin_caja_para_reversa"
     pago.refresh_from_db()
     assert pago.estado == EstadoPago.VIGENTE
     assert _movimientos_de_pagos().count() == 1
@@ -584,3 +586,90 @@ def test_cp102_el_cierre_lista_el_pago_y_su_reversa(
         ConceptoMovimientoCaja.ANULACION_PAGO,
     ]
     assert "Anulación de pago a proveedor" in pantalla.content.decode()
+
+
+# CP-144: las opciones del formulario de pago no hacen una consulta por ingreso (L10, DEC-164)
+
+
+def _consultas_al_dibujar_las_opciones():
+    with CaptureQueriesContext(connection) as consultas:
+        opciones = [str(etiqueta) for _, etiqueta in PagoForm().fields["ingreso"].choices]
+    return len(consultas), opciones
+
+
+def test_cp144_las_opciones_del_pago_usan_una_cantidad_fija_de_consultas(
+    admin, proveedor, producto, ingreso_2000, transferencia
+):
+    registrar_pago(admin, ingreso_2000, Decimal("500"), transferencia)
+    con_uno, opciones = _consultas_al_dibujar_las_opciones()
+    for _ in range(3):
+        registrar_ingreso(admin, proveedor, [(producto.pk, Decimal("1"), Decimal("300"))])
+
+    con_cuatro, opciones_cuatro = _consultas_al_dibujar_las_opciones()
+
+    assert con_cuatro == con_uno
+    assert len(opciones_cuatro) == 5  # la opción vacía y los cuatro ingresos
+    assert "saldo $ 1.500,00" in opciones[1]  # el saldo sigue siendo total menos pagos
+
+
+def test_cp144_un_ingreso_pagado_del_todo_no_se_ofrece(admin, ingreso_2000, transferencia):
+    registrar_pago(admin, ingreso_2000, Decimal("2000"), transferencia)
+
+    _, opciones = _consultas_al_dibujar_las_opciones()
+
+    assert len(opciones) == 1 and not deudas_para_pagar().exists()
+
+
+# CP-149: corrección de un pago con la caja cerrada (L15, DEC-166, DEC-178)
+
+
+def test_cp149_la_reversa_del_pago_va_en_la_caja_abierta_y_la_cerrada_no_cambia(
+    admin, usuario, ingreso_2000, efectivo, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("800"), efectivo)
+    cerrar_caja(usuario, {efectivo.pk: Decimal("2200.00")})
+    antes = list(MovimientoCaja.objects.filter(caja=caja_de_hoy).values_list("pk", "monto"))
+    tarde = abrir_caja(usuario, Turno.TARDE, Decimal("0.00"))
+
+    assert impedimento_para_anular_pago(pago) is None
+    anular_pago(admin, pago, "Se pagó dos veces")
+
+    reversa = MovimientoCaja.objects.get(concepto=ConceptoMovimientoCaja.ANULACION_PAGO)
+    assert reversa.caja == tarde and reversa.tipo == TipoMovimientoCaja.INGRESO
+    assert reversa.pago_proveedor == pago and reversa.monto == Decimal("800.00")
+    assert reversa.usuario == admin and reversa.descripcion == "Se pagó dos veces"
+    assert list(MovimientoCaja.objects.filter(caja=caja_de_hoy).values_list("pk", "monto")) == antes
+    pago.refresh_from_db()
+    assert pago.estado == EstadoPago.ANULADO
+    assert saldo_de_ingreso(ingreso_2000) == Decimal("2000")
+
+
+def test_cp149_el_detalle_del_pago_avisa_donde_va_la_reversa(
+    client, admin, usuario, ingreso_2000, efectivo, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("800"), efectivo)
+    cerrar_caja(usuario, {efectivo.pk: Decimal("2200.00")})
+    client.force_login(admin)
+    url = reverse("proveedores:pago", args=[pago.pk])
+
+    sin_caja = client.get(url).content.decode()
+    abrir_caja(usuario, Turno.TARDE, Decimal("0.00"))
+    con_caja = client.get(url).content.decode()
+
+    assert "no hay una caja abierta para registrar la reversa" in sin_caja
+    assert reverse("caja:caja") in sin_caja
+    assert "ya se cerró y no cambia: la reversa va en la caja abierta del" in con_caja
+
+
+def test_cp149_el_cierre_lista_la_reversa_con_la_fecha_del_pago(
+    client, admin, usuario, ingreso_2000, efectivo, caja_de_hoy
+):
+    pago = registrar_pago(admin, ingreso_2000, Decimal("800"), efectivo)
+    cerrar_caja(usuario, {efectivo.pk: Decimal("2200.00")})
+    abrir_caja(usuario, Turno.TARDE, Decimal("0.00"))
+    anular_pago(admin, pago, "Error")
+    client.force_login(usuario)
+
+    html = client.get(reverse("caja:cerrar")).content.decode()
+
+    assert f"pago del {timezone.localtime(pago.fecha_hora):%d/%m/%Y}" in html
