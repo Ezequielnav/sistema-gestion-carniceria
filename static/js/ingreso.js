@@ -148,95 +148,29 @@
     dibujar(producto.id);
   }
 
-  // Búsqueda: filtra al dejar de escribir (como la venta, DEC-97).
-  const buscador = crearBuscadorDiferido();
-  let visibles = [];
-  let marcado = -1;
-
-  function marcar(indice) {
-    const opciones = resultados.querySelectorAll("[role=option]");
-    marcado = indice;
-    opciones.forEach((opcion, i) => {
-      opcion.setAttribute("aria-selected", String(i === marcado));
-      opcion.classList.toggle("bg-gray-100", i === marcado);
-    });
-    if (marcado >= 0) {
-      buscar.setAttribute("aria-activedescendant", opciones[marcado].id);
-      opciones[marcado].scrollIntoView({ block: "nearest" });
-    } else {
-      buscar.removeAttribute("aria-activedescendant");
-    }
-  }
-
-  function cerrarLista() {
-    buscador.descartar();
-    resultados.classList.add("hidden");
-    buscar.setAttribute("aria-expanded", "false");
-    visibles = [];
-    marcar(-1);
-  }
-
-  function aviso(texto) {
-    const li = document.createElement("li");
-    li.className = "px-3 py-2.5 text-sm text-gray-500";
-    li.textContent = texto;
-    return li;
-  }
-
-  function mostrarResultados(lista, hayMas) {
-    resultados.replaceChildren();
-    visibles = lista;
-    if (lista.length === 0) resultados.append(aviso("No se encontraron productos. Podés crearlo con «Crear producto»."));
-    lista.forEach((producto, i) => {
-      const opcion = document.createElement("li");
-      opcion.id = `producto-${producto.id}`;
-      opcion.setAttribute("role", "option");
-      opcion.className = "flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 text-sm hover:bg-gray-50";
-      const nombre = document.createElement("span");
-      nombre.textContent = producto.plus ? `${producto.nombre} (${producto.plus})` : producto.nombre;
-      const precio = document.createElement("span");
-      precio.className = "cifras whitespace-nowrap text-gray-600";
+  // Búsqueda: filtra al dejar de escribir (como la venta, DEC-97). Buscador común con la venta
+  // (L13, DEC-181): en el ingreso, Enter filtra sin agregar el código exacto y la lista no se
+  // abre sin texto.
+  const buscador = crearBuscadorProductos({
+    entrada: buscar,
+    lista: resultados,
+    async consultar(texto) {
+      const url = `${raiz.dataset.buscar}?q=${encodeURIComponent(texto)}&proveedor=${encodeURIComponent(proveedor.value)}`;
+      return (await fetch(url, { headers: { Accept: "application/json" } })).json();
+    },
+    detalle(producto) {
       const unidad = producto.unidad === "KG" ? "/ kg" : "/ u.";
-      precio.textContent = producto.precio ? `Último: $ ${pesos.format(Number(producto.precio))} ${unidad}` : "Sin precio anterior";
-      opcion.append(nombre, precio);
-      opcion.addEventListener("mousedown", (evento) => evento.preventDefault());
-      opcion.addEventListener("click", () => agregar(producto));
-      resultados.append(opcion);
-    });
-    if (hayMas) resultados.append(aviso("Seguí escribiendo para ver más."));
-    resultados.classList.remove("hidden");
-    buscar.setAttribute("aria-expanded", "true");
-    marcar(-1);
-  }
-
-  async function filtrar(texto, turno) {
-    const url = `${raiz.dataset.buscar}?q=${encodeURIComponent(texto)}&proveedor=${encodeURIComponent(proveedor.value)}`;
-    const datos = await (await fetch(url, { headers: { Accept: "application/json" } })).json();
-    if (buscador.vigente(turno)) mostrarResultados(datos.resultados, datos.hay_mas);
-  }
-
-  buscar.addEventListener("input", () => {
-    marcar(-1);
-    if (buscar.value.trim()) buscador.diferir(buscar.value.trim(), filtrar);
-    else cerrarLista();
+      return producto.precio ? `Último: $ ${pesos.format(Number(producto.precio))} ${unidad}` : "Sin precio anterior";
+    },
+    sinResultados: () => {
+      const li = document.createElement("li");
+      li.className = "px-3 py-2.5 text-sm text-gray-500";
+      li.textContent = "No se encontraron productos. Podés crearlo con «Crear producto».";
+      return li;
+    },
+    alElegir: (producto) => agregar(producto),
   });
-  buscar.addEventListener("keydown", (evento) => {
-    const abierta = !resultados.classList.contains("hidden");
-    if (abierta && ["ArrowDown", "ArrowUp", "Home", "End"].includes(evento.key)) {
-      evento.preventDefault();
-      marcar(moverSeleccion(marcado, visibles.length, evento.key));
-    } else if (evento.key === "Escape" && abierta) {
-      evento.preventDefault();
-      cerrarLista();
-    } else if (evento.key === "Enter") {
-      evento.preventDefault();
-      if (abierta && marcado >= 0) agregar(visibles[marcado]);
-      else if (buscar.value.trim()) filtrar(buscar.value.trim(), buscador.inmediato());
-    }
-  });
-  document.addEventListener("click", (evento) => {
-    if (!buscar.contains(evento.target) && !resultados.contains(evento.target)) cerrarLista();
-  });
+  const cerrarLista = buscador.cerrar;
 
   // DEC-90: al cambiar de proveedor, los precios que no se tocaron se completan otra vez.
   proveedor.addEventListener("change", async () => {

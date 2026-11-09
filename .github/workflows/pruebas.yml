@@ -49,6 +49,26 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      # Pruebas de navegador (DEC-160, DEC-180): Chromium de Playwright con sus bibliotecas.
+      - name: Instalar Chromium para Playwright
+        run: playwright install --with-deps chromium
+
+      # Estilos (D-13): el CSS versionado tiene que ser el que sale de compilar las plantillas y
+      # el JavaScript de este commit; si falta recompilar, el paso falla.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Estilos compilados al día
+        run: |
+          npm ci
+          npm run estilos
+          git diff --exit-code -- static/css/estilos.css || {
+            echo "static/css/estilos.css no coincide con lo compilado: correr npm run estilos y commitear el resultado."
+            exit 1
+          }
+
       - name: Formato y análisis (ruff)
         run: |
           ruff check .

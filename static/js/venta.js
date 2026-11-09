@@ -16,6 +16,8 @@
   const errores = document.getElementById("errores");
   const confirmar = document.getElementById("confirmar");
   const csrf = raiz.querySelector("[name=csrfmiddlewaretoken]").value;
+  // DEC-173: tope de líneas (una por producto), el mismo que valida el servidor.
+  const lineasMaximas = Number(raiz.dataset.lineasMaximas) || Infinity;
   const pesos = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // producto id -> { producto, cantidad (texto) }
@@ -161,6 +163,14 @@
   // DEC-52 y DEC-53: por unidad suma 1 (o entra con 1); por kg deja el cursor en el peso.
   function agregar(producto) {
     const existente = lineas.get(producto.id);
+    if (!existente && lineas.size >= lineasMaximas) {
+      // Sumar a una línea existente sigue funcionando; una nueva, no (DEC-173).
+      cerrarLista();
+      buscar.value = "";
+      mostrarErrores([raiz.dataset.mensajeLineasMaximas]);
+      buscar.focus();
+      return;
+    }
     if (producto.unidad === "KG") {
       if (!existente) lineas.set(producto.id, { producto, cantidad: "" });
     } else if (existente) {
@@ -175,46 +185,24 @@
     if (producto.unidad !== "KG") buscar.focus();
   }
 
-  // DEC-97: lista para elegir, navegable con flechas; el foco queda en el buscador.
-  const buscador = crearBuscadorDiferido();
-  let visibles = [];
-  let marcado = -1;
-
-  function marcar(indice) {
-    const opciones = resultados.querySelectorAll("[role=option]");
-    marcado = indice;
-    opciones.forEach((opcion, i) => {
-      opcion.setAttribute("aria-selected", String(i === marcado));
-      opcion.classList.toggle("bg-gray-100", i === marcado);
-    });
-    if (marcado >= 0) {
-      buscar.setAttribute("aria-activedescendant", opciones[marcado].id);
-      opciones[marcado].scrollIntoView({ block: "nearest" });
-    } else {
-      buscar.removeAttribute("aria-activedescendant");
-    }
-  }
-
-  function cerrarLista() {
-    buscador.descartar();
-    resultados.classList.add("hidden");
-    buscar.setAttribute("aria-expanded", "false");
-    visibles = [];
-    marcar(-1);
-  }
-
-  function aviso(texto) {
-    const li = document.createElement("li");
-    li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
-    li.textContent = texto;
-    return li;
-  }
-
-  function mostrarResultados(lista, texto, hayMas) {
-    resultados.replaceChildren();
-    visibles = lista;
-    if (lista.length === 0) {
-      const li = aviso("No se encontraron productos.");
+  // DEC-97: lista para elegir, navegable con flechas; el foco queda en el buscador. Buscador
+  // común con el ingreso (L13, DEC-181), con las opciones propias de la venta.
+  const buscador = crearBuscadorProductos({
+    entrada: buscar,
+    lista: resultados,
+    boton: verProductos,
+    async consultar(texto) {
+      const respuesta = await fetch(`${raiz.dataset.buscar}?q=${encodeURIComponent(texto)}`, {
+        headers: { Accept: "application/json" },
+      });
+      return respuesta.json();
+    },
+    detalle: (producto) =>
+      `$ ${pesos.format(Number(producto.precio))} ${producto.unidad === "KG" ? "/ kg" : "/ u."}`,
+    sinResultados(texto) {
+      const li = document.createElement("li");
+      li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
+      li.textContent = "No se encontraron productos.";
       // A1: solo con permiso de alta (DEC-63).
       if (alta) {
         const crear = document.createElement("button");
@@ -224,101 +212,15 @@
         crear.addEventListener("click", () => abrirAlta(texto));
         li.append(crear);
       }
-      resultados.append(li);
-    }
-    lista.forEach((producto, i) => {
-      const opcion = document.createElement("li");
-      opcion.id = `producto-${producto.id}`;
-      opcion.setAttribute("role", "option");
-      opcion.className = "flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 text-sm hover:bg-gray-50";
-      const nombre = document.createElement("span");
-      nombre.textContent = producto.plus ? `${producto.nombre} (${producto.plus})` : producto.nombre;
-      const precio = document.createElement("span");
-      precio.className = "cifras whitespace-nowrap text-gray-600";
-      precio.textContent = `$ ${pesos.format(Number(producto.precio))} ${producto.unidad === "KG" ? "/ kg" : "/ u."}`;
-      opcion.append(nombre, precio);
-      // mousedown evita que el clic saque el foco del buscador antes de agregar.
-      opcion.addEventListener("mousedown", (evento) => evento.preventDefault());
-      opcion.addEventListener("click", () => agregar(producto));
-      opcion.addEventListener("mousemove", () => marcado !== i && marcar(i));
-      resultados.append(opcion);
-    });
-    if (hayMas) resultados.append(aviso("Seguí escribiendo para ver más."));
-    resultados.classList.remove("hidden");
-    buscar.setAttribute("aria-expanded", "true");
-    marcar(-1);
-  }
-
-  async function consultar(texto) {
-    const respuesta = await fetch(`${raiz.dataset.buscar}?q=${encodeURIComponent(texto)}`, {
-      headers: { Accept: "application/json" },
-    });
-    return respuesta.json();
-  }
-
-  async function buscarTexto(texto) {
-    const turno = buscador.inmediato();
-    const datos = await consultar(texto);
-    if (!buscador.vigente(turno)) return;
-    if (datos.exacto) agregar(datos.exacto);
-    else {
-      buscar.value = texto;
-      mostrarResultados(datos.resultados, texto, datos.hay_mas);
-      buscar.focus();
-    }
-  }
-
-  async function filtrar(texto, turno) {
-    const datos = await consultar(texto);
-    if (buscador.vigente(turno)) mostrarResultados(datos.resultados, texto, datos.hay_mas);
-  }
-
-  function abrirLista(desde) {
-    const texto = textoAlAbrir(desde, buscar.value);
-    if (!texto) buscar.value = "";
-    filtrar(texto, buscador.inmediato());
-  }
-
-  // DEC-97: la lista se abre a pedido (clic en el buscador vacío, flecha abajo o el botón),
-  // nunca sola al volver el foco después de agregar un producto.
-  buscar.addEventListener("click", () => {
-    if (!buscar.value.trim()) abrirLista();
+      return li;
+    },
+    alElegir: (producto) => agregar(producto),
+    exactoConEnter: true,
+    abrirSinTexto: true,
+    marcarConMouse: true,
   });
-  verProductos.addEventListener("click", () => {
-    abrirLista("boton");
-    buscar.focus();
-  });
-  buscar.addEventListener("input", () => {
-    marcar(-1);
-    buscador.diferir(buscar.value.trim(), filtrar);
-  });
-  document.addEventListener("click", (evento) => {
-    if (![buscar, resultados, verProductos].some((parte) => parte.contains(evento.target))) cerrarLista();
-  });
-
-  buscar.addEventListener("keydown", (evento) => {
-    const abierta = !resultados.classList.contains("hidden");
-    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(evento.key) && (abierta || evento.key === "ArrowDown")) {
-      evento.preventDefault();
-      if (abierta) marcar(moverSeleccion(marcado, visibles.length, evento.key));
-      else abrirLista();
-      return;
-    }
-    if (evento.key === "Escape" && abierta) {
-      evento.preventDefault();
-      cerrarLista();
-      return;
-    }
-    if (evento.key !== "Enter") return;
-    evento.preventDefault();
-    // Un producto marcado con las flechas; si no, el plus exacto o la búsqueda (DEC-52).
-    if (abierta && marcado >= 0) {
-      agregar(visibles[marcado]);
-      return;
-    }
-    const texto = buscar.value.trim();
-    if (texto) buscarTexto(texto);
-  });
+  const cerrarLista = buscador.cerrar;
+  const buscarTexto = buscador.buscarTexto;
 
   // CU-01 A1: alta de producto en un diálogo, sin perder la venta en curso (DEC-62).
   const alta = raiz.dataset.producto ? document.getElementById("alta-producto") : null;
@@ -519,12 +421,35 @@
     confirmar.disabled = false;
   });
 
+  // L11 (DEC-176): al retomar, el aviso usa el stock actual del servidor. Mientras llega, o si
+  // no llega, las líneas no avisan.
+  async function refrescarStock() {
+    if (lineas.size === 0) return;
+    try {
+      const ids = [...lineas.keys()].join(",");
+      const respuesta = await fetch(`${raiz.dataset.stock}?ids=${ids}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!respuesta.ok) return;
+      const datos = await respuesta.json();
+      for (const linea of conStockActual([...lineas.values()], datos.stock || {})) {
+        const actual = lineas.get(linea.producto.id);
+        // Solo el stock: la cantidad puede haber cambiado mientras llegaba la respuesta.
+        if (actual) actual.producto = { ...actual.producto, stock: linea.producto.stock };
+      }
+      dibujarTotales();
+    } catch {
+      // Sin respuesta: la venta sigue sin aviso de stock.
+    }
+  }
+
   const previa = guardada.leer();
   if (previa) {
-    for (const linea of previa.lineas) lineas.set(linea.producto.id, linea);
+    for (const linea of conStockActual(previa.lineas, {})) lineas.set(linea.producto.id, linea);
     if ([...medio.options].some((opcion) => opcion.value === previa.medio)) medio.value = previa.medio;
     cliente = previa.cliente;
   }
   dibujar();
   cuentaCorriente.refrescar();
+  if (previa) refrescarStock();
 })();
