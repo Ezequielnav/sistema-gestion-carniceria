@@ -4,54 +4,71 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cierre de caja {{ caja.pk }} | Carnicería Rojano</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
 </head>
-<body class="min-h-screen bg-white print:min-h-0">
-  {# Reporte de cierre (RF-08, DEC-59, DEC-60). La diferencia se calcula, no se guarda (RI-10). #}
+<body class="min-h-screen print:min-h-0">
+  {# Reporte de cierre (RF-08, DEC-59, DEC-60). La diferencia se calcula, no se guarda (RI-10). Blanco y negro al imprimir (S-9). #}
   <main class="mx-auto max-w-xl px-4 py-8 text-sm print:max-w-none print:p-0">
     {% if messages %}
       <ul class="mb-6 space-y-2 print:hidden">
         {% for mensaje in messages %}
-          <li role="status" class="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-xs">{{ mensaje }}</li>
+          <li role="status" class="aviso aviso-exito">{{ mensaje }}</li>
         {% endfor %}
       </ul>
     {% endif %}
 
-    <section aria-label="Reporte de cierre">
+    <section aria-label="Reporte de cierre" class="hoja">
       <header>
-        <h1 class="text-base font-semibold">Carnicería Rojano · Cierre de caja</h1>
-        <p class="mt-1">Turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}</p>
+        <h1><span class="hoja-marca block">Carnicería Rojano</span><span class="sr-only"> · </span><span class="mt-1 block text-base font-semibold">Cierre de caja</span></h1>
+        <p class="mt-3">Turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}</p>
         <p>Abrió: {{ caja.usuario.get_full_name }} · {{ caja.abierta_en|date:"d/m/Y H:i" }}</p>
         <p>Cerró: {{ caja.cerrada_por_usuario.get_full_name }} · {{ caja.cerrada_en|date:"d/m/Y H:i" }}</p>
-        <p>Fondo de cambio: $ {{ caja.monto_inicial|default_if_none:0|floatformat:"2g" }}</p>
+        <p>Fondo de cambio: <span class="monto font-normal">$ {{ caja.monto_inicial|default_if_none:0|floatformat:"2g" }}</span></p>
       </header>
 
-      <table class="mt-4 w-full border-y border-dashed border-gray-400">
-        <thead class="text-left text-xs">
-          <tr>
-            <th scope="col" class="py-1.5 font-medium">Medio de pago</th>
-            <th scope="col" class="py-1.5 text-right font-medium">Esperado</th>
-            <th scope="col" class="py-1.5 text-right font-medium">Contado</th>
-            <th scope="col" class="py-1.5 text-right font-medium">Diferencia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for medio, esperado, contado, diferencia in detalle %}
+      {# H7: en el celular, cada medio en bloque con la diferencia siempre a la vista; en la PC y al imprimir, la tabla. #}
+      <dl class="hoja-separador mt-4 divide-y divide-dashed divide-gray-400 border-y sm:hidden print:hidden">
+        {% for medio, esperado, contado, diferencia in detalle %}
+          <div class="py-2">
+            <dt class="font-semibold">{{ medio }}</dt>
+            <dd class="mt-1 grid grid-cols-3 gap-2 text-xs">
+              <span><span class="block text-tinta-suave">Esperado</span><span class="monto font-normal">$ {{ esperado|floatformat:"2g" }}</span></span>
+              <span><span class="block text-tinta-suave">Contado</span><span class="monto font-normal">$ {{ contado|floatformat:"2g" }}</span></span>
+              <span class="text-right"><span class="block text-tinta-suave">Diferencia</span><span class="monto {% if diferencia %}text-peligro{% else %}font-normal{% endif %}">{{ diferencia|monto }}</span></span>
+            </dd>
+          </div>
+        {% endfor %}
+      </dl>
+      <div class="recuadro-tabla mt-4 hidden sm:block print:block">
+        <table class="hoja-separador w-full border-y">
+          <thead class="text-left text-xs">
             <tr>
-              <td class="py-1">{{ medio }}</td>
-              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
-              <td class="cifras py-1 text-right whitespace-nowrap">$ {{ contado|floatformat:"2g" }}</td>
-              <td class="cifras py-1 text-right whitespace-nowrap {% if diferencia %}font-semibold text-red-700{% endif %}">{{ diferencia|monto }}</td>
+              <th scope="col" class="py-1.5 pr-2 font-semibold">Medio de pago</th>
+              <th scope="col" class="py-1.5 pl-2 text-right font-semibold">Esperado</th>
+              <th scope="col" class="py-1.5 pl-2 text-right font-semibold">Contado</th>
+              <th scope="col" class="py-1.5 pl-2 text-right font-semibold">Diferencia</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for medio, esperado, contado, diferencia in detalle %}
+              <tr>
+                <td class="py-1 pr-2">{{ medio }}</td>
+                <td class="monto py-1 pl-2 text-right font-normal whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
+                <td class="monto py-1 pl-2 text-right font-normal whitespace-nowrap">$ {{ contado|floatformat:"2g" }}</td>
+                {# La diferencia lleva su signo (DF-07); en pantalla, en rojo; impresa, en negrita. #}
+                <td class="monto py-1 pl-2 text-right whitespace-nowrap {% if diferencia %}text-peligro print:text-black{% else %}font-normal{% endif %}">{{ diferencia|monto }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
       {% if egresos %}
         <h2 class="mt-4 font-semibold">Gastos y retiros en efectivo</h2>
         <ul class="mt-1 space-y-0.5">
           {% for egreso in egresos %}
-            <li class="flex justify-between gap-4"><span>{{ egreso.fecha_hora|date:"H:i" }} · {{ egreso.descripcion }}</span><span class="cifras">$ {{ egreso.monto|floatformat:"2g" }}</span></li>
+            <li class="flex justify-between gap-4"><span>{{ egreso.fecha_hora|date:"H:i" }} · {{ egreso.descripcion }}</span><span class="monto font-normal whitespace-nowrap">$ {{ egreso.monto|floatformat:"2g" }}</span></li>
           {% endfor %}
         </ul>
       {% endif %}
@@ -61,7 +78,7 @@
         <h2 class="mt-4 font-semibold">Pagos a proveedores</h2>
         <ul class="mt-1 space-y-0.5">
           {% for movimiento in pagos_proveedores %}
-            <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}{% if movimiento.concepto == "ANULACION_PAGO" %} · pago del {{ movimiento.pago_proveedor.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+            <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}{% if movimiento.concepto == "ANULACION_PAGO" %} · pago del {{ movimiento.pago_proveedor.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="whitespace-nowrap"><span class="monto font-normal">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }}</span> {{ movimiento.medio_pago }}</span></li>
           {% endfor %}
         </ul>
       {% endif %}
@@ -70,7 +87,7 @@
         <h2 class="mt-4 font-semibold">Cobros de cuenta corriente</h2>
         <ul class="mt-1 space-y-0.5">
           {% for movimiento in cobros %}
-            <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}{% if movimiento.concepto == "ANULACION_COBRO" %} · cobro del {{ movimiento.pago_cliente.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+            <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}{% if movimiento.concepto == "ANULACION_COBRO" %} · cobro del {{ movimiento.pago_cliente.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="whitespace-nowrap"><span class="monto font-normal">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }}</span> {{ movimiento.medio_pago }}</span></li>
           {% endfor %}
         </ul>
       {% endif %}
@@ -79,20 +96,20 @@
         <h2 class="mt-4 font-semibold">Ventas anuladas</h2>
         <ul class="mt-1 space-y-0.5">
           {% for anulacion in anulaciones %}
-            <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="cifras whitespace-nowrap">$ {{ anulacion.monto|floatformat:"2g" }} {{ anulacion.medio_pago }}</span></li>
+            <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="whitespace-nowrap"><span class="monto font-normal">$ {{ anulacion.monto|floatformat:"2g" }}</span> {{ anulacion.medio_pago }}</span></li>
           {% endfor %}
         </ul>
       {% endif %}
 
-      <p class="mt-4"><span class="font-semibold">Motivo de la diferencia:</span> {{ caja.observacion_cierre|default:"Sin diferencias." }}</p>
+      <p class="hoja-separador mt-4 border-t pt-3"><span class="font-semibold">Motivo de la diferencia:</span> {{ caja.observacion_cierre|default:"Sin diferencias." }}</p>
     </section>
 
-    <div class="mt-8 flex gap-3 print:hidden">
-      <button type="button" onclick="window.print()" class="flex-1 rounded-md border border-gray-300 px-4 py-2.5 font-medium hover:bg-gray-50">Imprimir</button>
+    <div class="mt-6 flex gap-3 print:hidden">
+      <button type="button" onclick="window.print()" class="boton boton-grande boton-secundario flex-1">Imprimir</button>
       {% if es_cajera %}
-        <a href="{% url 'caja:caja' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Ir a Caja</a>
+        <a href="{% url 'caja:caja' %}" class="boton boton-grande boton-principal flex-1">Ir a Caja</a>
       {% else %}
-        <a href="{% url 'inicio' %}" class="flex-1 rounded-md bg-red-600 px-4 py-2.5 text-center font-semibold text-white shadow-xs hover:bg-red-700">Volver al inicio</a>
+        <a href="{% url 'inicio' %}" class="boton boton-grande boton-principal flex-1">Volver al inicio</a>
       {% endif %}
     </div>
   </main>

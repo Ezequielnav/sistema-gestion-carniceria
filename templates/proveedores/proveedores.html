@@ -6,11 +6,11 @@
 {% block contenido %}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight">Proveedores</h2>
-      <p class="mt-1 text-sm text-gray-500">Buscá por nombre, teléfono o email.</p>
+      <h2 class="titulo-pantalla">Proveedores</h2>
+      <p class="bajada">Buscá por nombre, teléfono o email.</p>
     </div>
     <a href="{% url 'proveedores:nuevo' %}"
-       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+       class="boton boton-principal">
       Nuevo proveedor
     </a>
   </div>
@@ -20,48 +20,48 @@
     <label for="buscar" class="sr-only">Buscar proveedor</label>
     <input id="buscar" type="search" name="q" value="{{ texto }}" placeholder="Nombre, teléfono o email" autofocus
            class="campo sm:max-w-sm">
-    <label class="flex items-center gap-2 text-sm text-gray-700">
+    <label class="flex items-center gap-2 text-sm text-tinta">
       <input type="checkbox" name="inactivos" value="1" class="casilla" {% if incluir_inactivos %}checked{% endif %}>
       Incluir dados de baja
     </label>
-    <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Buscar</button>
+    <button type="submit" class="boton boton-secundario">Buscar</button>
   </form>
 
-  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de proveedores">
+  <section class="recuadro mt-6" aria-label="Listado de proveedores">
     {% if pagina.object_list %}
-      <div class="relative overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <div class="recuadro-tabla">
+        <table class="tabla tabla-compacta">
+          <thead>
             <tr>
-              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Proveedor</th>
-              <th scope="col" class="px-5 py-3 font-medium">Teléfono</th>
-              <th scope="col" class="px-5 py-3 font-medium">Email</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium">Saldo</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+              <th scope="col" class="min-w-48">Proveedor</th>
+              <th scope="col">Teléfono</th>
+              <th scope="col">Email</th>
+              <th scope="col" class="text-right">Saldo</th>
+              <th scope="col" class="text-right"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for proveedor in pagina %}
-              <tr class="{% if not proveedor.activo %}bg-gray-50 text-gray-500{% endif %}">
-                <td class="px-5 py-3">
+              <tr class="{% if not proveedor.activo %}bg-papel text-tinta-suave{% endif %}">
+                <td>
                   <span class="font-medium">{{ proveedor.nombre }}</span>
                   {% if not proveedor.activo %}
-                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Dado de baja</span>
+                    <span class="insignia insignia-neutra ml-2">Dado de baja</span>
                   {% endif %}
                 </td>
-                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ proveedor.telefono|default:"—" }}</td>
-                <td class="px-5 py-3 text-gray-600">{{ proveedor.email|default:"—" }}</td>
+                <td class="cifras whitespace-nowrap text-tinta-suave">{{ proveedor.telefono|default:"—" }}</td>
+                <td class="text-tinta-suave">{{ proveedor.email|default:"—" }}</td>
                 {# Ingresos vigentes menos pagos (DEC-81); no se guarda. #}
-                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ proveedor.saldo|floatformat:"2g" }}</td>
-                <td class="px-5 py-3 text-right whitespace-nowrap">
+                <td class="monto text-right whitespace-nowrap">$ {{ proveedor.saldo|floatformat:"2g" }}</td>
+                <td class="text-right whitespace-nowrap">
                   {% if proveedor.activo %}
-                    <a href="{% url 'proveedores:editar' proveedor.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ proveedor }}»</span></a>
-                    <a href="{% url 'proveedores:baja' proveedor.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja<span class="sr-only"> «{{ proveedor }}»</span></a>
+                    <a href="{% url 'proveedores:editar' proveedor.pk %}" class="boton-discreto">Editar<span class="sr-only"> «{{ proveedor }}»</span></a>
+                    <a href="{% url 'proveedores:baja' proveedor.pk %}" class="boton-discreto-peligro">Dar de baja<span class="sr-only"> «{{ proveedor }}»</span></a>
                   {% else %}
                     {# DEC-87: reactivar, como productos (DEC-85). #}
                     <form method="post" action="{% url 'proveedores:reactivar' proveedor.pk %}" class="inline">
                       {% csrf_token %}
-                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Reactivar<span class="sr-only"> «{{ proveedor }}»</span></button>
+                      <button type="submit" class="boton-discreto">Reactivar<span class="sr-only"> «{{ proveedor }}»</span></button>
                     </form>
                   {% endif %}
                 </td>
@@ -72,23 +72,20 @@
       </div>
 
       {% if pagina.has_other_pages %}
-        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        <nav class="paginacion" aria-label="Páginas">
+          <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?q={{ texto|urlencode }}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>
             {% endif %}
           </span>
         </nav>
       {% endif %}
     {% else %}
       <div class="px-5 py-12 text-center">
-        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-          {% include "comun/_icono.html" with nombre="camion" %}
-        </span>
         <p class="mt-3 text-sm font-medium">{% if texto %}No hay proveedores que coincidan con «{{ texto }}»{% else %}Todavía no hay proveedores{% endif %}</p>
       </div>
     {% endif %}

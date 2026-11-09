@@ -2,10 +2,10 @@
 <form method="get" class="mt-6 grid gap-3 sm:grid-cols-[repeat(3,minmax(0,12rem))_auto] sm:items-end" novalidate>
   {% for campo in form %}
     <div>
-      <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+      <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
       {{ campo }}
-      {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+      {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
     </div>
   {% endfor %}
-  <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Filtrar</button>
+  <button type="submit" class="boton boton-secundario min-h-11 justify-self-start">Filtrar</button>
 </form>

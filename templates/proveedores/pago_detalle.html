@@ -5,54 +5,54 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <a href="{% url 'proveedores:pagos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a pagos</a>
+    <a href="{% url 'proveedores:pagos' %}" class="volver">← Volver a pagos</a>
     <div class="mt-2 flex flex-wrap items-center gap-3">
-      <h2 class="text-2xl font-semibold tracking-tight">Pago N.º {{ pago.pk }}</h2>
+      <h2 class="titulo-pantalla">Pago N.º {{ pago.pk }}</h2>
       {% if pago.estado == "ANULADO" %}
-        <span class="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700">Anulado</span>
+        <span class="insignia insignia-neutra">Anulado</span>
       {% endif %}
     </div>
 
-    <dl class="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-white p-6 text-sm shadow-xs sm:grid-cols-2">
-      <div><dt class="text-gray-500">Proveedor</dt><dd class="font-medium">{{ pago.proveedor }}</dd></div>
-      <div><dt class="text-gray-500">Ingreso</dt><dd>{% if pago.ingreso %}<a href="{% url 'proveedores:ingreso' pago.ingreso_id %}" class="underline underline-offset-2">N.º {{ pago.ingreso_id }}</a>{% else %}—{% endif %}</dd></div>
-      <div><dt class="text-gray-500">Monto</dt><dd class="cifras font-medium">$ {{ pago.monto|floatformat:"2g" }}</dd></div>
-      <div><dt class="text-gray-500">Medio</dt><dd>{{ pago.medio_pago }}{% if egreso %} · caja {{ egreso.caja.fecha|date:"d/m/Y" }} {{ egreso.caja.get_turno_display|lower }} ({{ egreso.caja.get_estado_display|lower }}){% else %} · sin movimiento de caja{% endif %}</dd></div>
-      <div><dt class="text-gray-500">Fecha</dt><dd class="cifras">{{ pago.fecha_hora|date:"d/m/Y H:i" }}</dd></div>
-      <div><dt class="text-gray-500">Registró</dt><dd>{{ pago.usuario.nombre_completo }}</dd></div>
+    <dl class="recuadro mt-6 grid gap-4 p-6 text-sm sm:grid-cols-2">
+      <div><dt class="text-tinta-suave">Proveedor</dt><dd class="font-medium">{{ pago.proveedor }}</dd></div>
+      <div><dt class="text-tinta-suave">Ingreso</dt><dd>{% if pago.ingreso %}<a href="{% url 'proveedores:ingreso' pago.ingreso_id %}" class="underline underline-offset-2">N.º {{ pago.ingreso_id }}</a>{% else %}—{% endif %}</dd></div>
+      <div><dt class="text-tinta-suave">Monto</dt><dd class="monto">$ {{ pago.monto|floatformat:"2g" }}</dd></div>
+      <div><dt class="text-tinta-suave">Medio</dt><dd>{{ pago.medio_pago }}{% if egreso %} · caja {{ egreso.caja.fecha|date:"d/m/Y" }} {{ egreso.caja.get_turno_display|lower }} ({{ egreso.caja.get_estado_display|lower }}){% else %} · sin movimiento de caja{% endif %}</dd></div>
+      <div><dt class="text-tinta-suave">Fecha</dt><dd class="cifras">{{ pago.fecha_hora|date:"d/m/Y H:i" }}</dd></div>
+      <div><dt class="text-tinta-suave">Registró</dt><dd>{{ pago.usuario.nombre_completo }}</dd></div>
       {% if pago.estado == "ANULADO" %}
-        <div><dt class="text-gray-500">Anulado</dt><dd class="cifras">{{ pago.anulado_en|date:"d/m/Y H:i" }} por {{ pago.anulado_por_usuario.nombre_completo }}</dd></div>
-        <div><dt class="text-gray-500">Motivo de la anulación</dt><dd>{{ pago.motivo_anulacion }}</dd></div>
+        <div><dt class="text-tinta-suave">Anulado</dt><dd class="cifras">{{ pago.anulado_en|date:"d/m/Y H:i" }} por {{ pago.anulado_por_usuario.nombre_completo }}</dd></div>
+        <div><dt class="text-tinta-suave">Motivo de la anulación</dt><dd>{{ pago.motivo_anulacion }}</dd></div>
       {% endif %}
     </dl>
 
     {% if pago.estado != "ANULADO" %}
-      <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-labelledby="titulo-anular">
+      <section class="recuadro mt-6 p-6" aria-labelledby="titulo-anular">
         <h3 id="titulo-anular" class="text-base font-semibold">Anular pago</h3>
         {% if impedimento %}
-          <p class="mt-2 text-sm text-gray-600">{{ impedimento }}</p>
-          {% if caja_reversa is None and egreso %}<a href="{% url 'caja:caja' %}" class="mt-2 inline-block text-sm font-semibold text-red-700 underline">Ir a Caja</a>{% endif %}
+          <p class="mt-2 text-sm text-tinta-suave">{{ impedimento }}</p>
+          {% if caja_reversa is None and egreso %}<a href="{% url 'caja:caja' %}" class="boton boton-secundario mt-3">Ir a Caja</a>{% endif %}
         {% else %}
-          <p class="mt-1 text-sm text-gray-600">El pago no se borra: queda anulado y el saldo del ingreso vuelve a subir.{% if egreso %} El efectivo vuelve a la caja con un ingreso de anulación; el egreso original no se toca.{% endif %}</p>
+          <p class="mt-1 text-sm text-tinta-suave">El pago no se borra: queda anulado y el saldo del ingreso vuelve a subir.{% if egreso %} El efectivo vuelve a la caja con un ingreso de anulación; el egreso original no se toca.{% endif %}</p>
           {% if egreso and caja_reversa and caja_reversa.pk != egreso.caja_id %}
             {# DEC-166, DEC-178: la caja cerrada no se toca; la reversa va en la caja abierta. #}
-            <p role="status" class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">La caja de este pago ya se cerró y no cambia: la reversa va en la caja abierta del {{ caja_reversa.fecha|date:"d/m/Y" }}, turno {{ caja_reversa.get_turno_display|lower }}.</p>
+            <p role="status" class="aviso aviso-alerta mt-3">La caja de este pago ya se cerró y no cambia: la reversa va en la caja abierta del {{ caja_reversa.fecha|date:"d/m/Y" }}, turno {{ caja_reversa.get_turno_display|lower }}.</p>
           {% endif %}
           <form method="post" action="{% url 'proveedores:pago_anular' pago.pk %}" class="mt-4 space-y-4" novalidate
                 onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular el pago N.º {{ pago.pk }}? No se puede deshacer.')">
             {% csrf_token %}
             {% if form.non_field_errors %}
-              <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+              <div role="alert" class="aviso aviso-error">
                 {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
               </div>
             {% endif %}
             <div>
-              <label for="{{ form.motivo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.motivo.label }}</label>
+              <label for="{{ form.motivo.id_for_label }}" class="etiqueta">{{ form.motivo.label }}</label>
               {{ form.motivo }}
-              {% for error in form.motivo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+              {% for error in form.motivo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
             </div>
             <div class="flex justify-end">
-              <button type="submit" class="rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">Anular pago</button>
+              <button type="submit" class="boton boton-peligro">Anular pago</button>
             </div>
           </form>
         {% endif %}

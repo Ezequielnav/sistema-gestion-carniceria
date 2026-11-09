@@ -1,0 +1,2 @@
+{% load static %}{# S-4 (DEC-190): el logo provisorio si su archivo está en static/img/logo/; si no, la marca tipográfica. #}
+{% if logo %}<img src="{% static logo %}" alt="Carnicería Rojano" class="{{ clase_logo }}">{% else %}<span class="block leading-none"><span class="block font-medium tracking-wide {{ clase_chica }}">Carnicería</span> <span class="mt-0.5 block font-serif font-semibold {{ clase_grande }}">Rojano</span></span>{% endif %}

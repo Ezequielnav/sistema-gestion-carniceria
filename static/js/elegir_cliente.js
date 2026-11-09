@@ -30,7 +30,7 @@
       marcado = indice;
       opciones.forEach((opcion, i) => {
         opcion.setAttribute("aria-selected", String(i === marcado));
-        opcion.classList.toggle("bg-gray-100", i === marcado);
+        opcion.classList.toggle("opcion-marcada", i === marcado);
       });
       if (marcado >= 0) {
         entrada.setAttribute("aria-activedescendant", opciones[marcado].id);
@@ -50,7 +50,7 @@
 
     function aviso(texto) {
       const li = document.createElement("li");
-      li.className = "px-3 py-2 text-sm text-gray-500";
+      li.className = "opcion-vacia";
       li.textContent = texto;
       return li;
     }
@@ -69,18 +69,18 @@
         const opcion = document.createElement("li");
         opcion.id = `${lista.id}-${cliente.id}`;
         opcion.setAttribute("role", "option");
-        opcion.className = "flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-gray-50";
+        opcion.className = "opcion";
         const nombre = document.createElement("span");
-        nombre.className = "font-medium";
+        nombre.className = "font-semibold";
         nombre.textContent = cliente.nombre;
         if (!cliente.activo) {
           const baja = document.createElement("span");
-          baja.className = "ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600";
+          baja.className = "insignia insignia-neutra ml-2";
           baja.textContent = "Dado de baja";
           nombre.append(baja);
         }
         const telefono = document.createElement("span");
-        telefono.className = "cifras whitespace-nowrap text-gray-500";
+        telefono.className = "cifras whitespace-nowrap text-tinta-suave";
         telefono.textContent = cliente.telefono;
         opcion.append(nombre, telefono);
         // mousedown evita que el clic saque el foco del buscador antes de elegir.

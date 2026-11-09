@@ -7,24 +7,24 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    {% if es_admin %}<a href="{% url 'clientes:clientes' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a clientes</a>{% endif %}
-    <h2 class="mt-2 text-2xl font-semibold tracking-tight">Cobrar cuenta corriente</h2>
+    {% if es_admin %}<a href="{% url 'clientes:clientes' %}" class="volver">← Volver a clientes</a>{% endif %}
+    <h2 class="titulo-pantalla mt-2">Cobrar cuenta corriente</h2>
 
     {% if not es_admin and not caja_del_dia %}
       {# DEC-110: la cajera cobra en la caja abierta de hoy (CU-04 A2). #}
-      <div role="alert" class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+      <div role="alert" class="aviso aviso-alerta mt-6 p-5 text-base">
         <p>No hay una caja abierta de hoy. Abrí la caja para cobrar.</p>
-        <a href="{% url 'caja:caja' %}" class="mt-3 inline-block font-semibold underline">Ir a Caja</a>
+        <a href="{% url 'caja:caja' %}" class="boton boton-grande boton-principal mt-4">Ir a Caja</a>
       </div>
     {% else %}
-      <form id="cobro" method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate
+      <form id="cobro" method="post" class="recuadro mt-6 space-y-5 p-6" novalidate
             data-clientes="{{ buscar_clientes }}">
         {% csrf_token %}
         {{ form.cliente }}
         {{ cliente_inicial|json_script:"cliente-inicial" }}
 
         {% if form.non_field_errors %}
-          <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          <div role="alert" class="aviso aviso-error">
             {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
         {% endif %}
@@ -32,34 +32,34 @@
         {# SC-01: incluidos los dados de baja que todavía deben (DEC-116). #}
         <div>
           <div id="elegir-cliente">
-            <label for="buscar-cliente" class="mb-1.5 block text-sm font-medium text-gray-700">Cliente</label>
+            <label for="buscar-cliente" class="etiqueta">Cliente</label>
             <input id="buscar-cliente" type="search" autocomplete="off" class="campo" placeholder="Nombre o teléfono">
-            <p class="mt-1.5 text-xs text-gray-500">Escribí para buscar; con las flechas y Enter se elige.</p>
-            <ul id="clientes" class="mt-2 hidden max-h-60 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200" aria-label="Clientes"></ul>
+            <p class="ayuda">Escribí para buscar; con las flechas y Enter se elige.</p>
+            <ul id="clientes" class="lista-opciones mt-2 hidden max-h-60" aria-label="Clientes"></ul>
           </div>
-          <div id="cliente-elegido" class="hidden rounded-md border border-gray-200 bg-gray-50 p-4 text-sm">
+          <div id="cliente-elegido" class="nota hidden p-4">
             <div class="flex items-start justify-between gap-2">
               <div>
-                <p class="text-xs text-gray-500">Cliente</p>
-                <p class="font-medium"><span id="cliente-nombre"></span> <span id="cliente-baja" class="ml-1 hidden rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Dado de baja</span></p>
+                <p class="text-xs text-tinta-suave">Cliente</p>
+                <p class="text-base font-semibold"><span id="cliente-nombre"></span> <span id="cliente-baja" class="insignia insignia-neutra ml-1 hidden">Dado de baja</span></p>
               </div>
-              <button id="cambiar-cliente" type="button" class="rounded-md px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50">Cambiar</button>
+              <button id="cambiar-cliente" type="button" class="boton-discreto">Cambiar</button>
             </div>
             {# DEC-111: el saldo es el máximo a cobrar; no hay saldo a favor. #}
-            <p class="mt-2 flex justify-between"><span class="text-gray-500">Saldo (máximo a cobrar)</span><span id="cliente-saldo" class="cifras font-semibold"></span></p>
-            <p id="cliente-vencida" role="status" class="mt-2 hidden rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900"></p>
+            <p class="mt-3 flex items-baseline justify-between gap-4"><span class="text-tinta-suave">Saldo (máximo a cobrar)</span><span id="cliente-saldo" class="cifra-grande text-[1.75rem]"></span></p>
+            <p id="cliente-vencida" role="status" class="aviso aviso-alerta mt-2 hidden px-3 py-2"></p>
           </div>
-          {% for error in form.cliente.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+          {% for error in form.cliente.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
         </div>
 
         <div class="grid gap-5 sm:grid-cols-2">
           {% for campo in form %}
             {% if campo.name == "monto" or campo.name == "medio_pago" %}
               <div>
-                <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+                <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
                 {{ campo }}
-                {% if campo.name == "medio_pago" %}<p class="mt-1.5 text-xs text-gray-500">Una deuda no se paga con cuenta corriente.</p>{% endif %}
-                {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+                {% if campo.name == "medio_pago" %}<p class="ayuda">Una deuda no se paga con cuenta corriente.</p>{% endif %}
+                {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
               </div>
             {% endif %}
           {% endfor %}
@@ -69,34 +69,34 @@
           {# S-6 (DEC-125) y DEC-110: criterio de DEC-106 para el Administrador. #}
           {% if caja_del_dia %}
             <div>
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700">{{ form.entra_a_caja }} {{ form.entra_a_caja.label }}</label>
-              <p class="mt-1.5 text-xs text-gray-500">Desmarcala si el dinero no entra al mostrador (por ejemplo, una transferencia que recibiste fuera del turno): el cobro baja el saldo sin movimiento de caja.</p>
+              <label class="flex items-center gap-2 text-sm font-semibold">{{ form.entra_a_caja }} {{ form.entra_a_caja.label }}</label>
+              <p class="ayuda">Desmarcala si el dinero no entra al mostrador (por ejemplo, una transferencia que recibiste fuera del turno): el cobro baja el saldo sin movimiento de caja.</p>
             </div>
           {% else %}
-            <p class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">No hay una caja abierta de hoy: el cobro se registra sin movimiento de caja.</p>
+            <p class="nota">No hay una caja abierta de hoy: el cobro se registra sin movimiento de caja.</p>
           {% endif %}
         {% endif %}
 
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <a href="{% if es_admin %}{% url 'clientes:clientes' %}{% else %}{% url 'inicio' %}{% endif %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
-          <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Registrar cobro</button>
+          <a href="{% if es_admin %}{% url 'clientes:clientes' %}{% else %}{% url 'inicio' %}{% endif %}" class="boton boton-grande boton-secundario">Cancelar</a>
+          <button type="submit" class="boton boton-grande boton-principal">Registrar cobro</button>
         </div>
       </form>
 
       {% if cobros_de_la_caja %}
         {# DEC-185: la cajera reimprime los comprobantes de la caja abierta de hoy. #}
-        <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-labelledby="titulo-cobros-caja">
-          <div class="border-b border-gray-200 px-5 py-3">
-            <h3 id="titulo-cobros-caja" class="font-semibold">Cobros de esta caja</h3>
-            <p class="mt-0.5 text-xs text-gray-500">Se muestran los últimos 25.</p>
+        <section class="recuadro mt-6" aria-labelledby="titulo-cobros-caja">
+          <div class="recuadro-encabezado">
+            <h3 id="titulo-cobros-caja" class="titulo-recuadro">Cobros de esta caja</h3>
+            <p class="mt-0.5 text-sm text-tinta-suave">Se muestran los últimos 25.</p>
           </div>
-          <ul class="divide-y divide-gray-100 text-sm">
+          <ul class="divide-y divide-gray-100">
             {% for cobro in cobros_de_la_caja %}
-              <li class="flex items-center justify-between gap-4 px-5 py-3">
-                <span><span class="cifras">{{ cobro.fecha_hora|date:"H:i" }}</span> · N.º {{ cobro.pk }} · {{ cobro.cliente.nombre }}{% if cobro.estado == "ANULADO" %} <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>{% endif %}</span>
+              <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3">
+                <span><span class="cifras">{{ cobro.fecha_hora|date:"H:i" }}</span> · N.º {{ cobro.pk }} · {{ cobro.cliente.nombre }}{% if cobro.estado == "ANULADO" %} <span class="insignia insignia-peligro">Anulado</span>{% endif %}</span>
                 <span class="flex items-center gap-3 whitespace-nowrap">
-                  <span class="cifras">$ {{ cobro.monto|floatformat:"2g" }}</span>
-                  <a href="{% url 'clientes:comprobante' cobro.pk %}" class="font-medium text-red-700 hover:underline">Comprobante<span class="sr-only"> del cobro N.º {{ cobro.pk }}</span></a>
+                  <span class="monto">$ {{ cobro.monto|floatformat:"2g" }}</span>
+                  <a href="{% url 'clientes:comprobante' cobro.pk %}" class="boton-discreto">Comprobante<span class="sr-only"> del cobro N.º {{ cobro.pk }}</span></a>
                 </span>
               </li>
             {% endfor %}

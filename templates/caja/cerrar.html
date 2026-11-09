@@ -5,88 +5,91 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <a href="{% url 'caja:caja' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a Caja</a>
-    <h2 class="mt-2 text-2xl font-semibold tracking-tight">Cerrar caja</h2>
-    <p class="mt-1 text-sm text-gray-500">
+    <a href="{% url 'caja:caja' %}" class="volver">← Volver a Caja</a>
+    <h2 class="titulo-pantalla mt-2">Cerrar caja</h2>
+    <p class="bajada">
       Turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}. Contá lo que hay de cada medio de pago y cargalo.
     </p>
 
-    <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>
+    <form method="post" class="recuadro mt-6 space-y-5 p-6" novalidate>
       {% csrf_token %}
 
       {% if form.non_field_errors %}
-        <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+        <div role="alert" class="aviso aviso-error">
           {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
 
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
-          <tr>
-            <th scope="col" class="py-2 font-medium">Medio de pago</th>
-            <th scope="col" class="py-2 text-right font-medium">Esperado</th>
-            <th scope="col" class="py-2 pl-4 font-medium">Contado</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for medio, esperado, campo in form.filas %}
+      {# Lo que se cuenta es el dato principal (S-6): lo esperado al lado, como referencia. #}
+      <div class="recuadro-tabla">
+        <table class="tabla">
+          <thead>
             <tr>
-              <td class="py-3 font-medium">{{ medio }}{% if medio.es_efectivo %}<span class="block text-xs font-normal text-gray-500">Incluye el fondo de cambio</span>{% endif %}</td>
-              <td class="cifras py-3 text-right whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
-              <td class="py-3 pl-4">
-                <label for="{{ campo.id_for_label }}" class="sr-only">{{ campo.label }}</label>
-                {{ campo }}
-                {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
-              </td>
+              <th scope="col" class="pl-0 sm:pl-0">Medio de pago</th>
+              <th scope="col" class="text-right">Esperado</th>
+              <th scope="col" class="pr-0 sm:pr-0">Contado</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for medio, esperado, campo in form.filas %}
+              <tr>
+                <td class="pl-0 font-semibold sm:pl-0">{{ medio }}{% if medio.es_efectivo %}<span class="block text-xs font-normal text-tinta-suave">Incluye el fondo de cambio</span>{% endif %}</td>
+                <td class="monto text-right font-normal whitespace-nowrap">$ {{ esperado|floatformat:"2g" }}</td>
+                <td class="min-w-36 pr-0 sm:pr-0">
+                  <label for="{{ campo.id_for_label }}" class="sr-only">{{ campo.label }}</label>
+                  {{ campo }}
+                  {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
       {% if pagos_proveedores %}
         {# DEC-80: explica por qué cambia lo esperado, como las anulaciones de DEC-77. #}
-        <div class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-          <p class="font-medium">Pagos a proveedores (ya incluidos en lo esperado)</p>
+        <div class="nota">
+          <p class="font-semibold">Pagos a proveedores (ya incluidos en lo esperado)</p>
           <ul class="mt-1 space-y-0.5">
             {% for movimiento in pagos_proveedores %}
-              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}{% if movimiento.concepto == "ANULACION_PAGO" %} · pago del {{ movimiento.pago_proveedor.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}{% if movimiento.concepto == "ANULACION_PAGO" %} · pago del {{ movimiento.pago_proveedor.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="whitespace-nowrap"><span class="monto font-normal">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }}</span> {{ movimiento.medio_pago }}</span></li>
             {% endfor %}
           </ul>
         </div>
       {% endif %}
       {% if cobros %}
         {# S-8 (DEC-127): explica por qué cambia lo esperado, como los pagos a proveedores. #}
-        <div class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-          <p class="font-medium">Cobros de cuenta corriente (ya incluidos en lo esperado)</p>
+        <div class="nota">
+          <p class="font-semibold">Cobros de cuenta corriente (ya incluidos en lo esperado)</p>
           <ul class="mt-1 space-y-0.5">
             {% for movimiento in cobros %}
-              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}{% if movimiento.concepto == "ANULACION_COBRO" %} · cobro del {{ movimiento.pago_cliente.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}{% if movimiento.concepto == "ANULACION_COBRO" %} · cobro del {{ movimiento.pago_cliente.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="whitespace-nowrap"><span class="monto font-normal">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }}</span> {{ movimiento.medio_pago }}</span></li>
             {% endfor %}
           </ul>
         </div>
       {% endif %}
       {% if anulaciones %}
         {# DEC-77: explica por qué baja lo esperado. #}
-        <div class="rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-          <p class="font-medium">Ventas anuladas (ya descontadas de lo esperado)</p>
+        <div class="nota">
+          <p class="font-semibold">Ventas anuladas (ya descontadas de lo esperado)</p>
           <ul class="mt-1 space-y-0.5">
             {% for anulacion in anulaciones %}
-              <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="cifras whitespace-nowrap">$ {{ anulacion.monto|floatformat:"2g" }} {{ anulacion.medio_pago }}</span></li>
+              <li class="flex justify-between gap-4"><span>{{ anulacion.fecha_hora|date:"H:i" }} · Venta N.º {{ anulacion.venta_id }} · {{ anulacion.descripcion }}</span><span class="whitespace-nowrap"><span class="monto font-normal">$ {{ anulacion.monto|floatformat:"2g" }}</span> {{ anulacion.medio_pago }}</span></li>
             {% endfor %}
           </ul>
         </div>
       {% endif %}
 
       <div>
-        <label for="{{ form.observacion.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.observacion.label }}</label>
+        <label for="{{ form.observacion.id_for_label }}" class="etiqueta">{{ form.observacion.label }}</label>
         {{ form.observacion }}
-        <p class="mt-1.5 text-xs text-gray-500">{{ form.observacion.help_text }}</p>
-        {% for error in form.observacion.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+        <p class="ayuda">{{ form.observacion.help_text }}</p>
+        {% for error in form.observacion.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
       </div>
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <a href="{% url 'caja:caja' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50">Cancelar</a>
-        <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Cerrar caja</button>
+        <a href="{% url 'caja:caja' %}" class="boton boton-grande boton-secundario">Cancelar</a>
+        <button type="submit" class="boton boton-grande boton-principal">Cerrar caja</button>
       </div>
     </form>
   </div>

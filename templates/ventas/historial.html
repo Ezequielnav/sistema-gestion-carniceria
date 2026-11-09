@@ -5,8 +5,8 @@
 
 {% block contenido %}
   {# DEC-86: consulta del Administrador; no reemplaza a los reportes de CU-09. #}
-  <h2 class="text-2xl font-semibold tracking-tight">Historial de ventas</h2>
-  <p class="mt-1 text-sm text-gray-500">
+  <h2 class="titulo-pantalla">Historial de ventas</h2>
+  <p class="bajada">
     {% if caja_por_defecto %}
       Caja abierta: turno {{ caja_por_defecto.get_turno_display|lower }} del {{ caja_por_defecto.fecha|date:"d/m/Y" }}. Usá los filtros o "Todas las ventas" para ver otras.
     {% elif filtrado %}
@@ -16,79 +16,79 @@
     {% endif %}
   </p>
 
-  <form method="get" class="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-xs sm:grid-cols-2 lg:grid-cols-5" novalidate>
+  <form method="get" class="mt-6 grid grid-cols-1 gap-4 recuadro p-5 sm:grid-cols-2 lg:grid-cols-5" novalidate>
     {% for campo in form %}
       {% if campo.name == "todas" %}
-        <label class="flex items-center gap-2 self-end pb-2.5 text-sm text-gray-700">
+        <label class="flex items-center gap-2 self-end pb-2.5 text-sm text-tinta">
           {{ campo }} {{ campo.label }}
         </label>
       {% else %}
         <div>
-          <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+          <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
           {{ campo }}
-          {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+          {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
     {% endfor %}
     <div class="flex gap-2 sm:col-span-2 lg:col-span-5 lg:justify-end">
-      <a href="{% url 'ventas:historial' %}" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Limpiar</a>
-      <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Filtrar</button>
+      <a href="{% url 'ventas:historial' %}" class="boton boton-secundario min-h-11">Limpiar</a>
+      <button type="submit" class="boton boton-principal">Filtrar</button>
     </div>
   </form>
 
   {# DF-02: min-w-0 y relative (por el texto sr-only) dejan que la tabla se desplace sola. #}
-  <div class="relative mt-6 min-w-0 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
+  <div class="recuadro-tabla recuadro mt-6 min-w-0">
     {% if pagina.object_list %}
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <table class="tabla tabla-compacta">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">N.º</th>
-            <th scope="col" class="px-5 py-3 font-medium">Fecha y hora</th>
-            <th scope="col" class="px-5 py-3 font-medium">Caja</th>
-            <th scope="col" class="px-5 py-3 font-medium">Cajera</th>
-            <th scope="col" class="px-5 py-3 font-medium">Medio de pago</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
-            <th scope="col" class="px-5 py-3 font-medium">Estado</th>
-            <th scope="col" class="px-5 py-3"><span class="sr-only">Ver</span></th>
+            <th scope="col">N.º</th>
+            <th scope="col">Fecha y hora</th>
+            <th scope="col">Caja</th>
+            <th scope="col">Cajera</th>
+            <th scope="col">Medio de pago</th>
+            <th scope="col" class="text-right">Total</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="sr-only">Ver</span></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
           {% for venta in pagina.object_list %}
-            <tr class="{% if venta.estado == 'ANULADA' %}text-gray-500{% endif %}">
-              <td class="cifras px-5 py-3">{{ venta.pk }}</td>
-              <td class="cifras px-5 py-3 whitespace-nowrap">{{ venta.fecha_hora|date:"d/m/Y H:i" }}</td>
-              <td class="px-5 py-3 whitespace-nowrap">{{ venta.caja.fecha|date:"d/m" }} {{ venta.caja.get_turno_display|lower }}{% if venta.caja.estado == "ABIERTA" %} <span class="text-xs text-gray-500">(abierta)</span>{% endif %}</td>
-              <td class="px-5 py-3">{{ venta.usuario.get_full_name }}</td>
-              <td class="px-5 py-3">{{ venta.medio_pago }}{% if venta.cliente %}<span class="block text-xs text-gray-500">{{ venta.cliente.nombre }}</span>{% endif %}</td>
-              <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap {% if venta.estado == 'ANULADA' %}line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
-              <td class="px-5 py-3">
+            <tr class="{% if venta.estado == 'ANULADA' %}text-tinta-suave{% endif %}">
+              <td class="cifras">{{ venta.pk }}</td>
+              <td class="cifras whitespace-nowrap">{{ venta.fecha_hora|date:"d/m/Y H:i" }}</td>
+              <td class="whitespace-nowrap">{{ venta.caja.fecha|date:"d/m" }} {{ venta.caja.get_turno_display|lower }}{% if venta.caja.estado == "ABIERTA" %} <span class="text-xs text-tinta-suave">(abierta)</span>{% endif %}</td>
+              <td>{{ venta.usuario.get_full_name }}</td>
+              <td>{{ venta.medio_pago }}{% if venta.cliente %}<span class="block text-xs text-tinta-suave">{{ venta.cliente.nombre }}</span>{% endif %}</td>
+              <td class="monto text-right whitespace-nowrap {% if venta.estado == 'ANULADA' %}font-normal text-tinta-suave line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
+              <td>
                 {% if venta.estado == "ANULADA" %}
-                  <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Anulada</span>
+                  <span class="insignia insignia-peligro">Anulada</span>
                 {% else %}
-                  <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Confirmada</span>
+                  <span class="insignia insignia-neutra">Confirmada</span>
                 {% endif %}
               </td>
-              <td class="px-5 py-3 text-right"><a href="{% url 'ventas:detalle' venta.pk %}" class="font-medium text-red-700 hover:underline">Ver<span class="sr-only"> la venta {{ venta.pk }}</span></a></td>
+              <td class="text-right"><a href="{% url 'ventas:detalle' venta.pk %}" class="boton-discreto">Ver<span class="sr-only"> la venta {{ venta.pk }}</span></a></td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
 
       {% if pagina.has_other_pages %}
-        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        <nav class="paginacion" aria-label="Páginas">
+          <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?{% if consulta %}{{ consulta }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?{% if consulta %}{{ consulta }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?{% if consulta %}{{ consulta }}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?{% if consulta %}{{ consulta }}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>
             {% endif %}
           </span>
         </nav>
       {% endif %}
     {% else %}
-      <p class="px-5 py-12 text-center text-sm text-gray-500">No hay ventas para mostrar.</p>
+      <p class="px-5 py-12 text-center text-sm text-tinta-suave">No hay ventas para mostrar.</p>
     {% endif %}
   </div>
 {% endblock %}

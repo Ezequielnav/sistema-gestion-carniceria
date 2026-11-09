@@ -6,105 +6,105 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-3xl">
-    <a href="{% url 'proveedores:ingresos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a ingresos</a>
+    <a href="{% url 'proveedores:ingresos' %}" class="volver">← Volver a ingresos</a>
     <div class="mt-2 flex flex-wrap items-center gap-3">
-      <h2 class="text-2xl font-semibold tracking-tight">Ingreso N.º {{ ingreso.pk }}</h2>
+      <h2 class="titulo-pantalla">Ingreso N.º {{ ingreso.pk }}</h2>
       {% if ingreso.estado == "ANULADO" %}
-        <span class="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700">Anulado</span>
+        <span class="insignia insignia-neutra">Anulado</span>
       {% endif %}
     </div>
 
-    <dl class="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-white p-6 text-sm shadow-xs sm:grid-cols-2">
-      <div><dt class="text-gray-500">Proveedor</dt><dd class="font-medium">{{ ingreso.proveedor }}</dd></div>
-      <div><dt class="text-gray-500">Fecha</dt><dd class="cifras">{{ ingreso.fecha|date:"d/m/Y" }}</dd></div>
-      <div><dt class="text-gray-500">Condición</dt><dd>{{ ingreso.get_condicion_pago_display }}</dd></div>
-      <div><dt class="text-gray-500">Registró</dt><dd>{{ ingreso.usuario.nombre_completo }}</dd></div>
-      <div class="sm:col-span-2"><dt class="text-gray-500">Remito u observación</dt><dd>{{ ingreso.observacion|default:"—" }}</dd></div>
+    <dl class="recuadro mt-6 grid gap-4 p-6 text-sm sm:grid-cols-2">
+      <div><dt class="text-tinta-suave">Proveedor</dt><dd class="font-medium">{{ ingreso.proveedor }}</dd></div>
+      <div><dt class="text-tinta-suave">Fecha</dt><dd class="cifras">{{ ingreso.fecha|date:"d/m/Y" }}</dd></div>
+      <div><dt class="text-tinta-suave">Condición</dt><dd>{{ ingreso.get_condicion_pago_display }}</dd></div>
+      <div><dt class="text-tinta-suave">Registró</dt><dd>{{ ingreso.usuario.nombre_completo }}</dd></div>
+      <div class="sm:col-span-2"><dt class="text-tinta-suave">Remito u observación</dt><dd>{{ ingreso.observacion|default:"—" }}</dd></div>
       {% if ingreso.estado == "ANULADO" %}
-        <div><dt class="text-gray-500">Anulado</dt><dd class="cifras">{{ ingreso.anulado_en|date:"d/m/Y H:i" }} por {{ ingreso.anulado_por_usuario.nombre_completo }}</dd></div>
-        <div><dt class="text-gray-500">Motivo de la anulación</dt><dd>{{ ingreso.motivo_anulacion }}</dd></div>
+        <div><dt class="text-tinta-suave">Anulado</dt><dd class="cifras">{{ ingreso.anulado_en|date:"d/m/Y H:i" }} por {{ ingreso.anulado_por_usuario.nombre_completo }}</dd></div>
+        <div><dt class="text-tinta-suave">Motivo de la anulación</dt><dd>{{ ingreso.motivo_anulacion }}</dd></div>
       {% endif %}
     </dl>
 
-    <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+    <div class="recuadro-tabla recuadro mt-6">
+      <table class="tabla tabla-compacta">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">Producto</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Cantidad</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Precio de compra</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Subtotal</th>
+            <th scope="col">Producto</th>
+            <th scope="col" class="text-right">Cantidad</th>
+            <th scope="col" class="text-right">Precio de compra</th>
+            <th scope="col" class="text-right">Subtotal</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
           {% for detalle in detalles %}
             <tr>
-              <td class="px-5 py-3 font-medium">{{ detalle.producto.nombre }}{% if not detalle.producto.controla_stock %} <span class="text-xs font-normal text-gray-500">(sin control de stock)</span>{% endif %}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
+              <td>{{ detalle.producto.nombre }}{% if not detalle.producto.controla_stock %} <span class="text-xs font-normal text-tinta-suave">(sin control de stock)</span>{% endif %}</td>
+              <td class="cifras text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
+              <td class="monto text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>
           {% endfor %}
         </tbody>
-        <tfoot class="border-t border-gray-200 text-sm">
+        <tfoot class="border-t border-borde">
           <tr>
-            <th scope="row" colspan="3" class="px-5 py-3 text-right font-medium">Total</th>
-            <td class="cifras px-5 py-3 text-right font-semibold whitespace-nowrap">$ {{ ingreso.total|floatformat:"2g" }}</td>
+            <th scope="row" colspan="3" class="text-right">Total</th>
+            <td class="monto text-right whitespace-nowrap">$ {{ ingreso.total|floatformat:"2g" }}</td>
           </tr>
           <tr>
-            <th scope="row" colspan="3" class="px-5 py-3 text-right font-medium text-gray-600">Saldo</th>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ saldo|floatformat:"2g" }}</td>
+            <th scope="row" colspan="3" class="text-right font-medium text-tinta-suave">Saldo</th>
+            <td class="monto text-right whitespace-nowrap">$ {{ saldo|floatformat:"2g" }}</td>
           </tr>
         </tfoot>
       </table>
     </div>
 
-    <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-labelledby="titulo-pagos">
+    <section class="recuadro mt-6 p-6" aria-labelledby="titulo-pagos">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 id="titulo-pagos" class="text-base font-semibold">Pagos</h3>
         {% if ingreso.estado != "ANULADO" and saldo > 0 %}
-          <a href="{% url 'proveedores:pago_nuevo' %}?ingreso={{ ingreso.pk }}" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Registrar pago</a>
+          <a href="{% url 'proveedores:pago_nuevo' %}?ingreso={{ ingreso.pk }}" class="boton boton-principal">Registrar pago</a>
         {% endif %}
       </div>
       {% if pagos %}
         <ul class="mt-3 divide-y divide-gray-100 text-sm">
           {% for pago in pagos %}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2.5 {% if pago.estado == 'ANULADO' %}text-gray-500{% endif %}">
-              <span>Pago N.º {{ pago.pk }} · {{ pago.fecha_hora|date:"d/m/Y H:i" }} · {{ pago.medio_pago }}{% if pago.estado == "ANULADO" %} · <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>{% endif %}</span>
+            <li class="flex flex-wrap items-center justify-between gap-2 py-2.5 {% if pago.estado == 'ANULADO' %}text-tinta-suave{% endif %}">
+              <span>Pago N.º {{ pago.pk }} · {{ pago.fecha_hora|date:"d/m/Y H:i" }} · {{ pago.medio_pago }}{% if pago.estado == "ANULADO" %} · <span class="insignia insignia-peligro">Anulado</span>{% endif %}</span>
               <span class="flex items-center gap-3">
                 <span class="cifras">$ {{ pago.monto|floatformat:"2g" }}</span>
-                <a href="{% url 'proveedores:pago' pago.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ver<span class="sr-only"> el pago N.º {{ pago.pk }}</span></a>
+                <a href="{% url 'proveedores:pago' pago.pk %}" class="boton-discreto">Ver<span class="sr-only"> el pago N.º {{ pago.pk }}</span></a>
               </span>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="mt-2 text-sm text-gray-500">Todavía no tiene pagos.</p>
+        <p class="mt-2 text-sm text-tinta-suave">Todavía no tiene pagos.</p>
       {% endif %}
     </section>
 
     {% if ingreso.estado != "ANULADO" %}
-      <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-labelledby="titulo-anular">
+      <section class="recuadro mt-6 p-6" aria-labelledby="titulo-anular">
         <h3 id="titulo-anular" class="text-base font-semibold">Anular ingreso</h3>
         {% if impedimento %}
-          <p class="mt-2 text-sm text-gray-600">{{ impedimento }}</p>
+          <p class="mt-2 text-sm text-tinta-suave">{{ impedimento }}</p>
         {% else %}
-          <p class="mt-1 text-sm text-gray-600">El ingreso no se borra: queda anulado, su deuda deja de contar y el stock de los productos que lo controlan vuelve atrás (puede quedar negativo). El precio de compra no cambia.</p>
+          <p class="mt-1 text-sm text-tinta-suave">El ingreso no se borra: queda anulado, su deuda deja de contar y el stock de los productos que lo controlan vuelve atrás (puede quedar negativo). El precio de compra no cambia.</p>
           <form method="post" action="{% url 'proveedores:ingreso_anular' ingreso.pk %}" class="mt-4 space-y-4" novalidate
                 onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular el ingreso N.º {{ ingreso.pk }}? Su deuda deja de contar y vuelve el stock. No se puede deshacer.')">
             {% csrf_token %}
             {% if form.non_field_errors %}
-              <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+              <div role="alert" class="aviso aviso-error">
                 {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
               </div>
             {% endif %}
             <div>
-              <label for="{{ form.motivo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.motivo.label }}</label>
+              <label for="{{ form.motivo.id_for_label }}" class="etiqueta">{{ form.motivo.label }}</label>
               {{ form.motivo }}
-              {% for error in form.motivo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+              {% for error in form.motivo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
             </div>
             <div class="flex justify-end">
-              <button type="submit" class="rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">Anular ingreso</button>
+              <button type="submit" class="boton boton-peligro">Anular ingreso</button>
             </div>
           </form>
         {% endif %}

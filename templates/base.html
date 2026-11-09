@@ -4,70 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Inicio{% endblock %} | Carnicería Rojano</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'img/favicon-32.png' %}" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
   <script src="{% static 'js/menu.js' %}" defer></script>
   {% block scripts %}{% endblock %}
 </head>
 <body class="min-h-screen">
-  <div class="md:flex">
-    {# Barra lateral: fija desde 768 px; en celular se abre con el botón de la barra superior. #}
-    <aside id="menu-lateral" data-menu
-           class="hidden border-r border-gray-200 bg-white md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
-      <a href="{% url 'inicio' %}" class="flex h-16 items-center gap-3 border-b border-gray-200 px-5">
-        <span class="flex size-9 items-center justify-center rounded-lg bg-red-700 text-white">
-          {% include "comun/_icono.html" with nombre="local" clase="size-5" %}
-        </span>
-        <span class="leading-tight">
-          <span class="block text-sm font-semibold">Carnicería Rojano</span>
-          <span class="block text-xs text-gray-500">Gestión del local</span>
-        </span>
+  <div class="min-h-screen md:flex">
+    {# Barra lateral marino (S-5): desde 768 px ocupa todo el alto de la página y su contenido queda fijo al desplazar; en celular se abre con el botón de la barra superior. #}
+    <aside id="menu-lateral" data-menu class="hidden bg-marino-900 md:block md:w-64 md:shrink-0">
+     <div class="md:sticky md:top-0 md:flex md:h-screen md:flex-col">
+      <a href="{% url 'inicio' %}" class="hidden px-6 pt-7 pb-6 text-superficie md:block">
+        {% include "comun/_marca.html" with clase_logo="h-20 w-auto" clase_chica="text-[0.8125rem] text-menu-texto" clase_grande="text-[1.75rem]" %}
       </a>
 
-      <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4">
+      <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4 md:pt-0">
+        {# Inicio va dentro del grupo "Menú", con las funciones del rol (RF-02). #}
+        <p class="menu-rotulo">Menú</p>
         <ul class="space-y-0.5">
           <li>
             <a href="{% url 'inicio' %}"
                {% if request.resolver_match.url_name == 'inicio' %}aria-current="page"{% endif %}
-               class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 aria-[current=page]:bg-gray-100 aria-[current=page]:text-gray-900">
+               class="menu-enlace">
               {% include "comun/_icono.html" with nombre="inicio" %}
               Inicio
             </a>
           </li>
+          {% for funcion in menu %}
+            <li>
+              {% if funcion.url %}
+                <a href="{% url funcion.url %}"
+                   {% if funcion.url == menu_actual %}aria-current="page"{% endif %}
+                   class="menu-enlace">
+                  {% include "comun/_icono.html" with nombre=funcion.icono %}
+                  {{ funcion.nombre }}
+                </a>
+              {% else %}
+                <span aria-disabled="true" title="Todavía no está disponible"
+                      class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-rotulo">
+                  {% include "comun/_icono.html" with nombre=funcion.icono %}
+                  <span class="flex-1">{{ funcion.nombre }}</span>
+                  <span class="rounded-sm bg-marino-800 px-2 py-0.5 text-[11px] font-semibold text-menu-texto">Pronto</span>
+                </span>
+              {% endif %}
+            </li>
+          {% endfor %}
         </ul>
 
-        {% if menu %}
-          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Menú</p>
-          <ul class="space-y-0.5">
-            {% for funcion in menu %}
-              <li>
-                {% if funcion.url %}
-                  <a href="{% url funcion.url %}"
-                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-                    {% include "comun/_icono.html" with nombre=funcion.icono %}
-                    {{ funcion.nombre }}
-                  </a>
-                {% else %}
-                  <span aria-disabled="true" title="Todavía no está disponible"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-400">
-                    {% include "comun/_icono.html" with nombre=funcion.icono %}
-                    <span class="flex-1">{{ funcion.nombre }}</span>
-                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">Pronto</span>
-                  </span>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-
         {% if user.is_staff %}
-          <p class="mt-6 mb-2 px-3 text-xs font-medium text-gray-400">Sistema</p>
+          <p class="menu-rotulo mt-6">Sistema</p>
           <ul>
             <li>
-              <a href="{% url 'admin:index' %}"
-                 class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+              <a href="{% url 'admin:index' %}" class="menu-enlace">
                 {% include "comun/_icono.html" with nombre="ajustes" %}
                 Administración
               </a>
@@ -77,45 +67,50 @@
       </nav>
 
       {% if user.is_authenticated %}
-        <div class="flex items-center gap-3 border-t border-gray-200 px-4 py-4">
-          <span class="flex size-9 items-center justify-center rounded-full bg-red-50 text-sm font-semibold text-red-700">
+        <div class="flex items-center gap-3 border-t border-marino-800 px-4 py-4">
+          <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-marino-800 text-sm font-semibold text-superficie">
             {{ user.nombre_completo|default:user.username|slice:":1"|upper }}
           </span>
           <span class="min-w-0 flex-1 leading-tight">
-            <span class="block truncate text-sm font-medium">{{ user.nombre_completo|default:user.username }}</span>
-            <span class="block text-xs text-gray-500">{{ user.get_rol_display }}</span>
+            <span class="block truncate text-sm font-semibold text-superficie">{{ user.nombre_completo|default:user.username }}</span>
+            <span class="block text-xs text-menu-rotulo">{{ user.get_rol_display }}</span>
           </span>
           <form method="post" action="{% url 'usuarios:salir' %}">
             {% csrf_token %}
             <button type="submit" title="Cerrar sesión"
-                    class="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                    class="rounded-md p-2 text-menu-texto hover:bg-marino-800 hover:text-superficie">
               {% include "comun/_icono.html" with nombre="salir" clase="size-4" %}
               <span class="sr-only">Cerrar sesión</span>
             </button>
           </form>
         </div>
       {% endif %}
+     </div>
     </aside>
 
     <div class="min-w-0 flex-1">
-      <header class="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-gray-200 bg-white/90 px-4 backdrop-blur sm:px-8">
-        <div class="flex items-center gap-3">
+      <header class="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-borde bg-papel/95 px-4 backdrop-blur sm:px-8">
+        <div class="flex min-w-0 items-center gap-3">
           <button type="button" data-menu-boton aria-controls="menu-lateral" aria-expanded="false"
-                  class="rounded-md p-2 text-gray-600 hover:bg-gray-100 md:hidden">
+                  class="rounded-md p-2 text-tinta hover:bg-gray-100 md:hidden">
             {% include "comun/_icono.html" with nombre="menu" %}
             <span class="sr-only">Abrir menú</span>
           </button>
-          <h1 class="text-base font-semibold">{% block encabezado %}Inicio{% endblock %}</h1>
+          <h1 class="truncate text-base font-semibold">{% block encabezado %}Inicio{% endblock %}</h1>
         </div>
         {% now "l j \d\e F" as hoy %}
-        <p class="hidden text-sm text-gray-500 sm:block">{{ hoy|capfirst }}</p>
+        <p class="hidden text-sm text-tinta-suave sm:block">{{ hoy|capfirst }}</p>
+        {# En el celular la barra lateral está cerrada: la marca queda en la barra superior. #}
+        <a href="{% url 'inicio' %}" class="shrink-0 text-marino-900 sm:hidden" aria-label="Inicio">
+          {% if logo %}<span class="flex h-10 items-center rounded-md bg-marino-900 px-2">{% include "comun/_marca.html" with clase_logo="h-8 w-auto" %}</span>{% else %}<span class="font-serif text-xl font-semibold">Rojano</span>{% endif %}
+        </a>
       </header>
 
       <main class="mx-auto max-w-7xl px-4 py-8 sm:px-8">
         {% if messages %}
           <ul class="mb-6 space-y-2">
             {% for mensaje in messages %}
-              <li role="status" class="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-xs">{{ mensaje }}</li>
+              <li role="status" class="aviso {% if mensaje.level_tag == 'error' %}aviso-error{% elif mensaje.level_tag == 'warning' %}aviso-alerta{% elif mensaje.level_tag == 'success' %}aviso-exito{% else %}aviso-info{% endif %}">{{ mensaje }}</li>
             {% endfor %}
           </ul>
         {% endif %}

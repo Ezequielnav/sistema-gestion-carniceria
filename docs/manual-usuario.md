@@ -139,6 +139,7 @@ Menú "Reportes". Todo es de consulta:
 1. Elegir el rango de fechas ("Desde" y "Hasta") y "Ver reporte".
 2. Pestañas: "Resumen" (lo más importante del período, con gráficos), "Ventas diarias", "Producto más vendido", "Ingresos por día", "Totales por medio de pago" y "Cierres de caja", donde se abre el reporte de cierre de cada caja.
 3. "Exportar a Excel" o "Exportar a PDF" descargan el reporte con el mismo rango.
+4. "Ventas diarias" muestra una fila por día con sus ventas y su total; si ese día hubo más de un turno, los turnos van debajo. En el celular cada reporte muestra la fecha y el total; el detalle completo se ve en la PC, en el Excel o en el PDF.
 
 Los reportes cuentan los cobros vigentes: un cobro anulado no figura, aunque su caja ya haya cerrado.
 

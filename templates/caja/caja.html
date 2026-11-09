@@ -5,92 +5,94 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <h2 class="text-2xl font-semibold tracking-tight">Caja</h2>
+    <h2 class="titulo-pantalla">Caja</h2>
 
     {% if caja %}
-      <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-label="Caja abierta">
-        <p class="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <span class="size-2.5 rounded-full bg-emerald-500"></span>Abierta
+      <section class="mt-6 rounded-lg border border-exito/30 bg-exito-fondo p-6" aria-label="Caja abierta">
+        <p class="cifra-grande flex items-center gap-2.5">
+          <span class="size-2.5 rounded-sm bg-exito" aria-hidden="true"></span>Abierta
         </p>
-        <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
-            <dt class="text-gray-500">Turno</dt>
-            <dd class="mt-0.5 font-medium">{{ caja.get_turno_display }} · {{ caja.fecha|date:"d/m/Y" }}</dd>
+            <dt class="text-sm text-tinta-suave">Turno</dt>
+            <dd class="mt-0.5 font-semibold">{{ caja.get_turno_display }} · {{ caja.fecha|date:"d/m/Y" }}</dd>
           </div>
           <div>
-            <dt class="text-gray-500">Abrió</dt>
-            <dd class="mt-0.5 font-medium">{{ caja.usuario.get_full_name }} · {{ caja.abierta_en|date:"H:i" }}</dd>
+            <dt class="text-sm text-tinta-suave">Abrió</dt>
+            <dd class="mt-0.5 font-semibold">{{ caja.usuario.get_full_name }} · {{ caja.abierta_en|date:"H:i" }}</dd>
           </div>
           <div>
-            <dt class="text-gray-500">Fondo de cambio</dt>
-            <dd class="cifras mt-0.5 font-medium">$ {{ caja.monto_inicial|default_if_none:0|floatformat:"2g" }}</dd>
+            <dt class="text-sm text-tinta-suave">Fondo de cambio</dt>
+            <dd class="monto mt-0.5 text-lg">$ {{ caja.monto_inicial|default_if_none:0|floatformat:"2g" }}</dd>
           </div>
         </dl>
         {% if de_otro_dia %}
-          <p role="alert" class="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+          <p role="alert" class="aviso aviso-alerta mt-5">
             Esta caja es de otro día. Hay que cerrarla antes de abrir la de hoy.
           </p>
         {% endif %}
         <div class="mt-6 flex justify-end">
-          <a href="{% url 'caja:cerrar' %}" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Cerrar caja</a>
+          <a href="{% url 'caja:cerrar' %}" class="boton boton-grande boton-principal">Cerrar caja</a>
         </div>
       </section>
 
       {# Egresos "otros" en efectivo (DEC-43, DEC-58) #}
-      <section class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" aria-labelledby="titulo-egresos">
-        <h3 id="titulo-egresos" class="text-base font-semibold">Gastos y retiros en efectivo</h3>
+      <section class="recuadro mt-6 p-6" aria-labelledby="titulo-egresos">
+        <h3 id="titulo-egresos" class="titulo-recuadro">Gastos y retiros en efectivo</h3>
         <form method="post" action="{% url 'caja:egreso' %}" class="mt-4 space-y-4" novalidate>
           {% csrf_token %}
           {% if egreso_form.non_field_errors %}
-            <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+            <div role="alert" class="aviso aviso-error">
               {% for error in egreso_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
             </div>
           {% endif %}
           <div class="grid gap-4 sm:grid-cols-3">
             {% for campo in egreso_form %}
               <div class="{% if campo.name == 'descripcion' %}sm:col-span-2{% endif %}">
-                <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+                <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
                 {{ campo }}
-                {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
-                {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+                {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+                {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
               </div>
             {% endfor %}
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Registrar egreso</button>
+            <button type="submit" class="boton boton-grande boton-secundario">Registrar egreso</button>
           </div>
         </form>
 
         {% if egresos %}
-          <table class="mt-5 w-full text-sm">
-            <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
-              <tr>
-                <th scope="col" class="py-2 font-medium">Hora</th>
-                <th scope="col" class="py-2 font-medium">Descripción</th>
-                <th scope="col" class="py-2 text-right font-medium">Monto</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% for egreso in egresos %}
+          <div class="recuadro-tabla mt-5 border-t border-borde">
+            <table class="tabla">
+              <thead>
                 <tr>
-                  <td class="py-2">{{ egreso.fecha_hora|date:"H:i" }}</td>
-                  <td class="py-2">{{ egreso.descripcion }}</td>
-                  <td class="cifras py-2 text-right">$ {{ egreso.monto|floatformat:"2g" }}</td>
+                  <th scope="col">Hora</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col" class="text-right">Monto</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {% for egreso in egresos %}
+                  <tr>
+                    <td class="cifras">{{ egreso.fecha_hora|date:"H:i" }}</td>
+                    <td>{{ egreso.descripcion }}</td>
+                    <td class="monto text-right whitespace-nowrap">$ {{ egreso.monto|floatformat:"2g" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
-          <p class="mt-5 text-sm text-gray-500">Todavía no hay egresos en este turno.</p>
+          <p class="mt-5 text-sm text-tinta-suave">Todavía no hay egresos en este turno.</p>
         {% endif %}
       </section>
     {% elif form %}
-      <p class="mt-1 text-sm text-gray-500">No hay ninguna caja abierta. Elegí el turno para abrirla.</p>
-      <form method="post" class="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-xs" novalidate>
+      <p class="bajada">No hay ninguna caja abierta. Elegí el turno para abrirla.</p>
+      <form method="post" class="recuadro mt-6 space-y-5 p-6" novalidate>
         {% csrf_token %}
 
         {% if form.non_field_errors %}
-          <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          <div role="alert" class="aviso aviso-error">
             {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
         {% endif %}
@@ -98,18 +100,18 @@
         <div class="grid gap-5 sm:grid-cols-2">
           {% for campo in form %}
             <div>
-              <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+              <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
               {{ campo }}
-              {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
+              {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
               {% for error in campo.errors %}
-                <p class="mt-1.5 text-sm text-red-700">{{ error }}</p>
+                <p class="error-campo">{{ error }}</p>
               {% endfor %}
             </div>
           {% endfor %}
         </div>
 
         <div class="flex justify-end">
-          <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Abrir caja</button>
+          <button type="submit" class="boton boton-grande boton-principal">Abrir caja</button>
         </div>
       </form>
     {% endif %}

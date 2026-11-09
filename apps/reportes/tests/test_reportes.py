@@ -3,6 +3,7 @@
 Usa el escenario fijo de datos.py (fixture `escenario` en conftest.py).
 """
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -203,3 +204,35 @@ def test_con_un_rango_invalido_no_se_ofrece_exportar(client, admin):
     )
 
     assert "formato=excel" not in respuesta.content.decode()
+
+
+# H7: Ventas diarias en pantalla, agrupadas por día
+
+
+def test_h7_ventas_diarias_en_pantalla_agrupa_por_dia(client, admin, escenario):
+    client.force_login(admin)
+
+    html = client.get(
+        reverse("reportes:ventas"), {"desde": D15.isoformat(), "hasta": D16.isoformat()}
+    ).content.decode()
+    texto = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+
+    # El 15 tiene dos turnos: el día con su total y los turnos debajo.
+    assert "Jue 15/01/2026 3 $ 1.800,00 Mañana 2 $ 1.500,00 Tarde 1 $ 300,00" in texto
+    # El 16 tiene un turno: se nombra en la fila del día, sin fila aparte.
+    assert "Vie 16/01/2026 Mañana 1 $ 700,00 Total del rango 4 $ 2.500,00" in texto
+    assert "Total del día" not in texto
+
+
+def test_h7_ingresos_por_dia_atenua_los_ceros(client, admin, escenario):
+    """El 16 no tuvo cobros: su celda va atenuada; el total del día, no."""
+    client.force_login(admin)
+
+    html = client.get(
+        reverse("reportes:ingresos"), {"desde": D15.isoformat(), "hasta": D16.isoformat()}
+    ).content.decode()
+    fila_16 = html.split("16/01/2026", 2)[2].split("</tr>", 1)[0]
+
+    atenuadas = re.findall(r'<td class="[^"]*text-tinta-tenue[^"]*">([^<]*)</td>', fila_16)
+    assert atenuadas and all(celda.strip() == "$ 0,00" for celda in atenuadas)
+    assert "$ 700,00" in fila_16

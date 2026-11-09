@@ -72,7 +72,7 @@
   function nombreConAviso(nombre) {
     const contenido = document.createElement("span");
     const aviso = document.createElement("span");
-    aviso.className = "aviso-stock mt-1 block hidden text-xs font-normal text-amber-800";
+    aviso.className = "aviso-stock mt-1 block hidden text-xs font-semibold text-alerta";
     aviso.setAttribute("role", "status");
     contenido.append(nombre, aviso);
     return contenido;
@@ -119,7 +119,7 @@
       const quitar = document.createElement("button");
       quitar.type = "button";
       quitar.textContent = "Quitar";
-      quitar.className = "rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50";
+      quitar.className = "boton-discreto-peligro";
       quitar.addEventListener("click", () => {
         lineas.delete(id);
         dibujar();
@@ -129,11 +129,11 @@
       const fila = document.createElement("tr");
       fila.dataset.producto = id;
       fila.append(
-        celda("px-5 py-3 font-medium", nombreConAviso(linea.producto.nombre)),
-        celda("px-5 py-3", etiqueta),
-        celda("cifras px-5 py-3 text-right whitespace-nowrap", `$ ${pesos.format(Number(linea.producto.precio))}`),
-        celda("cifras px-5 py-3 text-right whitespace-nowrap subtotal", ""),
-        celda("px-5 py-3 text-right", quitar),
+        celda("font-semibold", nombreConAviso(linea.producto.nombre)),
+        celda("", etiqueta),
+        celda("monto text-right font-normal whitespace-nowrap", `$ ${pesos.format(Number(linea.producto.precio))}`),
+        celda("monto text-right whitespace-nowrap subtotal", ""),
+        celda("text-right", quitar),
       );
       cuerpo.append(fila);
       if (enfocar === id) entrada.focus();
@@ -201,14 +201,14 @@
       `$ ${pesos.format(Number(producto.precio))} ${producto.unidad === "KG" ? "/ kg" : "/ u."}`,
     sinResultados(texto) {
       const li = document.createElement("li");
-      li.className = "flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-gray-500";
+      li.className = "opcion-vacia";
       li.textContent = "No se encontraron productos.";
       // A1: solo con permiso de alta (DEC-63).
       if (alta) {
         const crear = document.createElement("button");
         crear.type = "button";
         crear.textContent = "Crear producto";
-        crear.className = "rounded-md border border-gray-300 px-3 py-1.5 font-medium text-gray-800 hover:bg-gray-50";
+        crear.className = "boton boton-secundario";
         crear.addEventListener("click", () => abrirAlta(texto));
         li.append(crear);
       }

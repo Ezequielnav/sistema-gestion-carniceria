@@ -6,16 +6,16 @@
 {% block contenido %}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight">Clientes</h2>
-      <p class="mt-1 text-sm text-gray-500">Buscá por nombre o teléfono.</p>
+      <h2 class="titulo-pantalla">Clientes</h2>
+      <p class="bajada">Buscá por nombre o teléfono.</p>
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
       <a href="{% url 'clientes:cobrar' %}"
-         class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-xs hover:bg-gray-50">
+         class="boton boton-secundario">
         Registrar cobro
       </a>
       <a href="{% url 'clientes:nuevo' %}"
-         class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+         class="boton boton-principal">
         Nuevo cliente
       </a>
     </div>
@@ -26,63 +26,63 @@
     <input id="buscar" type="search" name="q" value="{{ texto }}" placeholder="Nombre o teléfono" autofocus
            class="campo sm:max-w-sm">
     {# S-7 (DEC-126): solo los que tienen deuda de más de 30 días sin cubrir (DEC-109). #}
-    <label class="flex items-center gap-2 text-sm text-gray-700">
+    <label class="flex items-center gap-2 text-sm text-tinta">
       <input type="checkbox" name="vencidos" value="1" class="casilla" {% if solo_vencidos %}checked{% endif %}>
       Solo con deuda vencida
     </label>
-    <label class="flex items-center gap-2 text-sm text-gray-700">
+    <label class="flex items-center gap-2 text-sm text-tinta">
       <input type="checkbox" name="inactivos" value="1" class="casilla" {% if incluir_inactivos %}checked{% endif %}>
       Incluir dados de baja
     </label>
-    <button type="submit" class="rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Buscar</button>
+    <button type="submit" class="boton boton-secundario">Buscar</button>
   </form>
 
-  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de clientes">
+  <section class="recuadro mt-6" aria-label="Listado de clientes">
     {% if pagina.object_list %}
-      <div class="relative overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <div class="recuadro-tabla">
+        <table class="tabla tabla-compacta">
+          <thead>
             <tr>
-              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Cliente</th>
-              <th scope="col" class="px-5 py-3 font-medium">Teléfono</th>
-              <th scope="col" class="px-5 py-3 font-medium">Límite</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium">Saldo</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+              <th scope="col" class="min-w-48">Cliente</th>
+              <th scope="col">Teléfono</th>
+              <th scope="col">Límite</th>
+              <th scope="col" class="text-right">Saldo</th>
+              <th scope="col" class="text-right"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for cliente in pagina %}
-              <tr class="{% if not cliente.activo %}bg-gray-50 text-gray-500{% endif %}">
-                <td class="px-5 py-3">
+              <tr class="{% if not cliente.activo %}bg-papel text-tinta-suave{% endif %}">
+                <td>
                   {# CU-08: el nombre lleva al estado de cuenta. #}
                   <a href="{% url 'clientes:estado' cliente.pk %}" class="font-medium underline-offset-2 hover:underline">{{ cliente.nombre }}</a>
                   {% if not cliente.activo %}
-                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Dado de baja</span>
+                    <span class="insignia insignia-neutra ml-2">Dado de baja</span>
                   {% endif %}
-                  {% if cliente.direccion %}<span class="block text-xs text-gray-500">{{ cliente.direccion }}</span>{% endif %}
+                  {% if cliente.direccion %}<span class="block text-xs text-tinta-suave">{{ cliente.direccion }}</span>{% endif %}
                 </td>
-                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ cliente.telefono|default:"—" }}</td>
+                <td class="cifras whitespace-nowrap text-tinta-suave">{{ cliente.telefono|default:"—" }}</td>
                 {# DEC-115: vacío "Sin límite", 0 "Sin crédito habilitado". #}
-                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ cliente.texto_limite }}</td>
+                <td class="cifras whitespace-nowrap text-tinta-suave">{{ cliente.texto_limite }}</td>
                 {# Saldo derivado de los movimientos (DEC-21); deuda vencida, alerta sin bloqueo (DEC-109). #}
-                <td class="cifras px-5 py-3 text-right whitespace-nowrap">
+                <td class="cifras text-right whitespace-nowrap">
                   $ {{ cliente.saldo|floatformat:"2g" }}
                   {% if cliente.deuda_vencida %}
-                    <span class="mt-1 ml-auto block w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">Vencida $ {{ cliente.deuda_vencida|floatformat:"2g" }}</span>
+                    <span class="insignia insignia-alerta mt-1 ml-auto flex w-fit">Vencida $ {{ cliente.deuda_vencida|floatformat:"2g" }}</span>
                   {% endif %}
                 </td>
-                <td class="px-5 py-3 text-right whitespace-nowrap">
+                <td class="text-right whitespace-nowrap">
                   {% if cliente.saldo > 0 %}
-                    <a href="{% url 'clientes:cobrar' %}?cliente={{ cliente.pk }}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Cobrar<span class="sr-only"> a «{{ cliente }}»</span></a>
+                    <a href="{% url 'clientes:cobrar' %}?cliente={{ cliente.pk }}" class="boton-discreto">Cobrar<span class="sr-only"> a «{{ cliente }}»</span></a>
                   {% endif %}
                   {% if cliente.activo %}
-                    <a href="{% url 'clientes:editar' cliente.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ cliente }}»</span></a>
-                    <a href="{% url 'clientes:baja' cliente.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Dar de baja<span class="sr-only"> «{{ cliente }}»</span></a>
+                    <a href="{% url 'clientes:editar' cliente.pk %}" class="boton-discreto">Editar<span class="sr-only"> «{{ cliente }}»</span></a>
+                    <a href="{% url 'clientes:baja' cliente.pk %}" class="boton-discreto-peligro">Dar de baja<span class="sr-only"> «{{ cliente }}»</span></a>
                   {% else %}
                     {# S-1 (DEC-120): reactivar, como proveedores (DEC-87). #}
                     <form method="post" action="{% url 'clientes:reactivar' cliente.pk %}" class="inline">
                       {% csrf_token %}
-                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Reactivar<span class="sr-only"> «{{ cliente }}»</span></button>
+                      <button type="submit" class="boton-discreto">Reactivar<span class="sr-only"> «{{ cliente }}»</span></button>
                     </form>
                   {% endif %}
                 </td>
@@ -93,23 +93,20 @@
       </div>
 
       {% if pagina.has_other_pages %}
-        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        <nav class="paginacion" aria-label="Páginas">
+          <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?q={{ texto|urlencode }}{% if solo_vencidos %}&amp;vencidos=1{% endif %}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?q={{ texto|urlencode }}{% if solo_vencidos %}&amp;vencidos=1{% endif %}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?q={{ texto|urlencode }}{% if solo_vencidos %}&amp;vencidos=1{% endif %}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?q={{ texto|urlencode }}{% if solo_vencidos %}&amp;vencidos=1{% endif %}{% if incluir_inactivos %}&amp;inactivos=1{% endif %}&amp;pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>
             {% endif %}
           </span>
         </nav>
       {% endif %}
     {% else %}
       <div class="px-5 py-12 text-center">
-        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-          {% include "comun/_icono.html" with nombre="personas" %}
-        </span>
         <p class="mt-3 text-sm font-medium">{% if texto %}No hay clientes que coincidan con «{{ texto }}»{% elif solo_vencidos %}Ningún cliente tiene deuda vencida{% else %}Todavía no hay clientes{% endif %}</p>
       </div>
     {% endif %}

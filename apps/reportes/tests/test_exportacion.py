@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 from reportlab import rl_config
 
 from apps.catalogo.models import Producto, UnidadMedida
-from apps.reportes import services
+from apps.reportes import exportar, services
 from apps.reportes.tests.datos import D15, D16, usuario, venta
 from apps.usuarios.models import Rol
 
@@ -149,6 +149,53 @@ def test_cp63_el_pdf_muestra_los_montos_como_la_pantalla(cliente_admin, escenari
 
     for monto in (b"$ 1.500,00", b"$ 1.800,00", b"$ 2.500,00"):
         assert monto in contenido
+
+
+def test_h7_el_pdf_de_ventas_diarias_va_agrupado_por_dia(admin, escenario):
+    """Una fila por día; los turnos debajo solo si hay más de uno; con uno, en la fila del día.
+    Mismos números que la pantalla y el Excel; el Excel no cambia."""
+    reporte = services.ventas_diarias(admin, D15, D16)
+
+    tabla = exportar.tabla_ventas_pdf(reporte)
+
+    assert [titulo for titulo, _ in tabla.columnas] == ["Fecha", "Ventas", "Total"]
+    filas = [(valores[0], valores[1], valores[2], estilo) for valores, estilo in tabla.filas]
+    assert filas == [
+        ("Jue 15/01/2026", 3, Decimal("1800.00"), exportar.DIA),
+        ("Mañana", 2, Decimal("1500.00"), exportar.DETALLE),
+        ("Tarde", 1, Decimal("300.00"), exportar.DETALLE),
+        ("Vie 16/01/2026 · Mañana", 1, Decimal("700.00"), exportar.DIA),
+    ]
+    assert tabla.total == ["Total del rango", 4, Decimal("2500.00")]
+
+
+def test_h7_el_pdf_de_ventas_diarias_no_repite_el_total_del_dia(
+    cliente_admin, escenario, monkeypatch
+):
+    monkeypatch.setattr(rl_config, "pageCompression", 0)
+
+    contenido = cliente_admin.get(reverse("reportes:ventas"), {**RANGO, "formato": "pdf"}).content
+
+    assert b"Total del rango" in contenido
+    assert b"Total del d" not in contenido
+
+
+def test_h7_el_pdf_de_ingresos_atenua_los_ceros(cliente_admin, escenario, monkeypatch):
+    monkeypatch.setattr(rl_config, "pageCompression", 0)
+
+    contenido = cliente_admin.get(reverse("reportes:ingresos"), {**RANGO, "formato": "pdf"}).content
+
+    assert b".541176 .501961 .447059 rg" in contenido  # gris de los ceros, #8A8072
+
+
+def test_s10_el_pdf_lleva_el_encabezado_del_sistema(cliente_admin, escenario, monkeypatch):
+    """S-10 (DEC-196): el nombre del negocio en serif estándar y una línea marino debajo."""
+    monkeypatch.setattr(rl_config, "pageCompression", 0)
+
+    contenido = cliente_admin.get(reverse("reportes:ventas"), {**RANGO, "formato": "pdf"}).content
+
+    assert b"/Times-Bold" in contenido
+    assert b".058824 .145098 .341176 RG" in contenido  # trazo marino #0F2557
 
 
 # RF-44: sin datos no hay archivo

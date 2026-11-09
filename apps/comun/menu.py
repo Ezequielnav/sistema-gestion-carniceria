@@ -15,7 +15,8 @@ class Funcion:
     descripcion: str
     casos_de_uso: str
     roles: frozenset
-    # Nombre del ícono en templates/comun/_icono.html.
+    # Nombre del ícono en templates/comun/_icono.html: uno distinto por función, el mismo en el
+    # menú y en los accesos del inicio (H7).
     icono: str = ""
     # Nombre de la URL; vacío mientras el caso de uso no está construido.
     url: str = ""
@@ -39,7 +40,7 @@ FUNCIONES = [
         "Revisar las ventas de la caja abierta",
         "CU-01 (DEC-84)",
         frozenset({CAJERA}),
-        "carrito",
+        "recibo",
         url="ventas:lista",
     ),
     Funcion(
@@ -47,7 +48,7 @@ FUNCIONES = [
         "Buscar ventas y anular las de la caja abierta",
         "CU-01 (DEC-45, DEC-86)",
         frozenset({ADMIN}),
-        "carrito",
+        "historial",
         url="ventas:historial",
     ),
     Funcion(
@@ -55,7 +56,7 @@ FUNCIONES = [
         "Abrir y cerrar el turno",
         "CU-02, CU-03",
         frozenset({CAJERA}),
-        "billetera",
+        "billete",
         url="caja:caja",
     ),
     # S-2 (DEC-121): la cajera cobra cuentas corrientes, sin gestionar clientes (DEC-110, DEC-116).
@@ -64,7 +65,7 @@ FUNCIONES = [
         "Cobrar a clientes en la caja",
         "CU-04 (DEC-110)",
         frozenset({CAJERA}),
-        "billetera",
+        "cobro",
         url="clientes:cobrar",
     ),
     # DEC-103: toda cajera consulta productos y stock; el alta sigue con permiso (RN-05).
@@ -107,7 +108,7 @@ FUNCIONES = [
         "Efectivo, tarjetas y otros medios",
         "DEC-155",
         frozenset({ADMIN}),
-        "billetera",
+        "tarjeta",
         url="caja:medios",
     ),
     Funcion(

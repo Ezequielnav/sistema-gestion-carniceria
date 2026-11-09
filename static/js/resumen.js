@@ -7,9 +7,22 @@
   if (!fuente || !window.Chart) return;
   const datos = JSON.parse(fuente.textContent);
 
-  const ROJO = "#dc2626";
-  const ROJO_SUAVE = "rgba(220, 38, 38, 0.08)";
-  const GRILLA = "#f3f4f6";
+  // S-11 (DEC-197): los colores salen de las variables CSS del tema (static/src/estilos.css),
+  // para que un cambio de paleta no toque este archivo.
+  const tema = getComputedStyle(document.documentElement);
+  const color = (nombre, respaldo) => tema.getPropertyValue(nombre).trim() || respaldo;
+  const SERIE = color("--color-marino-700", "#1d3a7a");
+  const GRILLA = color("--color-borde", "#e3dacb");
+  const TEXTO = color("--color-tinta-suave", "#625a50");
+  // Relleno de la línea: la serie al 8 %.
+  const SERIE_SUAVE = conTransparencia(SERIE, 0.08);
+
+  function conTransparencia(hex, alfa) {
+    const valor = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!valor) return hex;
+    const n = parseInt(valor[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;
+  }
   const pesosExactos = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
   // En los ejes, abreviado ("$ 2 M") para que entre también en el celular.
   const pesosAbreviados = new Intl.NumberFormat("es-AR", {
@@ -20,9 +33,9 @@
   });
   const numeros = (valores) => valores.map(Number);
 
-  Chart.defaults.font.family = "Inter, ui-sans-serif, system-ui, sans-serif";
+  Chart.defaults.font.family = '"Source Sans 3", ui-sans-serif, system-ui, sans-serif';
   Chart.defaults.font.size = 12;
-  Chart.defaults.color = "#6b7280";
+  Chart.defaults.color = TEXTO;
   Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.plugins.legend.display = false;
   Chart.defaults.plugins.tooltip.callbacks.label = (contexto) =>
@@ -51,14 +64,14 @@
       datasets: [
         {
           data: numeros(datos.serie.valores),
-          borderColor: ROJO,
-          backgroundColor: ROJO_SUAVE,
+          borderColor: SERIE,
+          backgroundColor: SERIE_SUAVE,
           borderWidth: 2,
           fill: true,
           tension: 0.3,
           pointRadius: 0,
           pointHoverRadius: 4,
-          pointHoverBackgroundColor: ROJO,
+          pointHoverBackgroundColor: SERIE,
         },
       ],
     },
@@ -73,7 +86,7 @@
     type: "bar",
     data: {
       labels: datos.medios.etiquetas,
-      datasets: [{ data: numeros(datos.medios.valores), backgroundColor: ROJO, borderRadius: 4, maxBarThickness: 28 }],
+      datasets: [{ data: numeros(datos.medios.valores), backgroundColor: SERIE, borderRadius: 4, maxBarThickness: 28 }],
     },
     options: { indexAxis: "y", scales: { x: ejeEnPesos, y: ejeSinGrilla } },
   });
@@ -82,7 +95,7 @@
     type: "bar",
     data: {
       labels: datos.top.etiquetas,
-      datasets: [{ data: numeros(datos.top.valores), backgroundColor: ROJO, borderRadius: 4, maxBarThickness: 28 }],
+      datasets: [{ data: numeros(datos.top.valores), backgroundColor: SERIE, borderRadius: 4, maxBarThickness: 28 }],
     },
     options: { indexAxis: "y", scales: { x: ejeEnPesos, y: ejeSinGrilla } },
   });
