@@ -9,11 +9,15 @@ from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import DecimalField, F, Q, Sum, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from apps.caja.models import EstadoCaja, MedioPago
+from apps.caja.models import MedioPago
 from apps.caja.services import (
+    MENSAJE_SIN_CAJA_PARA_REVERSA,
+    caja_para_reversa_de_pago,
+    caja_que_recibe_la_reversa,
     egreso_de_pago,
     registrar_egreso_pago_proveedor,
     registrar_reversa_pago_proveedor,
@@ -346,19 +350,25 @@ def _validar_medio(medio):
         )
 
 
-def ingresos_con_saldo():
-    """Ingresos vigentes de proveedores activos con saldo pendiente, para elegir la deuda."""
+def deudas_para_pagar():
+    """Ingresos vigentes de proveedores activos con saldo pendiente, para elegir la deuda, con
+    el saldo de cada uno (`saldo`) calculado en la misma consulta (L10, DEC-164)."""
     vigentes = Q(pagoproveedor__estado=EstadoPago.VIGENTE)
-    return [
-        ingreso
-        for ingreso in IngresoMercaderia.objects.filter(
-            estado=EstadoIngreso.VIGENTE, proveedor__activo=True
+    monto = DecimalField(max_digits=12, decimal_places=2)
+    return (
+        IngresoMercaderia.objects.filter(estado=EstadoIngreso.VIGENTE, proveedor__activo=True)
+        .annotate(
+            saldo=F("total")
+            - Coalesce(
+                Sum("pagoproveedor__monto", filter=vigentes),
+                Value(Decimal("0")),
+                output_field=monto,
+            )
         )
-        .annotate(pagado=Sum("pagoproveedor__monto", filter=vigentes))
+        .filter(saldo__gt=0)
         .select_related("proveedor")
         .order_by("proveedor__nombre", "fecha", "pk")
-        if ingreso.total - (ingreso.pagado or 0) > 0
-    ]
+    )
 
 
 def registrar_pago(usuario, ingreso, monto, medio, proveedor=None, sale_de_caja=True):
@@ -432,18 +442,25 @@ def impedimento_para_anular_pago(pago):
     """Por qué no se puede anular, o None: ya anulado o salió de una caja ya cerrada."""
     if pago.estado == EstadoPago.ANULADO:
         return "El pago ya está anulado."
-    if pago.sale_de_caja and egreso_de_pago(pago).caja.estado != EstadoCaja.ABIERTA:
-        return (
-            "La caja de este pago ya se cerró: un pago que salió de caja se anula solo con su "
-            "caja abierta."
-        )
+    if pago.sale_de_caja and caja_de_la_reversa(pago) is None:
+        return MENSAJE_SIN_CAJA_PARA_REVERSA
     return None
 
 
+def caja_de_la_reversa(pago):
+    """La caja donde iría la reversa de un pago que salió de caja: la de su egreso si sigue
+    abierta, si no la caja abierta (DEC-166, DEC-178), o None. Para mostrarla en el detalle."""
+    return caja_que_recibe_la_reversa(egreso_de_pago(pago).caja)
+
+
 def anular_pago(usuario, pago, motivo):
-    """Anula con motivo. Si salió de caja, con una reversa `ANULACION_PAGO` en la caja de su
-    egreso, si sigue abierta (DEC-92); si no, siempre y sin reversa (DEC-106). El saldo vuelve
-    a subir; el pago y su egreso no se tocan."""
+    """Anula con motivo, solo el Administrador. Si salió de caja, con una reversa
+    `ANULACION_PAGO` en la caja de su egreso si sigue abierta (DEC-92) o, si se cerró, en la
+    caja abierta (DEC-166, DEC-178); si no salió, siempre y sin reversa (DEC-106). El saldo
+    vuelve a subir; el pago, su egreso y la caja cerrada no se tocan.
+
+    Bloquea la caja y después el pago (DEC-128, DEC-178).
+    """
     _exigir_permiso(usuario)
     motivo = (motivo or "").strip()
     if not motivo:
@@ -452,11 +469,12 @@ def anular_pago(usuario, pago, motivo):
         # Va también en la descripción de la reversa de caja, que admite 255 caracteres.
         raise ValidationError({"motivo": f"El motivo admite hasta {MOTIVO_MAXIMO} caracteres."})
     with transaction.atomic():
+        caja = caja_para_reversa_de_pago(pago) if pago.sale_de_caja else None
         pago = PagoProveedor.objects.select_for_update().get(pk=pago.pk)
         if pago.estado == EstadoPago.ANULADO:
             raise ValidationError("El pago ya está anulado.")
-        if pago.sale_de_caja:
-            registrar_reversa_pago_proveedor(pago, usuario, motivo)
+        if caja is not None:
+            registrar_reversa_pago_proveedor(pago, usuario, motivo, caja)
         pago.estado = EstadoPago.ANULADO
         pago.anulado_en = timezone.now()
         pago.anulado_por_usuario = usuario

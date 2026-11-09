@@ -26,6 +26,7 @@ from apps.proveedores.services import (
     anular_ingreso,
     anular_pago,
     buscar_para_ingreso,
+    caja_de_la_reversa,
     crear_proveedor,
     dar_de_baja,
     impedimento_para_anular,
@@ -352,6 +353,8 @@ def _detalle_pago(request, pago, form, status=200):
         {
             "pago": pago,
             "egreso": egreso_de_pago(pago),
+            # DEC-166, DEC-178: dónde va la reversa si la caja del egreso ya se cerró.
+            "caja_reversa": caja_de_la_reversa(pago) if pago.sale_de_caja else None,
             "impedimento": impedimento_para_anular_pago(pago),
             "form": form,
         },

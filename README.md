@@ -144,6 +144,21 @@ ruff format --check .
 `pytest` usa una base de prueba separada; nunca toca la base de desarrollo. Antes de cada commit,
 `ruff format .` deja el código con el formato del proyecto.
 
+Las pruebas de navegador (marca `navegador`) usan Chromium de Playwright, que se instala una vez
+por equipo; sin él, `pytest` las saltea. Crean sus propios usuarios y no necesitan el `.env`.
+
+```bash
+playwright install chromium
+```
+
+```bash
+pytest -m navegador
+```
+
+```bash
+pytest -m "not navegador"
+```
+
 ## Estructura
 
 ```

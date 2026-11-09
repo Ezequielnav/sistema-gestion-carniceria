@@ -19,8 +19,10 @@ CAMPOS_EDITABLES = [
     "rol",
     "puede_crear_productos",
 ]
+# DEC-156.
 SOLO_CON_MANAGE = (
-    "Este usuario entra al panel de administración: se gestiona con manage.py (DEC-156)."
+    "Este usuario entra al panel de administración: lo gestiona el soporte técnico, no esta "
+    "pantalla."
 )
 
 

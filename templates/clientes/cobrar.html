@@ -82,6 +82,27 @@
           <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Registrar cobro</button>
         </div>
       </form>
+
+      {% if cobros_de_la_caja %}
+        {# DEC-185: la cajera reimprime los comprobantes de la caja abierta de hoy. #}
+        <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-labelledby="titulo-cobros-caja">
+          <div class="border-b border-gray-200 px-5 py-3">
+            <h3 id="titulo-cobros-caja" class="font-semibold">Cobros de esta caja</h3>
+            <p class="mt-0.5 text-xs text-gray-500">Se muestran los últimos 25.</p>
+          </div>
+          <ul class="divide-y divide-gray-100 text-sm">
+            {% for cobro in cobros_de_la_caja %}
+              <li class="flex items-center justify-between gap-4 px-5 py-3">
+                <span><span class="cifras">{{ cobro.fecha_hora|date:"H:i" }}</span> · N.º {{ cobro.pk }} · {{ cobro.cliente.nombre }}{% if cobro.estado == "ANULADO" %} <span class="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>{% endif %}</span>
+                <span class="flex items-center gap-3 whitespace-nowrap">
+                  <span class="cifras">$ {{ cobro.monto|floatformat:"2g" }}</span>
+                  <a href="{% url 'clientes:comprobante' cobro.pk %}" class="font-medium text-red-700 hover:underline">Comprobante<span class="sr-only"> del cobro N.º {{ cobro.pk }}</span></a>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
     {% endif %}
   </div>
 {% endblock %}

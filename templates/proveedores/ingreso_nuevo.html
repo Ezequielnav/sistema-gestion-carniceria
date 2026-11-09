@@ -3,7 +3,7 @@
 
 {% block titulo %}Nuevo ingreso{% endblock %}
 {% block encabezado %}Proveedores{% endblock %}
-{% block scripts %}<script src="{% static 'js/sale_de_caja.js' %}" defer></script><script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/ingreso.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/sale_de_caja.js' %}" defer></script><script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/buscador_productos.js' %}" defer></script><script src="{% static 'js/ingreso.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
   <a href="{% url 'proveedores:ingresos' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a ingresos</a>

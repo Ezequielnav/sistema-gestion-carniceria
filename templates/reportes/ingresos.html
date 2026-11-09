@@ -3,7 +3,7 @@
 {# DEC-142: ventas que no son a cuenta corriente más cobros, sin anuladas. #}
 {% block reporte %}
   {% if reporte.dias %}
-    <div class="overflow-x-auto">
+    <div class="relative overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
           <tr>
@@ -39,7 +39,7 @@
         </tfoot>
       </table>
     </div>
-    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Las ventas a cuenta corriente no son ingreso: son deuda del cliente hasta que se cobra. "Fuera de caja" son los cobros registrados sin caja. No se restan egresos.</p>
+    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Las ventas a cuenta corriente no son ingreso: son deuda del cliente hasta que se cobra. "Fuera de caja" son los cobros registrados sin caja. No se restan egresos. Un cobro anulado no se cuenta, aunque su caja ya haya cerrado: el cierre de esa caja lo conserva y la reversa figura en el cierre de la caja donde se registró.</p>
   {% else %}
     {% include "reportes/_sin_registros.html" %}
   {% endif %}

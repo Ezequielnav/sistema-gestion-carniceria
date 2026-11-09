@@ -11,6 +11,8 @@ from apps.catalogo.services import crear_producto, puede_crear
 from apps.comun.permisos import requiere_funcion
 from apps.ventas.forms import AnularVentaForm, ConfirmarVentaForm, HistorialVentasForm
 from apps.ventas.services import (
+    LINEAS_MAXIMAS,
+    MENSAJE_LINEAS_MAXIMAS,
     anular_venta,
     buscar_para_venta,
     detalles_de_venta,
@@ -23,6 +25,7 @@ from apps.ventas.services import (
     puede_ver_venta,
     registrar_venta,
     se_puede_anular,
+    stock_para_venta,
     ventas_de_la_caja_abierta,
 )
 
@@ -76,6 +79,9 @@ def nueva(request):
             "form": ConfirmarVentaForm(),
             # S-3 (DEC-122): al elegir este medio aparece la elección del cliente (SC-01).
             "cuenta_corriente": medio_cuenta_corriente(),
+            # DEC-173: el formulario frena la línea 51 con el mismo mensaje que el servidor.
+            "lineas_maximas": LINEAS_MAXIMAS,
+            "mensaje_lineas_maximas": MENSAJE_LINEAS_MAXIMAS,
             # A1: solo la cajera con permiso de alta (RN-05, DEC-63).
             "form_producto": ProductoForm(prefix="producto") if puede_crear(request.user) else None,
         },
@@ -97,6 +103,26 @@ def buscar(request):
             "resultados": [_producto(p) for p in resultados],
             "hay_mas": hay_mas,
         }
+    )
+
+
+@requiere_funcion("Ventas")
+@require_GET
+def stock(request):
+    """Stock actual de los productos de una venta guardada (L11, DEC-176): `?ids=1,2`."""
+    _solo_cajera(request)
+    try:
+        ids = [int(i) for i in request.GET.get("ids", "").split(",") if i.strip()]
+        # Claves de 64 bits (D-05): un número fuera de rango no llega a la base.
+        if not all(0 < i < 2**63 for i in ids):
+            raise ValueError
+    except ValueError:
+        return JsonResponse({"errores": ["La lista de productos no es válida."]}, status=400)
+    if len(ids) > LINEAS_MAXIMAS:
+        return JsonResponse({"errores": [MENSAJE_LINEAS_MAXIMAS]}, status=400)
+    stock_por_id = stock_para_venta(ids)
+    return JsonResponse(
+        {"stock": {str(pk): (None if s is None else str(s)) for pk, s in stock_por_id.items()}}
     )
 
 
@@ -168,7 +194,9 @@ def ticket(request, pk):
 def lista(request):
     """Ventas de la caja abierta, con su estado, sin anular (DEC-84)."""
     caja, ventas = ventas_de_la_caja_abierta()
-    return render(request, "ventas/lista.html", {"caja": caja, "ventas": ventas})
+    # L6 (DEC-174): de a 25, como el historial.
+    pagina = Paginator(ventas, POR_PAGINA).get_page(request.GET.get("pagina"))
+    return render(request, "ventas/lista.html", {"caja": caja, "pagina": pagina})
 
 
 @requiere_funcion("Historial de ventas")

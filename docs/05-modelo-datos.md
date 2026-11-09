@@ -341,7 +341,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | medio_pago_id | FK medio_pago | S | |
 | concepto | enum | S | `VENTA`, `PAGO_CLIENTE` (se muestra como "Cobro de cuenta corriente", migración `caja/0011`), `PAGO_PROVEEDOR`, `OTRO` (gastos y retiros en efectivo, con descripción: DEC-43), `ANULACION` (egreso que revierte una venta anulada: DEC-68), `ANULACION_PAGO` (ingreso que revierte el egreso de un pago a proveedor anulado: DEC-92), `ANULACION_COBRO` (egreso que revierte el ingreso de un cobro a cliente anulado: DEC-113) |
 | venta_id | FK venta | N | Si `concepto = VENTA` o `ANULACION`; a lo sumo una `ANULACION` por venta |
-| pago_cliente_id | FK pago_cliente | N | Si `concepto = PAGO_CLIENTE` o `ANULACION_COBRO`; a lo sumo una `ANULACION_COBRO` por cobro |
+| pago_cliente_id | FK pago_cliente | N | Si `concepto = PAGO_CLIENTE` o `ANULACION_COBRO`; a lo sumo una `ANULACION_COBRO` por cobro. Si la caja del cobro ya cerró, la `ANULACION_COBRO` va en la caja abierta, distinta de la del ingreso (DEC-166); lo mismo vale para la `ANULACION_PAGO` de un pago a proveedor. No requiere cambios en la tabla |
 | pago_proveedor_id | FK pago_proveedor | N | Si `concepto = PAGO_PROVEEDOR` |
 | usuario_id | FK usuario | S | |
 | descripcion | string | N | |
@@ -394,7 +394,7 @@ Restricción: un registro por (`caja_id`, `medio_pago_id`). La diferencia (`mont
 | precio_venta | decimal | S | PDF: `precioUnitario` |
 | unidad_medida | enum | S | `UNIDAD`, `KG`; la elige el Administrador por producto (DEC-79, supuesto) |
 | controla_stock | boolean | S | `false` para los productos cárnicos (DEC-36) |
-| stock_actual | decimal | S | Dato guardado: se actualiza en la misma operación que la venta, el ingreso o el cambio que hace el Administrador al crear o modificar el producto (RI-07, RI-17). Solo aplica si `controla_stock = true`; puede quedar negativo si se vende sin stock suficiente (DEC-46). PDF: `StockActual` |
+| stock_actual | decimal | S | Dato guardado: se actualiza en la misma operación que la venta, el ingreso o el cambio que hace el Administrador al crear o modificar el producto (RI-07, RI-17). Solo aplica si `controla_stock = true`; puede quedar negativo si se vende sin stock suficiente (DEC-46). `mover_stock` rechaza con un mensaje el movimiento que lo dejaría fuera del rango de la columna (DEC-169, DEC-175, L19; H6, etapa 1). PDF: `StockActual` |
 | stock_minimo | decimal | N | Umbral de alerta por producto, mayor o igual a 0. Alerta si `stock_actual <= stock_minimo`; vacío, alerta si `stock_actual <= 0` (DEC-82, DEC-101, supuestos) |
 | activo | boolean | S | |
 
@@ -712,7 +712,7 @@ Se ajustan con datos reales de uso; con el volumen de una carnicería, estos ín
 | PR-21 | Define `fecha_vencimiento`; si se pide control por lote, hay que agregar una entidad de lotes. `stock_minimo` se decidió en DEC-82 (supuesto) |
 | PR-31 (datos de contacto) | Cerrada como supuesto (DEC-117): `cliente` suma `direccion` y `condiciones` pasa a `observaciones`; proveedor sin cambios; sin identificación fiscal |
 | PR-11 (volumen de clientes) | Cerrada como supuesto (DEC-118): sin índices nuevos; los saldos existentes se cargan como `SALDO_INICIAL` (DEC-119) |
-| PR-32 (ajustes de stock) | Cerrada como supuesto (DEC-98): se agrega `ajuste_stock`, que registra los cambios de stock de CU-11; `movimiento_stock` sigue diferida (DEC-24) |
+| PR-32 (ajustes de stock) | Cerrada como supuesto (DEC-98): se agrega `ajuste_stock`, que registra los cambios de stock de CU-11; `movimiento_stock` sigue diferida (DEC-24). Por eso L8 se cierra sin cambio: el detalle de venta no guarda si el producto controlaba stock (DEC-163) |
 | DEC-45 (anulaciones, ex PR-30) | `venta.estado` y los datos de la anulación (DEC-67) y el concepto `ANULACION` en `movimiento_caja` (DEC-68). Aplicado en las migraciones `caja/0006` y `ventas/0003` (H2, etapa 4) |
 | DEC-39 (una caja abierta a la vez, ex PR-06), reemplazada por DEC-83 | RI-01 pasó a: una caja por (`fecha`, `turno`) y una sola caja `ABIERTA` en total (migración `caja/0004`, H2, etapa 1). Con DEC-83 queda solo una caja `ABIERTA` en total: `caja/0007` quita `UNIQUE (fecha, turno)` |
 | DEC-46 (stock insuficiente) y PR-37 | Se acepta `stock_actual` negativo en productos con control de stock. Si PR-37 confirma que los faltantes se registran, se agrega `faltante_stock` (sección 6) |

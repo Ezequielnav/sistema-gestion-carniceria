@@ -10,6 +10,7 @@ from decimal import Decimal
 import pytest
 from django.core.exceptions import ValidationError
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.caja.models import EstadoCaja, MedioPago, MovimientoCaja, Turno
 from apps.caja.services import abrir_caja, cerrar_caja, medios_del_cierre, resumen_de_cierre
@@ -191,7 +192,8 @@ def test_s5_el_resumen_del_dia_y_el_historial_la_cuentan(
     a_cuenta = _vender(usuario, aceite, cuenta_corriente, cliente)
     contado = _vender(usuario, aceite, efectivo)
 
-    assert resumen_del_dia(a_cuenta.fecha_hora.date()) == (2, Decimal("5000.00"))
+    # La fecha local de la venta, no la de UTC: entre las 21 y las 24 son distintas (RM-13).
+    assert resumen_del_dia(timezone.localdate(a_cuenta.fecha_hora)) == (2, Decimal("5000.00"))
     ventas, _ = historial_de_ventas()
     assert set(ventas) == {a_cuenta, contado}
 

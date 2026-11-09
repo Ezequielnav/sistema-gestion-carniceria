@@ -14,13 +14,17 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Case, DecimalField, F, Q, Sum, When, Window
 from django.utils import timezone
 
-from apps.caja.models import EstadoCaja, MedioPago
+from apps.caja.models import ConceptoMovimientoCaja, EstadoCaja, MedioPago
 from apps.caja.services import (
-    caja_de_cobro_bloqueada,
+    MENSAJE_SIN_CAJA_PARA_REVERSA,
+    caja_abierta,
     caja_del_dia_bloqueada,
+    caja_para_reversa_de_cobro,
+    caja_que_recibe_la_reversa,
+    es_de_otro_dia,
     ingreso_de_cobro,
     registrar_ingreso_cobro,
     registrar_reversa_cobro,
@@ -548,29 +552,42 @@ def cobro_con_detalles(usuario, pk):
     ).get(pk=pk)
 
 
-def impedimento_para_anular_cobro(cobro):
-    """Por qué no se puede anular, o None: ya anulado o su caja ya se cerró (DEC-113)."""
+def caja_de_la_reversa(cobro):
+    """La caja donde iría la reversa de un cobro que entró a caja: la de su ingreso si sigue
+    abierta, si no la caja abierta (DEC-166, DEC-178), o None. Para mostrarla en el detalle."""
+    return caja_que_recibe_la_reversa(ingreso_de_cobro(cobro).caja)
+
+
+_SIN_CALCULAR = object()
+
+
+def impedimento_para_anular_cobro(cobro, caja_reversa=_SIN_CALCULAR):
+    """Por qué no se puede anular, o None: ya anulado, o entró a una caja ya cerrada y no hay
+    una caja abierta para la reversa (DEC-113, DEC-166). `caja_reversa`, si ya se calculó con
+    `caja_de_la_reversa`, evita repetir la consulta."""
     if cobro.estado == EstadoPagoCliente.ANULADO:
         return "El cobro ya está anulado."
-    if cobro.entra_a_caja and ingreso_de_cobro(cobro).caja.estado != EstadoCaja.ABIERTA:
-        return (
-            "La caja de este cobro ya se cerró: un cobro que entró a caja se anula solo con su "
-            "caja abierta."
-        )
+    if not cobro.entra_a_caja:
+        return None
+    if caja_reversa is _SIN_CALCULAR:
+        caja_reversa = caja_de_la_reversa(cobro)
+    if caja_reversa is None:
+        return MENSAJE_SIN_CAJA_PARA_REVERSA
     return None
 
 
 def anular_cobro(usuario, cobro, motivo):
     """Anula con motivo: `ANULACION_PAGO` vuelve a sumar la deuda y, si entró a caja, un egreso
-    `ANULACION_COBRO` en la caja de su ingreso, que tiene que seguir abierta (DEC-113). Uno que
-    no entró a caja se anula siempre. El cobro y su ingreso no se tocan.
+    `ANULACION_COBRO` en la caja de su ingreso si sigue abierta (DEC-113) o, si se cerró, en la
+    caja abierta (DEC-166, DEC-178). Uno que no entró a caja se anula siempre. El cobro, su
+    ingreso y la caja cerrada no se tocan.
 
     Bloquea caja, cobro y cliente, en ese orden (DEC-128).
     """
     _exigir_administrador(usuario, "anula cobros")
     motivo = _validar_motivo(motivo, "de la anulación")
     with transaction.atomic():
-        caja = caja_de_cobro_bloqueada(cobro) if cobro.entra_a_caja else None
+        caja = caja_para_reversa_de_cobro(cobro) if cobro.entra_a_caja else None
         cobro = PagoCliente.objects.select_for_update().get(pk=cobro.pk)
         if cobro.estado == EstadoPagoCliente.ANULADO:
             raise ValidationError("El cobro ya está anulado.", code="ya_anulado")
@@ -611,12 +628,93 @@ def cliente_con_cuenta(usuario, pk):
     return cliente
 
 
+# Orden de registro de la cuenta: el saldo acumulado y los saldos del comprobante lo siguen
+# (DEC-168, DEC-177). El id desempata dos movimientos de la misma fecha y hora.
+ORDEN_DE_REGISTRO = [F("fecha_hora").asc(), F("pk").asc()]
+
+
+def _con_signo():
+    """El monto con su signo: lo que suma a la deuda, positivo; lo que la baja, negativo."""
+    return Case(
+        When(tipo__in=TIPOS_QUE_SUMAN, then=F("monto")),
+        default=-F("monto"),
+        output_field=DecimalField(max_digits=12, decimal_places=2),
+    )
+
+
 def movimientos_de_cuenta(usuario, cliente):
-    """Los movimientos del cliente, del más nuevo al más viejo (CU-08, RF-39)."""
+    """Los movimientos del cliente, del más nuevo al más viejo (CU-08, RF-39), cada uno con el
+    saldo después de él (`saldo_acumulado`, L17, DEC-168, DEC-177).
+
+    El acumulado se calcula en la base sobre todos los movimientos, en orden de registro, así
+    que es el mismo en cualquier página; el último coincide con el saldo del cliente. No se
+    guarda (DEC-21).
+    """
     _exigir_administrador(usuario, "consulta el estado de cuenta")
     return (
         MovimientoCuentaCorriente.objects.filter(cliente=cliente)
+        .annotate(saldo_acumulado=Window(Sum(_con_signo()), order_by=ORDEN_DE_REGISTRO))
         .select_related("venta", "pago_cliente__medio_pago")
+        .order_by("-fecha_hora", "-pk")
+    )
+
+
+# Comprobante del cobro (L16, DEC-167, DEC-185)
+
+
+def _es_de_la_caja_del_dia(cobro):
+    """El cobro entró a la caja abierta de hoy: la cajera lo puede reimprimir (DEC-185)."""
+    if not cobro.entra_a_caja:
+        return False
+    caja = ingreso_de_cobro(cobro).caja
+    return caja.estado == EstadoCaja.ABIERTA and not es_de_otro_dia(caja)
+
+
+def puede_ver_comprobante(usuario, cobro):
+    """El Administrador, de cualquier cobro; la cajera, de los cobros de la caja abierta de hoy
+    (DEC-185). Los dueños no (DEC-134)."""
+    if puede_gestionar(usuario):
+        return True
+    return usuario.rol == Rol.CAJERA and _es_de_la_caja_del_dia(cobro)
+
+
+def comprobante_de_cobro(usuario, pk):
+    """El cobro con lo que muestra su comprobante: `saldo_anterior` y `saldo_posterior`.
+
+    Los saldos salen de los movimientos de la cuenta hasta el cobro, en orden de registro
+    (DEC-167, DEC-177); no se guardan (DEC-21). PermissionDenied si el usuario no lo puede ver.
+    """
+    cobro = PagoCliente.objects.select_related(
+        "cliente", "medio_pago", "usuario", "anulado_por_usuario"
+    ).get(pk=pk)
+    if not puede_ver_comprobante(usuario, cobro):
+        raise PermissionDenied("Ese comprobante no se puede ver.")
+    movimiento = MovimientoCuentaCorriente.objects.get(pago_cliente=cobro, tipo=Tipo.PAGO)
+    hasta_el_cobro = Q(fecha_hora__lt=movimiento.fecha_hora) | Q(
+        fecha_hora=movimiento.fecha_hora, pk__lte=movimiento.pk
+    )
+    posterior = MovimientoCuentaCorriente.objects.filter(
+        hasta_el_cobro, cliente_id=cobro.cliente_id
+    ).aggregate(saldo=Sum(_con_signo()))["saldo"]
+    cobro.saldo_posterior = (posterior or CERO).quantize(CENTAVO)
+    cobro.saldo_anterior = cobro.saldo_posterior + cobro.monto
+    return cobro
+
+
+def cobros_de_la_caja_del_dia(usuario):
+    """Los cobros que entraron a la caja abierta de hoy, para que la cajera reimprima su
+    comprobante (DEC-185); del último al primero."""
+    if not puede_elegir(usuario):
+        raise PermissionDenied("Solo el administrador y la cajera cobran cuentas corrientes.")
+    caja = caja_abierta()
+    if caja is None or es_de_otro_dia(caja):
+        return PagoCliente.objects.none()
+    return (
+        PagoCliente.objects.filter(
+            movimientocaja__caja=caja,
+            movimientocaja__concepto=ConceptoMovimientoCaja.PAGO_CLIENTE,
+        )
+        .select_related("cliente", "medio_pago")
         .order_by("-fecha_hora", "-pk")
     )
 

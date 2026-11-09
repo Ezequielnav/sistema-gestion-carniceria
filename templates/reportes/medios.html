@@ -3,7 +3,7 @@
 {# DEC-143: ventas no anuladas y cobros vigentes por medio de pago. #}
 {% block reporte %}
   {% if reporte.medios %}
-    <div class="overflow-x-auto">
+    <div class="relative overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
           <tr>
@@ -36,7 +36,7 @@
         </tfoot>
       </table>
     </div>
-    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Sin ventas anuladas ni cobros anulados. La cuenta corriente muestra lo vendido a cuenta, no dinero recibido.</p>
+    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Sin ventas anuladas ni cobros anulados, aunque su caja ya haya cerrado: el cierre de esa caja los conserva. La cuenta corriente muestra lo vendido a cuenta, no dinero recibido.</p>
   {% else %}
     {% include "reportes/_sin_registros.html" %}
   {% endif %}

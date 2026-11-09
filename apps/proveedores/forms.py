@@ -10,7 +10,7 @@ from apps.comun.models import pesos
 from apps.proveedores.models import CondicionPago, IngresoMercaderia, Proveedor
 from apps.proveedores.services import (
     CAMPOS_EDITABLES,
-    ingresos_con_saldo,
+    deudas_para_pagar,
     medios_para_pagar,
     proveedores_para_ingreso,
     saldo_de_ingreso,
@@ -119,11 +119,17 @@ class AnularIngresoForm(forms.Form):
     )
 
 
+def _saldo(ingreso):
+    # L10 (DEC-164): el saldo viene calculado en la consulta de las opciones.
+    saldo = getattr(ingreso, "saldo", None)
+    return saldo_de_ingreso(ingreso) if saldo is None else saldo
+
+
 class IngresoChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, ingreso):
         return (
             f"{ingreso.proveedor} · ingreso N.º {ingreso.pk} del {ingreso.fecha:%d/%m/%Y} · "
-            f"saldo {pesos(saldo_de_ingreso(ingreso))}"
+            f"saldo {pesos(_saldo(ingreso))}"
         )
 
 
@@ -150,11 +156,7 @@ class PagoForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["ingreso"].queryset = (
-            IngresoMercaderia.objects.filter(pk__in=[i.pk for i in ingresos_con_saldo()])
-            .select_related("proveedor")
-            .order_by("proveedor__nombre", "fecha", "pk")
-        )
+        self.fields["ingreso"].queryset = deudas_para_pagar()
         self.fields["medio_pago"].queryset = medios_para_pagar()
         self.id_efectivo = _id_del_efectivo()
         for nombre, campo in self.fields.items():

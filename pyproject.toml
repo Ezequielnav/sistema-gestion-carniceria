@@ -10,3 +10,6 @@ select = ["E", "F", "I", "B", "DJ", "UP"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py"]
 addopts = "-ra"
+markers = [
+    "navegador: pruebas con un navegador real (Playwright y Chromium); correr aparte con -m navegador",
+]

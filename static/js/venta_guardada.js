@@ -40,6 +40,19 @@
     };
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { crearVentaGuardada };
-  else raiz.crearVentaGuardada = crearVentaGuardada;
+  // L11 (DEC-165, DEC-176): al retomar, el stock guardado puede ser viejo. Devuelve las líneas
+  // con el stock del servidor (`stockPorId`: id -> texto, o null sin control de stock); un
+  // producto que no vino queda sin stock y sin aviso. Con `{}`, ninguna línea avisa.
+  function conStockActual(lineas, stockPorId) {
+    return lineas.map((linea) => {
+      const valor = stockPorId[String(linea.producto.id)];
+      return { ...linea, producto: { ...linea.producto, stock: valor === undefined ? null : valor } };
+    });
+  }
+
+  if (typeof module !== "undefined" && module.exports) module.exports = { crearVentaGuardada, conStockActual };
+  else {
+    raiz.crearVentaGuardada = crearVentaGuardada;
+    raiz.conStockActual = conStockActual;
+  }
 })(typeof window !== "undefined" ? window : globalThis);

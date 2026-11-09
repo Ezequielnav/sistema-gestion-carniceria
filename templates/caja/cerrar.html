@@ -49,7 +49,7 @@
           <p class="font-medium">Pagos a proveedores (ya incluidos en lo esperado)</p>
           <ul class="mt-1 space-y-0.5">
             {% for movimiento in pagos_proveedores %}
-              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_proveedor_id }} · {{ movimiento.pago_proveedor.proveedor }}{% if movimiento.concepto == "ANULACION_PAGO" %} · pago del {{ movimiento.pago_proveedor.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
             {% endfor %}
           </ul>
         </div>
@@ -60,7 +60,7 @@
           <p class="font-medium">Cobros de cuenta corriente (ya incluidos en lo esperado)</p>
           <ul class="mt-1 space-y-0.5">
             {% for movimiento in cobros %}
-              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
+              <li class="flex justify-between gap-4"><span>{{ movimiento.fecha_hora|date:"H:i" }} · {{ movimiento.get_concepto_display }} N.º {{ movimiento.pago_cliente_id }} · {{ movimiento.pago_cliente.cliente }}{% if movimiento.concepto == "ANULACION_COBRO" %} · cobro del {{ movimiento.pago_cliente.fecha_hora|date:"d/m/Y" }}{% endif %}</span><span class="cifras whitespace-nowrap">{% if movimiento.tipo == "EGRESO" %}−{% else %}+{% endif %} $ {{ movimiento.monto|floatformat:"2g" }} {{ movimiento.medio_pago }}</span></li>
             {% endfor %}
           </ul>
         </div>

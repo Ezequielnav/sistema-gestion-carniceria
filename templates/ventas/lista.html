@@ -15,7 +15,7 @@
     <p class="mt-1 text-sm text-gray-500">Caja del turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}, abierta por {{ caja.usuario.get_full_name }}.</p>
 
     <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
-      {% if ventas %}
+      {% if pagina.object_list %}
         <table class="w-full text-sm">
           <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
             <tr>
@@ -29,7 +29,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            {% for venta in ventas %}
+            {% for venta in pagina.object_list %}
               <tr class="{% if venta.estado == 'ANULADA' %}text-gray-500{% endif %}">
                 <td class="cifras px-5 py-3">{{ venta.pk }}</td>
                 <td class="cifras px-5 py-3 whitespace-nowrap">{{ venta.fecha_hora|date:"H:i" }}</td>
@@ -48,6 +48,20 @@
             {% endfor %}
           </tbody>
         </table>
+
+        {% if pagina.has_other_pages %}
+          <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
+            <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            <span class="flex gap-2">
+              {% if pagina.has_previous %}
+                <a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              {% endif %}
+              {% if pagina.has_next %}
+                <a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              {% endif %}
+            </span>
+          </nav>
+        {% endif %}
       {% else %}
         <p class="px-5 py-12 text-center text-sm text-gray-500">Todavía no hay ventas en esta caja.</p>
       {% endif %}

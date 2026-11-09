@@ -139,7 +139,8 @@ def test_cp120_una_anulacion_durante_el_cierre_espera_y_se_rechaza(escenario):
 
     assert "error" not in cierre
     assert anulacion["fin"] >= cierre["confirmado"]
-    assert anulacion["error"].code == "caja_cerrada"
+    # La caja cerrada no recibe la reversa y no hay otra abierta (DEC-166).
+    assert anulacion["error"].code == "sin_caja_para_reversa"
     pago.refresh_from_db()
     assert pago.estado == EstadoPagoCliente.VIGENTE
     assert Caja.objects.get(pk=caja.pk).estado == EstadoCaja.CERRADA

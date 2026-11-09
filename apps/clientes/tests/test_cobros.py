@@ -267,15 +267,18 @@ def test_cp118_un_cobro_sin_caja_se_anula_siempre_sin_reversa_de_caja(admin, efe
     assert saldo(deudor) == Decimal("1000.00")
 
 
-def test_cp118_dec113_con_la_caja_cerrada_no_se_anula(admin, cajera, caja_hoy, efectivo, deudor):
+def test_cp118_dec166_con_la_caja_cerrada_y_sin_caja_abierta_no_se_anula(
+    admin, cajera, caja_hoy, efectivo, deudor
+):
+    # DEC-166: la reversa iría en la caja abierta; sin ninguna, no se puede corregir.
     cobro = _cobrar(cajera, deudor, "300", efectivo)
     cerrar_caja(cajera, {efectivo.pk: Decimal("300")})
 
-    assert "ya se cerró" in impedimento_para_anular_cobro(cobro)
+    assert "no hay una caja abierta" in impedimento_para_anular_cobro(cobro)
     with pytest.raises(ValidationError) as error:
         anular_cobro(admin, cobro, "Error")
 
-    assert error.value.code == "caja_cerrada"
+    assert error.value.code == "sin_caja_para_reversa"
     cobro.refresh_from_db()
     assert cobro.estado == EstadoPagoCliente.VIGENTE
     assert saldo(deudor) == Decimal("700.00")
@@ -383,9 +386,11 @@ def test_cp40_la_cajera_cobra_desde_la_pantalla(client, cajera, caja_hoy, efecti
         COBRAR, {"cliente": deudor.pk, "monto": "300", "medio_pago": efectivo.pk}
     )
 
-    assert respuesta.url == COBRAR
+    # DEC-185: al terminar, a la cajera se le ofrece el comprobante.
+    cobro = PagoCliente.objects.get()
+    assert respuesta.url == reverse("clientes:comprobante", args=[cobro.pk])
     assert saldo(deudor) == Decimal("700.00")
-    mensaje = list(client.get(COBRAR).context["messages"])[0]
+    mensaje = list(client.get(respuesta.url).context["messages"])[0]
     assert "Se registró el cobro" in str(mensaje) and "$ 300,00" in str(mensaje)
 
 
@@ -482,7 +487,8 @@ def test_la_anulacion_con_la_caja_cerrada_muestra_el_motivo(
 
     html = client.get(reverse("clientes:cobro", args=[cobro.pk])).content.decode()
 
-    assert "un cobro que entró a caja se anula solo con su caja abierta" in html
+    assert "no hay una caja abierta para registrar la reversa" in html
+    assert reverse("caja:caja") in html
     assert 'action="' + reverse("clientes:cobro_anular", args=[cobro.pk]) not in html
 
 

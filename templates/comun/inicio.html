@@ -71,12 +71,12 @@
 
   <div class="mt-8 grid gap-6 lg:grid-cols-5">
     {# Últimas ventas #}
-    <section class="rounded-xl border border-gray-200 bg-white shadow-xs lg:col-span-3" aria-labelledby="titulo-ventas">
+    <section class="min-w-0 rounded-xl border border-gray-200 bg-white shadow-xs lg:col-span-3" aria-labelledby="titulo-ventas">
       <div class="border-b border-gray-200 px-5 py-4">
         <h3 id="titulo-ventas" class="text-sm font-semibold">Últimas ventas</h3>
       </div>
       {% if ultimas_ventas %}
-        <div class="overflow-x-auto">
+        <div class="relative overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="text-left text-xs text-gray-500">
               <tr>
@@ -111,6 +111,6 @@
       {% endif %}
     </section>
 
-    {% include "comun/_accesos.html" with clase="lg:col-span-2" %}
+    {% include "comun/_accesos.html" with clase="min-w-0 lg:col-span-2" %}
   </div>
 {% endblock %}

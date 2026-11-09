@@ -106,11 +106,11 @@ Detalle en [00-contexto.md](00-contexto.md); quién es "Administrador" y qué ve
 
 | ID | Supuesto o restricción | Origen |
 |---|---|---|
-| SU-01 | El sistema se usa desde cualquier dispositivo con navegador (PC, celular o tablet); el uso principal es desde PC de escritorio | Relevamiento base |
+| SU-01 | El sistema se usa desde cualquier dispositivo con navegador (PC, celular o tablet); el uso principal es desde PC de escritorio. **Supuesto del proyecto** (DEC-170, PR-23): las operaciones en la PC del mostrador y el celular para consultas y reportes; un usuario por persona y pocos simultáneos | Relevamiento base; DEC-170 |
 | SU-02 | Google Chrome es el navegador principal | Relevamiento base |
 | SU-03 | Las balanzas siguen usando Kendra, sin integración con el nuevo sistema | Relevamiento base |
 | SU-04 | El negocio ya usa Google Sheets, por lo que los usuarios están familiarizados con planillas | Relevamiento base |
-| SU-05 | El sistema se aloja en la nube y se asume conectividad permanente. El despliegue está diferido: por ahora corre en local (D-07, PA-05) | Relevamiento base; el alumno informa que el internet del local es bueno |
+| SU-05 | El sistema se aloja en la nube y se asume conectividad permanente. El despliegue está diferido: por ahora corre en local (D-07, PA-05) y, como supuesto del proyecto, no entra en la entrega (DEC-161) | Relevamiento base; el alumno informa que el internet del local es bueno |
 | SU-06 | No se prevé facturación electrónica ni control completo de carne por corte | Relevamiento base |
 | RE-01 | Proyecto individual: lo desarrolla y mantiene una sola persona, sin complejidad empresarial | Alcance académico |
 | RE-02 | El repositorio no contiene datos reales del negocio, credenciales ni claves | Decisión del proyecto |
@@ -125,7 +125,7 @@ Análisis propio, **(propuesta)**. Los IDs son RA-xx (riesgos de alcance); no co
 | RA-02 | Usuarios con uso limitado de tecnología (cajera) rechazan el sistema | Interfaz simple y pocos pasos en la venta; capacitación breve |
 | RA-03 | Brechas del relevamiento sin resolver retrasan el diseño | Validación puntual con el responsable, priorizada (ver PR de prioridad alta) |
 | RA-04 | Ventas de carne fuera del sistema dejan reportes incompletos | Mitigado por DEC-36: toda venta de carne se registra en el sistema |
-| RA-05 | Caída de internet en el local | Definir contingencia mínima (PR-29) |
+| RA-05 | Caída de internet en el local | Sin modo sin conexión: planilla en papel y carga posterior en la caja abierta, con la hora de carga, explicado en el manual de usuario (DEC-171, supuesto del proyecto que cierra PR-29) |
 
 ## 10. Referencias
 
