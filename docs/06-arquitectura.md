@@ -14,9 +14,9 @@
 
 | Requisito | Qué implica técnicamente |
 |---|---|
-| RNF-01, RNF-02 | Aplicación web usable en PC, celular y tablet desde Chrome |
+| RNF-01, RNF-02 | Aplicación web usable en PC, celular y tablet desde Chrome; operación en la PC del mostrador y consultas y reportes en el celular (DEC-170) |
 | RNF-03 | Pantallas simples, pocos pasos en la venta |
-| RNF-05 | Pensada para la nube; el despliegue se prepara más adelante |
+| RNF-05 | Pensada para la nube; el despliegue se prepara más adelante y no entra en la entrega (DEC-161). Sin modo sin conexión (DEC-171) |
 | RNF-06, RNF-07, RNF-08 | Autenticación, permisos por rol, contraseñas protegidas |
 | RNF-09, RNF-10 | Transacciones: venta, ingreso y pagos se aplican completos o no se aplican |
 | RNF-13 | Mantenible por una sola persona: pocas piezas, código con pruebas |
@@ -37,11 +37,11 @@ La columna "Reversibilidad" aplica el criterio: lo difícil de revertir se decid
 | D-06 | Autenticación | **Sesiones de Django** con permisos por rol. JWT no se usa por ahora. En H1 los permisos salen del campo `rol` del usuario y de una tabla de funciones por rol (`apps/comun/menu.py`), la misma que arma el menú; no se usan los grupos de Django (DEC-32) | Recomendación (delegada por el alumno) | Media |
 | D-07 | Alojamiento y despliegue | Diferido: no se preparan archivos por ahora | Pedido del alumno | Fácil |
 | D-08 | Copias de seguridad | Diferidas hasta tener producción; en local, volcado manual cuando se necesite | Consecuencia de D-07 | Fácil |
-| D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1) | Propuesta | Fácil |
+| D-09 | Pruebas | `pytest` con una base de datos de prueba; GitHub Actions (`.github/workflows/pruebas.yml`) corre ruff, el control de migraciones y las pruebas con PostgreSQL 18 en cada Pull Request y en `main` (desde H1). En H6 se suman `pytest-playwright` 0.9.0 y Playwright 1.64.1 como dependencias de desarrollo para las pruebas de navegador (DEC-160, L2): marca `navegador`, Chromium instalado aparte y, en GitHub Actions, con `playwright install --with-deps chromium` | Propuesta | Fácil |
 | D-10 | Reportes PDF y Excel | `openpyxl` 3.1.5 (Excel) y `reportlab` 4.4.4 (PDF, sin bibliotecas del sistema), fijadas en `requirements.txt`; implementado en la etapa 4 de H5 (DEC-136, DEC-146) | Vigente | Fácil |
 | D-11 | Impresión de ticket | Diferida; primero impresión desde el navegador | Propuesta | Fácil |
 | D-12 | Base de datos local | PostgreSQL instalado en la computadora; Docker queda diferido | Propuesta | Fácil |
-| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm` | Propuesta | Fácil |
+| D-13 | Compilación de Tailwind | Con su herramienta de línea de comandos (Tailwind 4.3.3 instalado con `npm` solo para compilar: `npm run estilos`), sin empaquetador de JavaScript. Node también corre las pruebas de JavaScript puro con su ejecutor incluido (`node --test`), llamado desde `pytest`, sin dependencias de `npm`. El CSS compilado (`static/css/estilos.css`) se versiona; desde H6, GitHub Actions instala Node 24, corre `npm ci` y `npm run estilos` y falla si el resultado difiere del versionado, así no se publica una clase nueva sin compilar (como las del comprobante del cobro, DF-05) | Propuesta | Fácil |
 | D-14 | Credenciales de la base local | `.env.example` solo con nombres y valores de ejemplo; el `.env` local queda fuera de GitHub y del permiso de lectura de los agentes; las pruebas usan una base de prueba con credenciales exclusivas de desarrollo | Decidida (sección 6) | Fácil |
 | D-15 | Gráficos del Resumen de Reportes | **Chart.js 4.4.9** (licencia MIT) como archivo estático propio en `static/vendor/chart.js/chart-4.4.9.umd.js`, sin CDN; la versión queda fijada en `package.json` (dependencia de desarrollo) y el archivo se copia desde `node_modules` (DEC-158) | Pedido del alumno | Fácil |
 
@@ -154,7 +154,7 @@ flowchart LR
 
 Con H4 (DEC-131, R-4 del spec de H4) la cadena de la cuenta corriente va en un solo sentido: `ventas` → `clientes` → `caja`. `clientes` concentra saldo, disponible, deuda vencida, límite de crédito y saldo inicial (R-3) y nunca importa `ventas`; `caja` no importa `clientes` ni `ventas`. Una prueba de estructura (`apps/comun/tests/test_estructura.py`) lo verifica sobre el código de cada módulo, sin sus pruebas, que sí pueden armar ventas para probar la caja.
 
-**Orden de bloqueos (DEC-128):** las operaciones que se pueden cruzar bloquean sus filas con `select_for_update`, siempre en el mismo orden: primero la caja, después el cliente y por último los productos, ordenados por id. Así dos operaciones nunca se esperan una a la otra en sentidos opuestos (el problema de DF-03). La venta a cuenta corriente y el cobro bloquean al cliente para validar el límite o el saldo actual; la anulación de una venta bloquea, en este orden, la caja, la venta y el cliente, para validar el saldo (DEC-114, DEC-128). La anulación de un cobro bloquea la caja de su ingreso (si entró a caja), el cobro y el cliente, en ese orden (DEC-128). El cierre de caja bloquea solo la caja; una prueba con dos hilos verifica que un cobro, o su anulación, y el cierre no se cruzan (CP-120). Una prueba con dos hilos verifica que dos ventas a cuenta corriente del mismo cliente no pasan juntas el límite (`apps/ventas/tests/test_concurrencia_cuenta_corriente.py`).
+**Orden de bloqueos (DEC-128):** las operaciones que se pueden cruzar bloquean sus filas con `select_for_update`, siempre en el mismo orden: primero la caja, después el cliente y por último los productos, ordenados por id. Así dos operaciones nunca se esperan una a la otra en sentidos opuestos (el problema de DF-03). La venta a cuenta corriente y el cobro bloquean al cliente para validar el límite o el saldo actual; la anulación de una venta bloquea, en este orden, la caja, la venta y el cliente, para validar el saldo (DEC-114, DEC-128). La anulación de un cobro bloquea la caja que recibe la reversa (la de su ingreso o, si se cerró, la caja abierta, DEC-166), el cobro y el cliente, en ese orden (DEC-128). La anulación de un pago a proveedor que salió de caja bloquea esa caja y después el pago (DEC-178, H6). El cierre de caja bloquea solo la caja; una prueba con dos hilos verifica que un cobro, o su anulación, y el cierre no se cruzan (CP-120). Una prueba con dos hilos verifica que dos ventas a cuenta corriente del mismo cliente no pasan juntas el límite (`apps/ventas/tests/test_concurrencia_cuenta_corriente.py`).
 
 ## 4. Módulos y su relación con el modelo
 
@@ -191,7 +191,8 @@ sistema-gestion-carniceria/
 │       ├── forms.py
 │       ├── urls.py
 │       ├── admin.py           registro en el panel de administración
-│       └── tests/             pruebas de pytest; tests/js/ para las de JavaScript (node --test)
+│       └── tests/             pruebas de pytest; tests/js/ para las de JavaScript (node --test) y
+│                              tests/navegador/ para las de navegador (Playwright, DEC-160)
 ├── templates/                 plantillas HTML, una carpeta por módulo
 ├── static/
 │   ├── src/                   estilos de entrada de Tailwind
@@ -304,19 +305,21 @@ Por decisión del alumno, en esta etapa no se preparan archivos de despliegue. C
 
 El proveedor y el costo se verifican con los planes vigentes al decidir. Si la cátedra solo exige una demostración local (PA-05), el despliegue puede no ser parte de la entrega.
 
+**Decisión de H6 (DEC-161, L3):** como supuesto sobre PA-05, el despliegue no entra en la entrega y la demostración es local. Los estáticos versionados quedan **diferidos** hasta que se prepare un despliegue; en desarrollo sigue el `runserver` sin caché con `DEBUG`. Si la cátedra pide el sistema desplegado, se retoman esta sección, RT-07 y L3.
+
 ## 10. Decisiones diferidas
 
 Se postergan a propósito. Se reevalúan durante el desarrollo.
 
 | Tema | Cuándo se reevalúa |
 |---|---|
-| Despliegue y alojamiento | Cuando el sistema funcione en local y se defina PA-05 |
+| Despliegue y alojamiento | Si la cátedra lo pide (PA-05); para H6 se supone que no (DEC-161) |
 | Copias de seguridad automáticas | Junto con el despliegue |
-| Versionado de archivos estáticos (sección 9) | Junto con el despliegue |
+| Versionado de archivos estáticos (sección 9, L3) | Junto con el despliegue (DEC-161) |
 | Reportes PDF y Excel | Al llegar a CU-09 |
 | Libro de movimientos de stock | Si aparecen diferencias de stock que los ajustes registrados (DEC-98) no alcanzan a explicar (ver [05-modelo-datos.md](05-modelo-datos.md)) |
 | API con JWT y aplicación móvil | Si hace falta un cliente que no sea el navegador |
-| Modo sin conexión | Según PR-29 |
+| Modo sin conexión | Descartado para H6 (DEC-171): contingencia con planilla en papel |
 | Impresora térmica de tickets | El ticket se imprime desde el navegador (DEC-44); una impresora térmica sirve sin integración |
 | Docker | Si la instalación local resulta engorrosa |
 | Limitación de intentos de ingreso | Antes del uso real |
@@ -325,7 +328,7 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 
 | ID | Riesgo | Mitigación |
 |---|---|---|
-| RT-01 | Caída de internet en el local | Definir contingencia mínima (PR-29); modo sin conexión diferido |
+| RT-01 | Caída de internet en el local | Planilla en papel y carga posterior en la caja abierta, con la hora de carga (DEC-171, supuesto que cierra PR-29); modo sin conexión diferido |
 | RT-02 | Pérdida de datos | Copias automáticas al desplegar (D-08) |
 | RT-03 | Costo del alojamiento no sostenible | Validar presupuesto (PR-33) antes de elegir proveedor |
 | RT-04 | El agente introduce cambios sin pruebas | Pull Request obligatorio, pruebas automáticas y reglas en `CLAUDE.md` |
@@ -339,8 +342,8 @@ Se postergan a propósito. Se reevalúan durante el desarrollo.
 |---|---|
 | PR-33 | Costo y elección del alojamiento |
 | PA-05 | Si el despliegue es parte de la entrega; si lo es, antes hay que limitar los intentos de inicio de sesión (RT-07) |
-| PR-23 | Cantidad de usuarios y dispositivos |
-| PR-29 | Contingencia ante caída de internet |
+| PR-23 | Cerrada por decisión de diseño (DEC-170, supuesto): PC de escritorio con Chrome para operar, celular para consultas y reportes, pocos usuarios simultáneos |
+| PR-29 | Cerrada por decisión de diseño (DEC-171, supuesto): sin modo sin conexión; planilla en papel y carga posterior |
 | PR-34 | Tiempo de cierre de sesión por inactividad |
 | PR-35 | Cerrada por decisión de diseño (DEC-137, supuesto): la cajera ve en el inicio el estado de la caja y accesos a sus operaciones, sin totales del negocio |
 

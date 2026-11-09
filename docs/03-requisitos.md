@@ -89,8 +89,10 @@
 | RF-35 | El sistema debe permitir gestionar clientes (alta, baja, modificación) | Propuesta (H-04) | Alta | Decidido (DEC-116 a DEC-118, supuestos): solo el Administrador; nombre obligatorio y teléfono, dirección y observaciones opcionales; buscador y paginación. Implementado en H4, etapa 2 |
 | RF-36 | El Administrador debe poder registrar el pago de un cliente de cuenta corriente: ver saldo, ingresar monto y medio de pago | Base (CU-04) | Alta | Confirmado; también cobra la cajera (DEC-110, supuesto). Implementado en H4, etapa 4 |
 | RF-37 | Al registrar un pago de cliente, el sistema debe disminuir el saldo adeudado y registrar el ingreso en caja | Base (CU-04) | Alta | Confirmado; el Administrador puede registrarlo sin caja (DEC-110, supuesto). Implementado en H4, etapa 4 |
+| RF-56 | El sistema debe emitir un comprobante sin validez fiscal de cada cobro de cuenta corriente, imprimible desde el navegador, con n.º de cobro, fecha y hora, cliente, monto, medio, saldo anterior y posterior y usuario | Propuesta (L16) | Media | Decidido (DEC-167 y DEC-185, supuestos): la cajera lo imprime al cobrar y reimprime los de la caja abierta de hoy. Implementado en H6, etapa 2 |
+| RF-57 | El Administrador debe poder corregir un cobro de cuenta corriente o un pago a proveedor cuya caja ya cerró, con una reversa en la caja abierta, motivo obligatorio y vínculo al movimiento original, sin modificar la caja cerrada | Propuesta (L15) | Media | Decidido (DEC-166, supuesto; DEC-178). Implementado en H6, etapa 2 |
 | RF-38 | Si el pago supera la deuda, el sistema debe sugerir registrar el excedente como anticipo | Base (CU-04, A1) | Baja | Descartado (DEC-111, supuesto): sin saldo a favor; un cobro mayor al saldo se rechaza |
-| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado; incluye el saldo inicial (DEC-119, supuesto). Implementado en H4, etapa 5 |
+| RF-39 | El Administrador debe poder consultar el estado de cuenta de un cliente: saldo, ventas fiadas y pagos realizados | Base (CU-08) | Alta | Confirmado; incluye el saldo inicial (DEC-119, supuesto). Implementado en H4, etapa 5. El saldo acumulado por movimiento, implementado en H6, etapa 2 (DEC-168) |
 | RF-40 | El sistema debe mostrar una alerta cuando un cliente tenga deuda vencida | Base (CU-08) | Media | Decidido (DEC-109, supuesto): plazo único de 30 días, solo alerta. Implementado en H4, etapa 5 |
 | RF-41 | El Administrador debe poder editar límites y condiciones de crédito de un cliente, si tiene permiso | Base (CU-08) | Media | Decidido (DEC-108, DEC-112, DEC-117, supuestos): límite opcional; las condiciones van en "Observaciones", texto libre, sin recargos. Implementado en H4, etapa 5 |
 
@@ -109,17 +111,17 @@
 
 | ID | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|
-| RF-47 | El sistema debe permitir cargar datos históricos desde las planillas actuales | Propuesta | Baja | A confirmar (PR-28). La deuda de los clientes al empezar no depende de RF-47: se carga como saldo inicial (DEC-119) |
+| RF-47 | El sistema debe permitir cargar datos históricos desde las planillas actuales | Propuesta | Baja | A confirmar (PR-28); fuera de H6 (DEC-172). La deuda de los clientes al empezar no depende de RF-47: se carga como saldo inicial (DEC-119) |
 
 ## 3. Requisitos no funcionales
 
 | ID | Categoría | Requisito | Origen | Prioridad | Estado |
 |---|---|---|---|---|---|
 | RNF-01 | Plataforma | El sistema debe ser una aplicación web accesible desde un navegador, con Google Chrome como navegador principal | Base (2.3) | Alta | Confirmado |
-| RNF-02 | Portabilidad | La interfaz debe ser responsive y usable en PC, celular y tablet; el uso principal es desde PC de escritorio | Base (1.2, 2.3) | Alta | Confirmado |
+| RNF-02 | Portabilidad | La interfaz debe ser responsive y usable en PC, celular y tablet; el uso principal es desde PC de escritorio | Base (1.2, 2.3) | Alta | Confirmado. Supuesto del proyecto para el alcance en el celular (DEC-170): consultas y reportes; las pantallas de operación no se optimizan, pero no se rompen |
 | RNF-03 | Usabilidad | La interfaz debe ser sencilla y adecuada para usuarios con uso limitado de tecnología (cajera); la venta debe resolverse en pocos pasos | Base (2.1, 2.2) | Alta | Confirmado |
-| RNF-04 | Usabilidad | Los usuarios deben poder aprender el uso básico con una capacitación breve | Propuesta | Media | A confirmar |
-| RNF-05 | Disponibilidad | El sistema se aloja en la nube y se asume conectividad permanente en el local | Base (2.3) | Alta | Confirmado (contingencia: PR-29) |
+| RNF-04 | Usabilidad | Los usuarios deben poder aprender el uso básico con una capacitación breve | Propuesta | Media | A confirmar con el negocio. Para H6, etapa 5: manual de usuario por rol ([manual-usuario.md](manual-usuario.md)) y guía de capacitación con un recorrido sobre los datos de ejemplo ([capacitacion.md](capacitacion.md)) (DEC-183) |
+| RNF-05 | Disponibilidad | El sistema se aloja en la nube y se asume conectividad permanente en el local | Base (2.3) | Alta | Confirmado. Contingencia sin internet: planilla en papel y carga posterior (DEC-171, supuesto del proyecto) |
 | RNF-06 | Seguridad | El acceso requiere autenticación y las funciones se restringen por rol | Base (2.2) | Alta | Confirmado |
 | RNF-07 | Seguridad | Las contraseñas no deben almacenarse en texto plano | Propuesta | Alta | Propuesta |
 | RNF-08 | Seguridad | Los datos de clientes y saldos deben protegerse de accesos no autorizados | Propuesta | Alta | Propuesta |
@@ -139,10 +141,10 @@
 | CU-01 Registrar venta (SC-03 para cuenta corriente) | RF-06, RF-11 a RF-20, RF-27, RF-48, RF-49 |
 | CU-02 Abrir caja por turno | RF-04, RF-05, RF-10 |
 | CU-03 Cerrar caja por turno | RF-06, RF-07, RF-08, RF-09 |
-| CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38 |
+| CU-04 Registrar pago de cliente | RF-06, RF-36, RF-37, RF-38, RF-56, RF-57 |
 | CU-05 Registrar ingreso de mercadería | RF-22, RF-23, RF-24, RF-30 |
 | CU-06 Consultar stock | RF-25, RF-26, RF-28 |
-| CU-07 Registrar pago a proveedor | RF-06, RF-31, RF-32, RF-33 |
+| CU-07 Registrar pago a proveedor | RF-06, RF-31, RF-32, RF-33, RF-57 |
 | CU-08 Gestionar cuentas corrientes | RF-39, RF-40, RF-41 |
 | CU-09 Generar reportes | RF-42 a RF-46, RF-55 |
 | CU-10 Iniciar sesión | RF-01, RF-02 |
