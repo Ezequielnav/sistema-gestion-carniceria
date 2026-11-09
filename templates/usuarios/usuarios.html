@@ -28,12 +28,12 @@
 
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de usuarios">
     {% if pagina.object_list %}
-      <div class="overflow-x-auto">
+      <div class="relative overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
             <tr>
               <th scope="col" class="px-5 py-3 font-medium">Usuario</th>
-              <th scope="col" class="px-5 py-3 font-medium">Nombre</th>
+              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Nombre</th>
               <th scope="col" class="px-5 py-3 font-medium">Rol</th>
               <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
             </tr>
@@ -48,7 +48,7 @@
                   {% endif %}
                   {% if usuario.con_panel %}
                     {# DEC-150 y DEC-156: se gestiona con manage.py. #}
-                    <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600" title="Entra al panel de administración; se gestiona con manage.py">Técnico</span>
+                    <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600" title="Entra al panel de administración; lo gestiona el soporte técnico">Técnico</span>
                   {% endif %}
                 </td>
                 <td class="px-5 py-3 text-gray-600">{{ usuario.nombre_completo }}</td>

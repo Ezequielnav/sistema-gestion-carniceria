@@ -53,13 +53,13 @@
 
   <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de productos">
     {% if pagina.object_list %}
-      <div class="overflow-x-auto">
+      <div class="relative overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
             <tr>
-              <th scope="col" class="px-5 py-3 font-medium">Producto</th>
+              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Producto</th>
               <th scope="col" class="px-5 py-3 font-medium">Plus</th>
-              <th scope="col" class="px-5 py-3 font-medium">Categoría</th>
+              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Categoría</th>
               <th scope="col" class="px-5 py-3 text-right font-medium">Precio</th>
               {# DEC-103: el Administrador y toda cajera ven el stock; solo el Administrador lo cambia. #}
               {% if ver_stock %}

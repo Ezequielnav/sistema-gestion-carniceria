@@ -14,7 +14,7 @@
     <p class="mt-1 text-sm text-gray-500">{{ venta.fecha_hora|date:"d/m/Y H:i" }} · {{ venta.usuario.get_full_name }} · {{ venta.medio_pago }}{% if venta.cliente %} · {{ venta.cliente.nombre }}{% endif %}</p>
     <a href="{% url 'ventas:ticket' venta.pk %}" class="mt-2 inline-block text-sm font-medium text-red-700 hover:underline">Ver ticket</a>
 
-    <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
+    <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
       <table class="w-full text-sm">
         <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
           <tr>
