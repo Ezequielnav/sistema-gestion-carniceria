@@ -50,7 +50,7 @@ Estas preguntas **no repiten el relevamiento**: cubren lo que el alcance ampliad
 | Media | Afectan reglas y detalles del diseño | PR-02, PR-03, PR-05, PR-07, PR-09, PR-10, PR-14, PR-15, PR-18, PR-20, PR-21, PR-22, PR-26, PR-30, PR-32, PR-37 |
 | Baja | Se pueden resolver con un supuesto y validar después | PR-04, PR-06, PR-11, PR-16, PR-23, PR-24, PR-28, PR-29, PR-31, PR-33, PR-34, PR-35, PR-36 |
 
-Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 para H2, DEC-78 para H3, DEC-107 para H4 y DEC-133 para H5 en [09-decisiones.md](09-decisiones.md); son supuestos del proyecto, no datos confirmados por el negocio). La columna "Documentos afectados" indica qué actualizar al responder.
+Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por decisión de diseño** (se decidió sin el negocio y se registró la DEC que la cierra; ver DEC-35 para H2, DEC-78 para H3, DEC-107 para H4, DEC-133 para H5 y DEC-159 para H6 en [09-decisiones.md](09-decisiones.md); son supuestos del proyecto, no datos confirmados por el negocio). La columna "Documentos afectados" indica qué actualizar al responder.
 
 ### 3.1 Ventas y carne
 
@@ -104,13 +104,13 @@ Estado posible: **Pendiente**, **Respondida**, **Descartada** o **Cerrada por de
 
 | ID | Pregunta | Por qué importa | Documentos afectados | Estado |
 |---|---|---|---|---|
-| PR-23 | ¿Cuántas personas usarán el sistema y desde qué dispositivos (PC de mostrador, celulares)? | Usuarios y diseño responsive | 03, 06 | Pendiente |
+| PR-23 | ¿Cuántas personas usarán el sistema y desde qué dispositivos (PC de mostrador, celulares)? | Usuarios y diseño responsive | 03, 06 | **Cerrada por decisión de diseño:** DEC-170 (DEC-159). PC de escritorio con Chrome para operar, celular para consultas y reportes, un usuario por persona y pocos simultáneos |
 | PR-24 | ¿Hay impresora de tickets? ¿Qué debe contener el ticket o comprobante (sin validez fiscal)? | Emisión de comprobante | 03, 04 | **Cerrada por decisión de diseño:** DEC-44 (DEC-35) |
 | PR-25 | ¿Quién es el "Administrador": el administrativo, los dueños u otra persona? ¿Qué ven los dueños? | Roles y permisos | 00, 03, 04 | **Cerrada por decisión de diseño:** DEC-134 (DEC-133). La consulta de stock de la cajera se decidió en DEC-103 |
 | PR-26 | ¿Cada persona tendrá su propio usuario y contraseña? | Seguridad y auditoría | 03, 06 | **Cerrada por decisión de diseño:** DEC-135 (DEC-133) |
 | PR-27 | ¿Qué reportes se necesitan, con qué frecuencia y en qué formato? ¿Deben generarse solos al cierre o a pedido? | La meta dice "automáticos"; el caso de uso, "a pedido" | 02, 03, 04 | **Cerrada por decisión de diseño:** DEC-136 (DEC-133) |
-| PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente. Los saldos que los clientes ya deben al empezar no dependen de esta pregunta: se cargan como saldo inicial (DEC-119) |
-| PR-29 | Si falla internet en el local, ¿qué debería poder hacerse? | Internet es bueno, pero conviene definir contingencia | 03, 06 | Pendiente |
+| PR-28 | ¿Hay que cargar datos históricos desde las planillas actuales? | Migración inicial | 03, 06, 07 | Pendiente. Los saldos que los clientes ya deben al empezar no dependen de esta pregunta: se cargan como saldo inicial (DEC-119). Fuera de H6 (DEC-172) |
+| PR-29 | Si falla internet en el local, ¿qué debería poder hacerse? | Internet es bueno, pero conviene definir contingencia | 03, 06 | **Cerrada por decisión de diseño:** DEC-171 (DEC-159). Sin modo sin conexión; planilla en papel y carga posterior en la caja abierta, con la hora de carga |
 | PR-34 | ¿Después de cuánto tiempo sin uso se debe cerrar la sesión? | Seguridad en una PC compartida del mostrador; mientras tanto queda el valor por defecto de Django | 06 | Pendiente |
 | PR-35 | ¿La cajera debe ver en el inicio el total vendido del día y las últimas ventas, o solo el estado de su caja? | Hoy el inicio lo muestra a todos los roles; relacionado con PR-25 | 04, 06 | **Cerrada por decisión de diseño:** DEC-137 (DEC-133) |
 
