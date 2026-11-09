@@ -5,40 +5,388 @@
 @source "../../apps";
 
 /*
- * Estilo de dashboard (DEC-30): grises y rojo de la paleta de Tailwind, los mismos
- * que usa el panel de administración (Unfold), y tipografía Inter.
+ * Fuentes propias (S-3, DEC-189), sin CDN: la interfaz se ve igual sin internet (DEC-171).
+ * Barlow en títulos y números protagonistas, Source Sans 3 en el texto y los montos de tablas,
+ * Source Serif 4 solo en la marca y el encabezado de los comprobantes.
+ * Subconjunto latino de Fontsource, licencia OFL (LICENSE.txt en cada carpeta).
+ */
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fuentes/barlow/barlow-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../vendor/fuentes/source-sans-3/source-sans-3-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../vendor/fuentes/source-sans-3/source-sans-3-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fuentes/source-sans-3/source-sans-3-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../vendor/fuentes/source-sans-3/source-sans-3-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../vendor/fuentes/source-serif-4/source-serif-4-latin-600-normal.woff2") format("woff2");
+}
+
+/*
+ * Tokens de H7 (SPEC-H7, sección 2.1; DEC-187 y DEC-188). Contrastes AA calculados en el spec.
+ * Los grises de Tailwind pasan a la escala cálida y el blanco a `superficie`, para que las
+ * pantallas que todavía usan `gray-*` y `bg-white` tomen los neutros nuevos hasta su etapa.
  */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-titulo: "Barlow", "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+
+  --color-marino-900: #0f2557;
+  --color-marino-800: #14306b;
+  --color-marino-700: #1d3a7a;
+  --color-marino-50: #eceff5;
+  --color-papel: #f6f1e7;
+  --color-superficie: #fffcf6;
+  --color-tinta: #211c17;
+  --color-tinta-suave: #625a50;
+  /* Datos que no deben competir (por ejemplo, los ceros de un reporte); 4,9:1 sobre superficie. */
+  --color-tinta-tenue: #776d61;
+  --color-borde-campo: #7d7366;
+  --color-borde: #e3dacb;
+  --color-menu-texto: #e3dacb;
+  --color-menu-rotulo: #a9b4cc;
+  --color-peligro: #b3261e;
+  --color-peligro-oscuro: #8f1e18;
+  --color-peligro-fondo: #fbe9e4;
+  --color-alerta: #855000;
+  --color-alerta-fondo: #fbefd4;
+  --color-exito: #1e6b45;
+  --color-exito-fondo: #e6f1e8;
+
+  --color-white: #fffcf6;
+  --color-gray-50: #f6f1e7;
+  --color-gray-100: #efe8db;
+  --color-gray-200: #e3dacb;
+  --color-gray-300: #cfc4b2;
+  --color-gray-400: #8a8072;
+  --color-gray-500: #625a50;
+  --color-gray-600: #534c43;
+  --color-gray-700: #3f3932;
+  --color-gray-800: #2d2822;
+  --color-gray-900: #211c17;
+  --color-gray-950: #16120e;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    font-feature-settings: "cv11", "ss01";
   }
 
   body {
-    @apply bg-gray-50 font-sans text-gray-900 antialiased;
+    @apply bg-papel font-sans text-tinta antialiased;
   }
 
-  /* Montos y cantidades alineados en columnas. */
+  /* Montos y cantidades alineados en columnas (cifras tabulares, S-3). */
   .cifras {
     font-variant-numeric: tabular-nums;
   }
 
+  /* Al imprimir, papel blanco y tinta negra (S-9). */
+  @media print {
+    body {
+      background: #fff;
+      color: #000;
+    }
+  }
+
+  /* Foco visible marino de 2 px (S-6, WCAG 2.4.7). */
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-red-600;
+    @apply outline-2 outline-offset-2 outline-marino-700;
   }
 }
 
+/*
+ * Componentes comunes (SPEC-H7, sección 3). Sin sombras, radios chicos y sin degradados (S-13).
+ */
 @layer components {
-  /* Campos de formulario grandes, pensando en el mostrador y el uso táctil (RNF-03). */
+  /* Títulos */
+  .titulo-pantalla {
+    @apply font-titulo text-[1.5625rem] leading-tight font-semibold text-tinta;
+  }
+
+  .bajada {
+    @apply mt-1 text-base text-tinta-suave;
+  }
+
+  .titulo-recuadro {
+    @apply font-titulo text-xl leading-tight font-semibold text-tinta;
+  }
+
+  /*
+   * Montos de tablas, listas y comprobantes: Source Sans 3 con cifras tabulares (alineadas en
+   * columna) y el cero sin tachar. Subtotales y totales en semibold; el precio unitario, con
+   * `font-normal`.
+   */
+  .monto {
+    @apply font-sans font-semibold text-tinta;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Números protagonistas en Barlow semibold: total de la venta, tarjetas del inicio, saldo del
+   * cliente al cobrar y cifras del Resumen (S-6, S-8). Marcan la jerarquía sobre el resto.
+   */
+  .cifra-grande {
+    @apply font-titulo text-[1.9375rem] leading-tight font-semibold text-tinta;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Botones (S-2): marino para la acción principal, rojo solo para lo que no se deshace. */
+  .boton {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-transparent px-4 py-2 text-center text-sm font-semibold whitespace-nowrap;
+  }
+
+  .boton-grande {
+    @apply min-h-12 px-5 text-base;
+  }
+
+  .boton-principal {
+    @apply bg-marino-700 text-superficie hover:bg-marino-900;
+  }
+
+  .boton-secundario {
+    @apply border-borde-campo bg-superficie text-tinta hover:bg-papel;
+  }
+
+  .boton-peligro {
+    @apply bg-peligro text-superficie hover:bg-peligro-oscuro;
+  }
+
+  /* Acciones de fila y enlaces con forma de botón. */
+  .boton-discreto {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold text-marino-700 hover:bg-marino-50;
+  }
+
+  .boton-discreto-peligro {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold text-peligro hover:bg-peligro-fondo;
+  }
+
+  .enlace {
+    @apply font-semibold text-marino-700 underline-offset-2 hover:underline;
+  }
+
+  /* Formularios: etiqueta, campo, ayuda y error por campo. */
+  .etiqueta {
+    @apply mb-1.5 block text-sm font-semibold text-tinta;
+  }
+
+  /* Campos grandes, pensando en el mostrador y el uso táctil (RNF-03); borde de 3:1 o más. */
   .campo {
-    @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base shadow-xs placeholder:text-gray-400 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/20;
+    @apply block min-h-11 w-full rounded-md border border-borde-campo bg-superficie px-3 py-2 text-base text-tinta placeholder:text-gray-400 focus:border-marino-700 focus:ring-2 focus:ring-marino-700/25 focus:outline-none disabled:bg-papel disabled:text-tinta-suave;
+  }
+
+  /* Un campo con su error debajo lleva el borde en rojo: el error no depende solo del texto. */
+  .campo:has(~ .error-campo:not(.hidden)) {
+    @apply border-peligro;
   }
 
   .casilla {
-    @apply size-4 rounded border-gray-300 accent-red-600;
+    @apply size-4 rounded-sm border-borde-campo accent-marino-700;
+  }
+
+  .ayuda {
+    @apply mt-1.5 text-sm text-tinta-suave;
+  }
+
+  .error-campo {
+    @apply mt-1.5 text-sm font-semibold text-peligro;
+  }
+
+  /* Avisos: mensajes de Django y recuadros de error, alerta, éxito o información. */
+  .aviso {
+    @apply rounded-md border px-4 py-3 text-sm;
+  }
+
+  .aviso-error {
+    @apply border-peligro/30 bg-peligro-fondo text-peligro;
+  }
+
+  .aviso-alerta {
+    @apply border-alerta/30 bg-alerta-fondo text-alerta;
+  }
+
+  .aviso-exito {
+    @apply border-exito/30 bg-exito-fondo text-exito;
+  }
+
+  .aviso-info {
+    @apply border-marino-700/20 bg-marino-50 text-marino-900;
+  }
+
+  /* Insignias de estado: siempre con texto, el color no va solo (S-2). */
+  .insignia {
+    @apply inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-semibold whitespace-nowrap;
+  }
+
+  .insignia-exito {
+    @apply bg-exito-fondo text-exito;
+  }
+
+  .insignia-alerta {
+    @apply bg-alerta-fondo text-alerta;
+  }
+
+  .insignia-peligro {
+    @apply bg-peligro-fondo text-peligro;
+  }
+
+  .insignia-neutra {
+    @apply bg-gray-100 text-tinta-suave;
+  }
+
+  /* Recuadros: agrupan, con borde fino y sin sombra. */
+  .recuadro {
+    @apply rounded-lg border border-borde bg-superficie;
+  }
+
+  .recuadro-encabezado {
+    @apply border-b border-borde px-5 py-4;
+  }
+
+  /* `relative` es la corrección de DF-02 y DF-05: el texto `sr-only` no se escapa del recuadro. */
+  .recuadro-tabla {
+    @apply relative overflow-x-auto;
+  }
+
+  /* Tablas */
+  .tabla {
+    @apply w-full text-sm;
+  }
+
+  .tabla thead {
+    @apply border-b border-borde text-left text-[0.8125rem] text-tinta-suave;
+  }
+
+  /* Menos aire a los costados en el celular, para que entren las columnas que importan. */
+  .tabla th {
+    @apply px-3 py-3 font-semibold sm:px-5;
+  }
+
+  .tabla td {
+    @apply px-3 py-3 sm:px-5;
+  }
+
+  .tabla tbody tr + tr {
+    @apply border-t border-gray-100;
+  }
+
+  .tabla-compacta th,
+  .tabla-compacta td {
+    @apply px-4 py-2.5;
+  }
+
+  /* Montos: negativos con signo y en rojo (S-2, DF-07). */
+  .monto-negativo {
+    @apply text-peligro;
+  }
+
+  /* Pestañas: la elegida, marcada con `aria-current` y una línea marino. */
+  .pestanas {
+    @apply flex gap-1 border-b border-borde text-sm;
+  }
+
+  .pestanas a {
+    @apply -mb-px border-b-2 border-transparent px-3 py-2.5 font-semibold whitespace-nowrap text-tinta-suave hover:text-tinta;
+  }
+
+  .pestanas a[aria-current="page"] {
+    @apply border-marino-700 text-marino-700;
+  }
+
+  /* Opciones de los buscadores (S-12; las usan los JS desde la etapa 2). */
+  .opcion {
+    @apply flex cursor-pointer items-center justify-between gap-4 px-3 py-2.5 text-sm hover:bg-papel;
+  }
+
+  .opcion-marcada,
+  .opcion-marcada:hover {
+    @apply bg-marino-50;
+  }
+
+  .opcion-vacia {
+    @apply flex items-center justify-between gap-4 px-3 py-2.5 text-sm text-tinta-suave;
+  }
+
+  /* Lista desplegable de los buscadores. */
+  .lista-opciones {
+    @apply max-h-80 divide-y divide-gray-100 overflow-y-auto rounded-md border border-borde-campo bg-superficie;
+  }
+
+  /* Enlace para volver a la pantalla anterior. */
+  .volver {
+    @apply text-sm font-semibold text-tinta-suave hover:text-tinta;
+  }
+
+  /* Nota que explica un dato, sin ser un aviso (por ejemplo, qué ya está incluido en lo esperado). */
+  .nota {
+    @apply rounded-md border border-borde bg-papel px-4 py-3 text-sm text-tinta;
+  }
+
+  /* Paginación al pie de un listado. */
+  .paginacion {
+    @apply flex items-center justify-between gap-4 border-t border-borde px-5 py-3 text-sm;
+  }
+
+  /*
+   * Comprobantes impresos (S-9, DEC-195): en pantalla, una hoja sobre el papel; al imprimir,
+   * blanco y negro, sin bordes ni fondos, para no gastar tinta. `white` es `superficie` en
+   * este tema, así que al imprimir la hoja queda transparente sobre el blanco del papel.
+   */
+  .hoja {
+    @apply rounded-lg border border-borde bg-superficie p-6 sm:p-8 print:rounded-none print:border-0 print:bg-transparent print:p-0 print:text-black;
+  }
+
+  .hoja-marca {
+    @apply font-serif text-2xl leading-none font-semibold print:text-black;
+  }
+
+  /* Las tablas de la hoja dibujan su línea entera, sin cortes entre columnas. */
+  .hoja-separador {
+    @apply border-separate border-spacing-0 border-dashed border-gray-400 print:border-black;
+  }
+
+  /* Menú lateral sobre marino (S-5). */
+  .menu-enlace {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-texto hover:bg-marino-800 hover:text-superficie;
+  }
+
+  .menu-enlace[aria-current="page"] {
+    @apply bg-superficie font-semibold text-marino-900 hover:bg-superficie hover:text-marino-900;
+  }
+
+  .menu-rotulo {
+    @apply mb-2 px-3 text-xs font-semibold text-menu-rotulo;
   }
 }

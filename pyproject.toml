@@ -10,6 +10,9 @@ select = ["E", "F", "I", "B", "DJ", "UP"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py"]
 addopts = "-ra"
+# tasks/ guarda archivos de trabajo del agente (ignorados por git), como el script de capturas de H7:
+# no se juntan con las pruebas. Se mantienen los directorios que pytest ya excluye por defecto.
+norecursedirs = [".*", "*.egg", "_darcs", "build", "CVS", "dist", "node_modules", "venv", "{arch}", "tasks"]
 markers = [
     "navegador: pruebas con un navegador real (Playwright y Chromium); correr aparte con -m navegador",
 ]

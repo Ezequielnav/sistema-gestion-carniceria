@@ -60,6 +60,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.comun.context_processors.menu",
+                "apps.comun.context_processors.marca",
             ],
         },
     },

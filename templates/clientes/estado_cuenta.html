@@ -4,94 +4,97 @@
 {% block encabezado %}Clientes{% endblock %}
 
 {% block contenido %}
-  <a href="{% url 'clientes:clientes' %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver a clientes</a>
+  <a href="{% url 'clientes:clientes' %}" class="volver">← Volver a clientes</a>
   <div class="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight">
+      <h2 class="titulo-pantalla">
         {{ cliente.nombre }}
-        {% if not cliente.activo %}<span class="ml-2 align-middle rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Dado de baja</span>{% endif %}
+        {% if not cliente.activo %}<span class="insignia insignia-neutra ml-2 align-middle font-sans">Dado de baja</span>{% endif %}
       </h2>
-      <p class="mt-1 text-sm text-gray-500">Estado de cuenta{% if cliente.telefono %} · <span class="cifras">{{ cliente.telefono }}</span>{% endif %}{% if cliente.direccion %} · {{ cliente.direccion }}{% endif %}</p>
+      <p class="bajada">Estado de cuenta{% if cliente.telefono %} · <span class="cifras">{{ cliente.telefono }}</span>{% endif %}{% if cliente.direccion %} · {{ cliente.direccion }}{% endif %}</p>
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
       {% if cliente.saldo > 0 %}
-        <a href="{% url 'clientes:cobrar' %}?cliente={{ cliente.pk }}" class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Registrar cobro</a>
+        <a href="{% url 'clientes:cobrar' %}?cliente={{ cliente.pk }}" class="boton boton-principal">Registrar cobro</a>
       {% endif %}
       {% if cliente.activo %}
-        <a href="{% url 'clientes:editar' cliente.pk %}" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-xs hover:bg-gray-50">Editar datos</a>
+        <a href="{% url 'clientes:editar' cliente.pk %}" class="boton boton-secundario">Editar datos</a>
       {% endif %}
     </div>
   </div>
 
   {# RN-11 y DEC-109: solo alerta, no bloquea. #}
   {% if cliente.deuda_vencida %}
-    <div role="alert" class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-      Tiene deuda vencida: <span class="cifras font-semibold">$ {{ cliente.deuda_vencida|floatformat:"2g" }}</span> de cargos con más de {{ plazo }} días sin cubrir.
+    <div role="alert" class="mt-6 aviso aviso-alerta">
+      Tiene deuda vencida: <span class="monto">$ {{ cliente.deuda_vencida|floatformat:"2g" }}</span> de cargos con más de {{ plazo }} días sin cubrir.
     </div>
   {% endif %}
 
   <dl class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-      <dt class="text-sm text-gray-500">Saldo</dt>
-      <dd class="cifras mt-1 text-2xl font-semibold tracking-tight">$ {{ cliente.saldo|floatformat:"2g" }}</dd>
+    {# A 375 px el saldo ocupa todo el ancho para que el monto entre en un renglón. #}
+    <div class="recuadro col-span-2 p-5 lg:col-span-1">
+      <dt class="text-sm text-tinta-suave">Saldo</dt>
+      <dd class="cifra-grande mt-1">$ {{ cliente.saldo|floatformat:"2g" }}</dd>
     </div>
-    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-      <dt class="text-sm text-gray-500">Límite</dt>
+    <div class="recuadro p-5">
+      <dt class="text-sm text-tinta-suave">Límite</dt>
       {# DEC-115 #}
-      <dd class="cifras mt-1 text-lg font-semibold">{{ cliente.texto_limite }}</dd>
+      <dd class="monto mt-1 text-lg">{{ cliente.texto_limite }}</dd>
     </div>
-    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-      <dt class="text-sm text-gray-500">Disponible</dt>
-      <dd class="cifras mt-1 text-lg font-semibold">{% if cliente.disponible is None %}—{% elif cliente.disponible > 0 %}$ {{ cliente.disponible|floatformat:"2g" }}{% else %}$ 0,00{% endif %}</dd>
+    <div class="recuadro p-5">
+      <dt class="text-sm text-tinta-suave">Disponible</dt>
+      <dd class="monto mt-1 text-lg">{% if cliente.disponible is None %}—{% elif cliente.disponible > 0 %}$ {{ cliente.disponible|floatformat:"2g" }}{% else %}$ 0,00{% endif %}</dd>
     </div>
-    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-      <dt class="text-sm text-gray-500">Deuda vencida</dt>
-      <dd class="cifras mt-1 text-lg font-semibold {% if cliente.deuda_vencida %}text-amber-800{% endif %}">$ {{ cliente.deuda_vencida|floatformat:"2g" }}</dd>
+    <div class="recuadro col-span-2 p-5 lg:col-span-1">
+      <dt class="text-sm text-tinta-suave">Deuda vencida</dt>
+      <dd class="monto mt-1 text-lg {% if cliente.deuda_vencida %}text-alerta{% endif %}">$ {{ cliente.deuda_vencida|floatformat:"2g" }}</dd>
     </div>
   </dl>
 
-  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-labelledby="titulo-movimientos">
-    <h3 id="titulo-movimientos" class="border-b border-gray-200 px-5 py-3 font-semibold">Movimientos</h3>
+  <section class="recuadro mt-6" aria-labelledby="titulo-movimientos">
+    <h3 id="titulo-movimientos" class="recuadro-encabezado titulo-recuadro">Movimientos</h3>
     {% if pagina.object_list %}
-      <div class="relative overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <div class="recuadro-tabla">
+        <table class="tabla tabla-compacta">
+          <thead>
             <tr>
-              <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
-              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Movimiento</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium">Monto</th>
+              {# En el celular se ocultan la fecha completa y el detalle: quedan el monto y el saldo. #}
+              <th scope="col" class="hidden sm:table-cell">Fecha</th>
+              <th scope="col" class="min-w-28 sm:min-w-48">Movimiento</th>
+              <th scope="col" class="text-right">Monto</th>
               {# L17 (DEC-168): saldo después de cada movimiento, en orden de registro. #}
-              <th scope="col" class="px-5 py-3 text-right font-medium">Saldo</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+              <th scope="col" class="text-right">Saldo</th>
+              <th scope="col" class="text-right"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for mov in pagina %}
-              <tr class="{% if mov.anulado %}text-gray-500{% endif %}">
-                <td class="cifras px-5 py-3 whitespace-nowrap">{{ mov.fecha_hora|date:"d/m/Y H:i" }}</td>
-                <td class="px-5 py-3">
+              <tr class="{% if mov.anulado %}text-tinta-suave{% endif %}">
+                <td class="cifras hidden whitespace-nowrap sm:table-cell">{{ mov.fecha_hora|date:"d/m/Y H:i" }}</td>
+                <td>
+                  <span class="cifras block text-xs text-tinta-suave sm:hidden">{{ mov.fecha_hora|date:"d/m" }}</span>
                   {% if mov.tipo == "VENTA_FIADA" %}
                     <a href="{% url 'ventas:detalle' mov.venta_id %}" class="font-medium underline-offset-2 hover:underline">Venta N.º {{ mov.venta_id }}</a>
                   {% elif mov.tipo == "ANULACION_VENTA" %}
                     Anulación de la <a href="{% url 'ventas:detalle' mov.venta_id %}" class="underline-offset-2 hover:underline">venta N.º {{ mov.venta_id }}</a>
                   {% elif mov.tipo == "PAGO" %}
                     <a href="{% url 'clientes:cobro' mov.pago_cliente_id %}" class="font-medium underline-offset-2 hover:underline">Cobro N.º {{ mov.pago_cliente_id }}</a>
-                    <span class="text-gray-500">· {{ mov.pago_cliente.medio_pago }}{% if not mov.pago_cliente.entra_a_caja %}, sin caja{% endif %}</span>
+                    <span class="hidden text-tinta-suave sm:inline">· {{ mov.pago_cliente.medio_pago }}{% if not mov.pago_cliente.entra_a_caja %}, sin caja{% endif %}</span>
                   {% elif mov.tipo == "ANULACION_PAGO" %}
                     Anulación del <a href="{% url 'clientes:cobro' mov.pago_cliente_id %}" class="underline-offset-2 hover:underline">cobro N.º {{ mov.pago_cliente_id }}</a>
                   {% elif mov.tipo == "SALDO_INICIAL" %}
-                    <span class="font-medium">Saldo inicial</span> <span class="text-gray-500">· origen {{ mov.fecha_origen|date:"d/m/Y" }} · {{ mov.motivo }}</span>
+                    <span class="font-medium">Saldo inicial</span> <span class="hidden text-tinta-suave sm:inline">· origen {{ mov.fecha_origen|date:"d/m/Y" }} · {{ mov.motivo }}</span>
                   {% else %}
-                    Anulación del saldo inicial <span class="text-gray-500">· {{ mov.motivo }}</span>
+                    Anulación del saldo inicial <span class="hidden text-tinta-suave sm:inline">· {{ mov.motivo }}</span>
                   {% endif %}
-                  {% if mov.anulado %}<span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>{% endif %}
+                  {% if mov.anulado %}<span class="insignia insignia-neutra ml-2">Anulado</span>{% endif %}
                 </td>
-                <td class="cifras px-5 py-3 text-right whitespace-nowrap">{% if mov.suma %}+{% else %}−{% endif %} $ {{ mov.monto|floatformat:"2g" }}</td>
-                <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">$ {{ mov.saldo_acumulado|floatformat:"2g" }}</td>
-                <td class="px-5 py-3 text-right whitespace-nowrap">
+                <td class="monto text-right whitespace-nowrap">{% if mov.suma %}+{% else %}−{% endif %} $ {{ mov.monto|floatformat:"2g" }}</td>
+                <td class="monto text-right whitespace-nowrap">$ {{ mov.saldo_acumulado|floatformat:"2g" }}</td>
+                <td class="text-right whitespace-nowrap">
                   {# S-11 (DEC-130): el cobro se anula desde su detalle. #}
                   {% if mov.tipo == "PAGO" and not mov.anulado %}
-                    <a href="{% url 'clientes:cobro' mov.pago_cliente_id %}#titulo-anular" class="rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50">Anular<span class="sr-only"> el cobro N.º {{ mov.pago_cliente_id }}</span></a>
+                    <a href="{% url 'clientes:cobro' mov.pago_cliente_id %}#titulo-anular" class="boton-discreto-peligro">Anular<span class="sr-only"> el cobro N.º {{ mov.pago_cliente_id }}</span></a>
                   {% endif %}
                 </td>
               </tr>
@@ -100,94 +103,94 @@
         </table>
       </div>
       {% if pagina.has_other_pages %}
-        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        <nav class="paginacion" aria-label="Páginas">
+          <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
-            {% if pagina.has_previous %}<a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>{% endif %}
-            {% if pagina.has_next %}<a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>{% endif %}
+            {% if pagina.has_previous %}<a href="?pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>{% endif %}
+            {% if pagina.has_next %}<a href="?pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>{% endif %}
           </span>
         </nav>
       {% endif %}
     {% else %}
       {# CU-08 A3 #}
-      <p class="px-5 py-10 text-center text-sm text-gray-500">Todavía no tiene movimientos: el saldo es $ 0,00.</p>
+      <p class="px-5 py-10 text-center text-sm text-tinta-suave">Todavía no tiene movimientos: el saldo es $ 0,00.</p>
     {% endif %}
   </section>
 
   <div class="mt-6 grid gap-6 lg:grid-cols-2">
     {# RF-41: límite y observaciones (DEC-108, DEC-112, DEC-115). #}
-    <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-labelledby="titulo-condiciones">
+    <section class="recuadro p-5" aria-labelledby="titulo-condiciones">
       <h3 id="titulo-condiciones" class="font-semibold">Límite y observaciones</h3>
       {% if cliente.activo %}
         <form method="post" action="{% url 'clientes:condiciones' cliente.pk %}" class="mt-4 space-y-4" novalidate>
           {% csrf_token %}
           {% if form_condiciones.non_field_errors %}
-            <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{% for error in form_condiciones.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+            <div role="alert" class="aviso aviso-error">{% for error in form_condiciones.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
           {% endif %}
           {% for campo in form_condiciones %}
             <div>
-              <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+              <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
               {{ campo }}
-              {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
-              {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+              {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+              {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
             </div>
           {% endfor %}
           <div class="flex justify-end">
-            <button type="submit" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">Guardar</button>
+            <button type="submit" class="boton boton-secundario">Guardar</button>
           </div>
         </form>
       {% else %}
-        <p class="mt-2 text-sm text-gray-600">Un cliente dado de baja no se modifica: primero hay que reactivarlo desde el listado.</p>
+        <p class="mt-2 text-sm text-tinta-suave">Un cliente dado de baja no se modifica: primero hay que reactivarlo desde el listado.</p>
         {% if cliente.observaciones %}<p class="mt-2 text-sm">{{ cliente.observaciones }}</p>{% endif %}
       {% endif %}
     </section>
 
     {# CU-08 A4 y DEC-119: deuda que ya tenía al empezar; uno vigente por cliente (RI-18). #}
-    <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-labelledby="titulo-saldo-inicial">
+    <section class="recuadro p-5" aria-labelledby="titulo-saldo-inicial">
       <h3 id="titulo-saldo-inicial" class="font-semibold">Saldo inicial</h3>
       {% if saldo_inicial and form_saldo_inicial.non_field_errors %}
         {# Una carga rechazada con un saldo inicial vigente (RI-18): el error va acá. #}
-        <div role="alert" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{% for error in form_saldo_inicial.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+        <div role="alert" class="aviso aviso-error mt-3">{% for error in form_saldo_inicial.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
       {% endif %}
       {% if saldo_inicial %}
-        <p class="mt-2 text-sm text-gray-700">
-          <span class="cifras font-semibold">$ {{ saldo_inicial.monto|floatformat:"2g" }}</span>, con origen el {{ saldo_inicial.fecha_origen|date:"d/m/Y" }} ({{ saldo_inicial.motivo }}).
+        <p class="mt-2 text-sm text-tinta">
+          <span class="monto">$ {{ saldo_inicial.monto|floatformat:"2g" }}</span>, con origen el {{ saldo_inicial.fecha_origen|date:"d/m/Y" }} ({{ saldo_inicial.motivo }}).
         </p>
         <form method="post" action="{% url 'clientes:saldo_inicial_anular' cliente.pk %}" class="mt-4 space-y-4" novalidate
               onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular el saldo inicial de $ {{ saldo_inicial.monto|floatformat:"2g" }}? No se puede deshacer.')">
           {% csrf_token %}
-          <p class="text-sm text-gray-500">Se anula con un movimiento inverso por el mismo monto; después se puede cargar otro. Si el saldo actual es menor, primero hay que anular un cobro.</p>
+          <p class="text-sm text-tinta-suave">Se anula con un movimiento inverso por el mismo monto; después se puede cargar otro. Si el saldo actual es menor, primero hay que anular un cobro.</p>
           {% if form_anular_saldo.non_field_errors %}
-            <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{% for error in form_anular_saldo.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+            <div role="alert" class="aviso aviso-error">{% for error in form_anular_saldo.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
           {% endif %}
           <div>
-            <label for="{{ form_anular_saldo.motivo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form_anular_saldo.motivo.label }}</label>
+            <label for="{{ form_anular_saldo.motivo.id_for_label }}" class="etiqueta">{{ form_anular_saldo.motivo.label }}</label>
             {{ form_anular_saldo.motivo }}
-            {% for error in form_anular_saldo.motivo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+            {% for error in form_anular_saldo.motivo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="rounded-md border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">Anular saldo inicial</button>
+            <button type="submit" class="boton boton-peligro">Anular saldo inicial</button>
           </div>
         </form>
       {% else %}
         <form method="post" action="{% url 'clientes:saldo_inicial' cliente.pk %}" class="mt-4 space-y-4" novalidate>
           {% csrf_token %}
-          <p class="text-sm text-gray-500">Para la deuda que ya tenía al empezar a usar el sistema. No pasa por la caja ni se controla con el límite.</p>
+          <p class="text-sm text-tinta-suave">Para la deuda que ya tenía al empezar a usar el sistema. No pasa por la caja ni se controla con el límite.</p>
           {% if form_saldo_inicial.non_field_errors %}
-            <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{% for error in form_saldo_inicial.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+            <div role="alert" class="aviso aviso-error">{% for error in form_saldo_inicial.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
           {% endif %}
           <div class="grid gap-4 sm:grid-cols-2">
             {% for campo in form_saldo_inicial %}
               <div class="{% if campo.name == 'motivo' %}sm:col-span-2{% endif %}">
-                <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+                <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
                 {{ campo }}
-                {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
-                {% for error in campo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+                {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+                {% for error in campo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
               </div>
             {% endfor %}
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">Cargar saldo inicial</button>
+            <button type="submit" class="boton boton-secundario">Cargar saldo inicial</button>
           </div>
         </form>
       {% endif %}

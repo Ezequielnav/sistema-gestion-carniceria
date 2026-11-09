@@ -6,11 +6,11 @@
 {% block contenido %}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight">Pagos a proveedores</h2>
-      <p class="mt-1 text-sm text-gray-500">En efectivo, desde la caja abierta; o por transferencia.</p>
+      <h2 class="titulo-pantalla">Pagos a proveedores</h2>
+      <p class="bajada">En efectivo, desde la caja abierta; o por transferencia.</p>
     </div>
     <a href="{% url 'proveedores:pago_nuevo' %}"
-       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+       class="boton boton-principal">
       Registrar pago
     </a>
   </div>
@@ -19,37 +19,37 @@
   {# DEC-139, DEC-152: fechas y proveedor, combinables y conservados al paginar. #}
   {% include "comun/_filtro.html" %}
 
-  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de pagos">
+  <section class="recuadro mt-6" aria-label="Listado de pagos">
     {% if pagina.object_list %}
-      <div class="relative overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <div class="recuadro-tabla">
+        <table class="tabla tabla-compacta">
+          <thead>
             <tr>
-              <th scope="col" class="px-5 py-3 font-medium">N.º</th>
-              <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
-              <th scope="col" class="min-w-48 px-5 py-3 font-medium">Proveedor</th>
-              <th scope="col" class="px-5 py-3 font-medium">Ingreso</th>
-              <th scope="col" class="px-5 py-3 font-medium">Medio</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium">Monto</th>
-              <th scope="col" class="px-5 py-3"><span class="sr-only">Detalle</span></th>
+              <th scope="col">N.º</th>
+              <th scope="col">Fecha</th>
+              <th scope="col" class="min-w-48">Proveedor</th>
+              <th scope="col">Ingreso</th>
+              <th scope="col">Medio</th>
+              <th scope="col" class="text-right">Monto</th>
+              <th scope="col"><span class="sr-only">Detalle</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for pago in pagina %}
-              <tr class="{% if pago.estado == 'ANULADO' %}bg-gray-50 text-gray-500{% endif %}">
-                <td class="cifras px-5 py-3">{{ pago.pk }}</td>
-                <td class="cifras px-5 py-3 whitespace-nowrap">{{ pago.fecha_hora|date:"d/m/Y H:i" }}</td>
-                <td class="px-5 py-3">
+              <tr class="{% if pago.estado == 'ANULADO' %}bg-papel text-tinta-suave{% endif %}">
+                <td class="cifras">{{ pago.pk }}</td>
+                <td class="cifras whitespace-nowrap">{{ pago.fecha_hora|date:"d/m/Y H:i" }}</td>
+                <td>
                   <span class="font-medium">{{ pago.proveedor }}</span>
                   {% if pago.estado == "ANULADO" %}
-                    <span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Anulado</span>
+                    <span class="insignia insignia-neutra ml-2">Anulado</span>
                   {% endif %}
                 </td>
-                <td class="cifras px-5 py-3">{% if pago.ingreso %}<a href="{% url 'proveedores:ingreso' pago.ingreso_id %}" class="underline-offset-2 hover:underline">N.º {{ pago.ingreso_id }}</a>{% else %}—{% endif %}</td>
-                <td class="px-5 py-3 text-gray-600">{{ pago.medio_pago }}</td>
-                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ pago.monto|floatformat:"2g" }}</td>
-                <td class="px-5 py-3 text-right whitespace-nowrap">
-                  <a href="{% url 'proveedores:pago' pago.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ver<span class="sr-only"> el pago N.º {{ pago.pk }}</span></a>
+                <td class="cifras">{% if pago.ingreso %}<a href="{% url 'proveedores:ingreso' pago.ingreso_id %}" class="underline-offset-2 hover:underline">N.º {{ pago.ingreso_id }}</a>{% else %}—{% endif %}</td>
+                <td class="text-tinta-suave">{{ pago.medio_pago }}</td>
+                <td class="monto text-right whitespace-nowrap">$ {{ pago.monto|floatformat:"2g" }}</td>
+                <td class="text-right whitespace-nowrap">
+                  <a href="{% url 'proveedores:pago' pago.pk %}" class="boton-discreto">Ver<span class="sr-only"> el pago N.º {{ pago.pk }}</span></a>
                 </td>
               </tr>
             {% endfor %}
@@ -58,23 +58,20 @@
       </div>
 
       {% if pagina.has_other_pages %}
-        <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-          <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        <nav class="paginacion" aria-label="Páginas">
+          <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
           <span class="flex gap-2">
             {% if pagina.has_previous %}
-              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>
             {% endif %}
             {% if pagina.has_next %}
-              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+              <a href="?{{ filtros }}{% if filtros %}&amp;{% endif %}pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>
             {% endif %}
           </span>
         </nav>
       {% endif %}
     {% else %}
       <div class="px-5 py-12 text-center">
-        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-          {% include "comun/_icono.html" with nombre="camion" %}
-        </span>
         <p class="mt-3 text-sm font-medium">{% if form.errors %}Corregí el filtro para ver el listado{% elif filtros %}No hay resultados con ese filtro{% else %}Todavía no hay pagos a proveedores{% endif %}</p>
       </div>
     {% endif %}

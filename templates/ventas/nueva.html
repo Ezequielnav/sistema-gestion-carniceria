@@ -6,90 +6,91 @@
 {% block scripts %}<script src="{% static 'js/lector.js' %}" defer></script><script src="{% static 'js/cuenta_corriente.js' %}" defer></script><script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/buscador_productos.js' %}" defer></script><script src="{% static 'js/elegir_cliente.js' %}" defer></script><script src="{% static 'js/aviso_stock.js' %}" defer></script><script src="{% static 'js/venta_guardada.js' %}" defer></script><script src="{% static 'js/venta.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
-  <h2 class="text-2xl font-semibold tracking-tight">Nueva venta</h2>
+  <h2 class="titulo-pantalla">Nueva venta</h2>
 
   {% if problema %}
-    <div role="alert" class="mt-6 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+    <div role="alert" class="aviso aviso-alerta mt-6 max-w-2xl p-5 text-base">
       <p>{{ problema }}</p>
-      <a href="{% url 'caja:caja' %}" class="mt-3 inline-block font-semibold underline">Ir a Caja</a>
+      <a href="{% url 'caja:caja' %}" class="boton boton-grande boton-principal mt-4">Ir a Caja</a>
     </div>
   {% else %}
     <div id="venta" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"
          data-usuario="{{ user.pk }}" data-buscar="{% url 'ventas:buscar' %}" data-confirmar="{% url 'ventas:confirmar' %}" data-stock="{% url 'ventas:stock' %}" data-lineas-maximas="{{ lineas_maximas }}" data-mensaje-lineas-maximas="{{ mensaje_lineas_maximas }}"{% if cuenta_corriente %} data-cuenta-corriente="{{ cuenta_corriente.pk }}" data-clientes="{% url 'clientes:buscar' %}"{% endif %}{% if form_producto %} data-producto="{% url 'ventas:producto_nuevo' %}"{% endif %}>
-      {# DF-02: min-w-0 y relative (por el texto sr-only) dejan que la tabla se desplace sola. #}
+      {# DF-02: min-w-0 y relative (por el texto sr-only, en .recuadro-tabla) dejan que la tabla se desplace sola. #}
       <section class="min-w-0 space-y-4 lg:col-span-2" aria-label="Productos de la venta">
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-          <label for="buscar" class="mb-1.5 block text-sm font-medium text-gray-700">Buscar o escanear</label>
+        <div class="recuadro p-5">
+          <label for="buscar" class="etiqueta">Buscar o escanear</label>
           <div class="flex gap-2">
             <input id="buscar" type="search" autocomplete="off" autofocus class="campo"
                    placeholder="Nombre o código del producto"
                    role="combobox" aria-expanded="false" aria-controls="resultados" aria-autocomplete="list">
             <button id="ver-productos" type="button"
-                    class="shrink-0 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-800 hover:bg-gray-50">Ver productos</button>
+                    class="boton boton-secundario min-h-11 shrink-0">Ver productos</button>
           </div>
-          <p class="mt-1.5 text-xs text-gray-500">Con el lector, el código agrega el producto. Escribí para filtrar; con las flechas y Enter se elige.</p>
-          <ul id="resultados" role="listbox" class="mt-3 hidden max-h-80 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200" aria-label="Productos"></ul>
+          <p class="ayuda">Con el lector, el código agrega el producto. Escribí para filtrar; con las flechas y Enter se elige.</p>
+          <ul id="resultados" role="listbox" class="lista-opciones mt-3 hidden" aria-label="Productos"></ul>
         </div>
 
-        <div class="relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
-          <table class="w-full text-sm">
-            <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+        <div class="recuadro-tabla recuadro">
+          <table class="tabla">
+            <thead>
               <tr>
-                <th scope="col" class="px-5 py-3 font-medium">Producto</th>
-                <th scope="col" class="px-5 py-3 font-medium">Cantidad</th>
-                <th scope="col" class="px-5 py-3 text-right font-medium">Precio</th>
-                <th scope="col" class="px-5 py-3 text-right font-medium">Subtotal</th>
-                <th scope="col" class="px-5 py-3"><span class="sr-only">Quitar</span></th>
+                <th scope="col">Producto</th>
+                <th scope="col">Cantidad</th>
+                <th scope="col" class="text-right">Precio</th>
+                <th scope="col" class="text-right">Subtotal</th>
+                <th scope="col"><span class="sr-only">Quitar</span></th>
               </tr>
             </thead>
-            <tbody id="lineas" class="divide-y divide-gray-100"></tbody>
+            <tbody id="lineas"></tbody>
           </table>
-          <p id="vacia" class="px-5 py-8 text-center text-sm text-gray-500">Todavía no hay productos en la venta.</p>
+          <p id="vacia" class="px-5 py-10 text-center text-tinta-suave">Todavía no hay productos en la venta.</p>
         </div>
       </section>
 
-      <aside class="h-fit min-w-0 space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" aria-label="Cobro">
+      {# S-6: el total y "Confirmar venta" quedan a la vista aunque la lista de productos crezca. #}
+      <aside class="recuadro h-fit min-w-0 space-y-5 p-5 lg:sticky lg:top-24" aria-label="Cobro">
         <div>
-          <p class="text-sm font-medium text-gray-500">Total</p>
-          <p id="total" class="cifras mt-1 text-3xl font-semibold tracking-tight">$ 0,00</p>
+          <p class="text-sm font-semibold text-tinta-suave">Total</p>
+          <p id="total" class="cifra-grande mt-1 text-4xl">$ 0,00</p>
         </div>
         <div>
-          <label for="{{ form.medio_pago.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.medio_pago.label }}</label>
+          <label for="{{ form.medio_pago.id_for_label }}" class="etiqueta">{{ form.medio_pago.label }}</label>
           {{ form.medio_pago }}
         </div>
         {% if cuenta_corriente %}
           {# SC-03 (DEC-123): SC-01 en la venta, con saldo, límite, disponible y alerta de vencida. #}
           <div id="cuenta-corriente" class="hidden">
             <div id="elegir-cliente">
-              <label for="buscar-cliente" class="mb-1.5 block text-sm font-medium text-gray-700">Cliente</label>
+              <label for="buscar-cliente" class="etiqueta">Cliente</label>
               <input id="buscar-cliente" type="search" autocomplete="off" class="campo" placeholder="Nombre o teléfono"
                      aria-controls="clientes" aria-describedby="ayuda-cliente">
-              <p id="ayuda-cliente" class="mt-1.5 text-xs text-gray-500">Clientes dados de alta por el administrador.</p>
-              <ul id="clientes" class="mt-2 hidden max-h-60 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200" aria-label="Clientes"></ul>
+              <p id="ayuda-cliente" class="ayuda">Clientes dados de alta por el administrador.</p>
+              <ul id="clientes" class="lista-opciones mt-2 hidden max-h-60" aria-label="Clientes"></ul>
             </div>
-            <div id="cliente-elegido" class="hidden rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+            <div id="cliente-elegido" class="nota hidden">
               <div class="flex items-start justify-between gap-2">
                 <div>
-                  <p class="text-xs text-gray-500">Cliente</p>
-                  <p id="cliente-nombre" class="font-medium"></p>
+                  <p class="text-xs text-tinta-suave">Cliente</p>
+                  <p id="cliente-nombre" class="font-semibold"></p>
                 </div>
-                <button id="cambiar-cliente" type="button" class="rounded-md px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50">Cambiar</button>
+                <button id="cambiar-cliente" type="button" class="boton-discreto">Cambiar</button>
               </div>
-              <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                <dt class="text-gray-500">Saldo</dt><dd id="cliente-saldo" class="cifras text-right"></dd>
-                <dt class="text-gray-500">Límite</dt><dd id="cliente-limite" class="cifras text-right"></dd>
-                <dt id="cliente-disponible-titulo" class="text-gray-500">Disponible</dt><dd id="cliente-disponible" class="cifras text-right"></dd>
+              <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                <dt class="text-tinta-suave">Saldo</dt><dd id="cliente-saldo" class="monto text-right"></dd>
+                <dt class="text-tinta-suave">Límite</dt><dd id="cliente-limite" class="monto text-right font-normal"></dd>
+                <dt id="cliente-disponible-titulo" class="text-tinta-suave">Disponible</dt><dd id="cliente-disponible" class="monto text-right font-normal"></dd>
               </dl>
-              <p id="cliente-vencida" role="status" class="mt-2 hidden rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900"></p>
-              <p id="cliente-aviso" role="status" class="mt-2 hidden rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-800"></p>
+              <p id="cliente-vencida" role="status" class="aviso aviso-alerta mt-2 hidden px-3 py-2"></p>
+              <p id="cliente-aviso" role="status" class="aviso aviso-error mt-2 hidden px-3 py-2"></p>
             </div>
           </div>
         {% endif %}
-        <div id="errores" role="alert" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"></div>
+        <div id="errores" role="alert" class="aviso aviso-error hidden"></div>
         {% csrf_token %}
         <div class="flex flex-col gap-3">
-          <button id="confirmar" type="button" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700 disabled:opacity-50">Confirmar venta</button>
-          <button id="cancelar" type="button" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Cancelar</button>
+          <button id="confirmar" type="button" class="boton boton-grande boton-principal disabled:opacity-50">Confirmar venta</button>
+          <button id="cancelar" type="button" class="boton boton-grande boton-secundario">Cancelar</button>
         </div>
       </aside>
     </div>
@@ -97,31 +98,31 @@
     {% if form_producto %}
       {# CU-01 A1: alta de producto sin salir de la venta (RF-17, DEC-62). #}
       <dialog id="alta-producto" aria-labelledby="alta-titulo"
-              class="m-auto w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-0 shadow-lg backdrop:bg-gray-900/40">
+              class="m-auto w-full max-w-2xl rounded-lg border border-borde bg-superficie p-0 backdrop:bg-tinta/50">
         <form id="form-producto" method="dialog" class="space-y-5 p-6" novalidate>
           <div>
-            <h3 id="alta-titulo" class="text-lg font-semibold tracking-tight">Nuevo producto</h3>
-            <p class="mt-1 text-sm text-gray-500">Se da de alta en el catálogo y se agrega a esta venta. El stock arranca en 0.</p>
+            <h3 id="alta-titulo" class="titulo-recuadro">Nuevo producto</h3>
+            <p class="mt-1 text-sm text-tinta-suave">Se da de alta en el catálogo y se agrega a esta venta. El stock arranca en 0.</p>
           </div>
-          <div data-error-de="__all__" role="alert" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"></div>
+          <div data-error-de="__all__" role="alert" class="aviso aviso-error hidden"></div>
           <div class="grid gap-5 sm:grid-cols-2">
             {% for campo in form_producto %}
               <div class="{% if campo.name == 'nombre' %}sm:col-span-2{% endif %}">
                 {% if campo.widget_type == "checkbox" %}
-                  <label class="flex items-center gap-2 pt-7 text-sm font-medium text-gray-700">{{ campo }} {{ campo.label }}</label>
+                  <label class="flex items-center gap-2 pt-7 text-sm font-semibold">{{ campo }} {{ campo.label }}</label>
                 {% else %}
-                  <label for="{{ campo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ campo.label }}</label>
+                  <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
                   {{ campo }}
                 {% endif %}
-                {% if campo.help_text %}<p class="mt-1.5 text-xs text-gray-500">{{ campo.help_text }}</p>{% endif %}
-                {% if campo.name == "controla_stock" %}<p class="mt-1 text-xs text-amber-800">Si lo marcás, el stock arranca en 0 y queda negativo con esta venta hasta el primer ingreso de mercadería.</p>{% endif %}
-                <p data-error-de="{{ campo.name }}" class="mt-1.5 hidden text-sm text-red-700"></p>
+                {% if campo.help_text %}<p class="ayuda">{{ campo.help_text }}</p>{% endif %}
+                {% if campo.name == "controla_stock" %}<p class="mt-1 text-sm font-semibold text-alerta">Si lo marcás, el stock arranca en 0 y queda negativo con esta venta hasta el primer ingreso de mercadería.</p>{% endif %}
+                <p data-error-de="{{ campo.name }}" class="error-campo hidden"></p>
               </div>
             {% endfor %}
           </div>
           <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button type="button" id="alta-cancelar" class="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Cancelar</button>
-            <button type="submit" id="alta-guardar" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700 disabled:opacity-50">Dar de alta y agregar</button>
+            <button type="button" id="alta-cancelar" class="boton boton-secundario">Cancelar</button>
+            <button type="submit" id="alta-guardar" class="boton boton-principal disabled:opacity-50">Dar de alta y agregar</button>
           </div>
         </form>
       </dialog>

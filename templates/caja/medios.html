@@ -6,42 +6,44 @@
 {% block contenido %}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight">Medios de pago</h2>
-      <p class="mt-1 text-sm text-gray-500">Los que se ofrecen en la venta, el cobro y los pagos. No se borran: se desactivan.</p>
+      <h2 class="titulo-pantalla">Medios de pago</h2>
+      <p class="bajada">Los que se ofrecen en la venta, el cobro y los pagos. No se borran: se desactivan.</p>
     </div>
     <a href="{% url 'caja:medio_nuevo' %}"
-       class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">
+       class="boton boton-principal">
       Nuevo medio de pago
     </a>
   </div>
 
-  <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-xs" aria-label="Listado de medios de pago">
+  <section class="recuadro mt-6" aria-label="Listado de medios de pago">
     {% if medios %}
-      <div class="relative overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+      <div class="recuadro-tabla">
+        <table class="tabla tabla-compacta">
+          <thead>
             <tr>
-              <th scope="col" class="px-5 py-3 font-medium">Medio</th>
-              <th scope="col" class="px-5 py-3 font-medium">Caja</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Acciones</span></th>
+              <th scope="col">Medio</th>
+              <th scope="col">Caja</th>
+              <th scope="col" class="text-right"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for medio in medios %}
-              <tr class="{% if not medio.activo %}bg-gray-50 text-gray-500{% endif %}">
-                <td class="px-5 py-3">
+              <tr class="{% if not medio.activo %}bg-papel text-tinta-suave{% endif %}">
+                <td>
                   <span class="font-medium">{{ medio.nombre }}</span>
-                  {% if medio.es_efectivo %}<span class="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Efectivo</span>{% endif %}
-                  {% if not medio.activo %}<span class="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">Desactivado</span>{% endif %}
+                  {% if not medio.activo %}<span class="insignia insignia-neutra ml-2">Desactivado</span>{% endif %}
                 </td>
-                <td class="px-5 py-3 text-gray-600">{% if medio.ingresa_a_caja %}Ingresa a caja{% else %}No ingresa (cuenta corriente){% endif %}</td>
-                <td class="px-5 py-3 text-right whitespace-nowrap">
-                  <a href="{% url 'caja:medio_editar' medio.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Editar<span class="sr-only"> «{{ medio }}»</span></a>
-                  {% if not medio.es_efectivo %}
+                <td class="text-tinta-suave">{% if medio.ingresa_a_caja %}Ingresa a caja{% else %}No ingresa (cuenta corriente){% endif %}</td>
+                <td class="text-right whitespace-nowrap">
+                  <a href="{% url 'caja:medio_editar' medio.pk %}" class="boton-discreto">Editar<span class="sr-only"> «{{ medio }}»</span></a>
+                  {% if medio.es_efectivo %}
+                    {# DEC-155: el efectivo es fijo; en lugar del botón, se aclara por qué no está. #}
+                    <span class="ml-2 inline-block px-2.5 text-sm text-tinta-suave">No se desactiva</span>
+                  {% else %}
                     <form method="post" action="{% url 'caja:medio_activo' medio.pk %}" class="inline">
                       {% csrf_token %}
                       <input type="hidden" name="activo" value="{% if medio.activo %}0{% else %}1{% endif %}">
-                      <button type="submit" class="rounded-md px-2.5 py-1.5 font-medium {% if medio.activo %}text-red-700 hover:bg-red-50{% else %}text-gray-700 hover:bg-gray-100{% endif %}">{% if medio.activo %}Desactivar{% else %}Activar{% endif %}<span class="sr-only"> «{{ medio }}»</span></button>
+                      <button type="submit" class="{% if medio.activo %}boton-discreto-peligro{% else %}boton-discreto{% endif %}">{% if medio.activo %}Desactivar{% else %}Activar{% endif %}<span class="sr-only"> «{{ medio }}»</span></button>
                     </form>
                   {% endif %}
                 </td>

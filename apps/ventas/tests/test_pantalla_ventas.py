@@ -4,6 +4,7 @@ import json
 from decimal import Decimal
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 
 from apps.caja.models import MedioPago, MovimientoCaja, Turno
@@ -280,5 +281,9 @@ def test_df02_la_tabla_de_la_venta_se_desplaza_sin_ensanchar_la_pagina(client, u
     # La grilla limita el ancho de sus columnas (minmax(0, 1fr) y min-w-0)...
     assert 'id="venta" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"' in contenido
     assert 'class="min-w-0 space-y-4 lg:col-span-2" aria-label="Productos de la venta"' in contenido
-    # ...y el recuadro de la tabla recorta también el texto sr-only del encabezado.
-    assert 'class="relative overflow-x-auto' in contenido
+    # ...y el recuadro de la tabla recorta también el texto sr-only del encabezado: desde H7
+    # lo hace el componente .recuadro-tabla (S-12), que aplica `relative overflow-x-auto`.
+    assert 'class="recuadro-tabla' in contenido
+    estilos = (settings.BASE_DIR / "static" / "src" / "estilos.css").read_text(encoding="utf-8")
+    regla = estilos.split(".recuadro-tabla {", 1)[1].split("}", 1)[0]
+    assert "relative" in regla and "overflow-x-auto" in regla

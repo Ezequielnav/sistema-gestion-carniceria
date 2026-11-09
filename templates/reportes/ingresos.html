@@ -1,45 +1,50 @@
 {% extends "reportes/_reporte.html" %}
+{% load fechas %}
 
 {# DEC-142: ventas que no son a cuenta corriente más cobros, sin anuladas. #}
+{% block ancho %}max-w-5xl{% endblock %}
+
 {% block reporte %}
+  {# H7: los ceros, atenuados, para que se lean los montos reales; "Fuera de caja" en cero en todo el rango no compite. #}
+  {# En el celular (DEC-170) quedan la fecha corta y el total; el detalle se ve desde 640 px. #}
   {% if reporte.dias %}
-    <div class="relative overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+    <div class="recuadro-tabla">
+      <table class="tabla tabla-compacta">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Ventas</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Cobros de cuenta corriente</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Entró a caja</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Fuera de caja</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+            <th scope="col">Fecha</th>
+            <th scope="col" class="text-right">Ventas</th>
+            <th scope="col" class="text-right hidden sm:table-cell">Cobros de cuenta corriente</th>
+            <th scope="col" class="text-right hidden sm:table-cell">Entró a caja</th>
+            <th scope="col" class="text-right hidden sm:table-cell{% if not reporte.totales.fuera %} text-tinta-tenue{% endif %}">Fuera de caja</th>
+            <th scope="col" class="text-right">Total</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
           {% for dia in reporte.dias %}
             <tr>
-              <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ dia.fecha|date:"D j/m/Y" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.ventas|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.cobros|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.en_caja|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ dia.fuera|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap">$ {{ dia.total|floatformat:"2g" }}</td>
+              <td class="cifras whitespace-nowrap"><span class="sm:hidden">{{ dia.fecha|con_dia:"j/m" }}</span><span class="hidden sm:inline">{{ dia.fecha|con_dia:"j/m/Y" }}</span></td>
+              <td class="monto text-right font-normal whitespace-nowrap{% if not dia.ventas %} font-normal text-tinta-tenue{% endif %}">$ {{ dia.ventas|floatformat:"2g" }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap hidden sm:table-cell{% if not dia.cobros %} font-normal text-tinta-tenue{% endif %}">$ {{ dia.cobros|floatformat:"2g" }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap hidden sm:table-cell{% if not dia.en_caja %} font-normal text-tinta-tenue{% endif %}">$ {{ dia.en_caja|floatformat:"2g" }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap hidden sm:table-cell{% if not dia.fuera %} font-normal text-tinta-tenue{% endif %}">$ {{ dia.fuera|floatformat:"2g" }}</td>
+              <td class="monto text-right whitespace-nowrap{% if not dia.total %} font-normal text-tinta-tenue{% endif %}">$ {{ dia.total|floatformat:"2g" }}</td>
             </tr>
           {% endfor %}
         </tbody>
-        <tfoot class="border-t border-gray-200 font-semibold">
+        <tfoot class="border-t-2 border-tinta text-base font-semibold">
           <tr>
-            <td class="px-5 py-3">Total del rango</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.ventas|floatformat:"2g" }}</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.cobros|floatformat:"2g" }}</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.en_caja|floatformat:"2g" }}</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.fuera|floatformat:"2g" }}</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.totales.total|floatformat:"2g" }}</td>
+            <th scope="row" class="text-left">Total del rango</th>
+            <td class="monto text-right whitespace-nowrap">$ {{ reporte.totales.ventas|floatformat:"2g" }}</td>
+            <td class="monto text-right whitespace-nowrap hidden sm:table-cell">$ {{ reporte.totales.cobros|floatformat:"2g" }}</td>
+            <td class="monto text-right whitespace-nowrap hidden sm:table-cell">$ {{ reporte.totales.en_caja|floatformat:"2g" }}</td>
+            <td class="monto text-right whitespace-nowrap hidden sm:table-cell{% if not reporte.totales.fuera %} font-normal text-tinta-tenue{% endif %}">$ {{ reporte.totales.fuera|floatformat:"2g" }}</td>
+            <td class="monto text-right whitespace-nowrap">$ {{ reporte.totales.total|floatformat:"2g" }}</td>
           </tr>
         </tfoot>
       </table>
     </div>
-    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Las ventas a cuenta corriente no son ingreso: son deuda del cliente hasta que se cobra. "Fuera de caja" son los cobros registrados sin caja. No se restan egresos. Un cobro anulado no se cuenta, aunque su caja ya haya cerrado: el cierre de esa caja lo conserva y la reversa figura en el cierre de la caja donde se registró.</p>
+    <p class="border-t border-borde px-5 py-3 text-xs text-tinta-suave">Las ventas a cuenta corriente no son ingreso: son deuda del cliente hasta que se cobra. "Fuera de caja" son los cobros registrados sin caja. No se restan egresos. Un cobro anulado no se cuenta, aunque su caja ya haya cerrado: el cierre de esa caja lo conserva y la reversa figura en el cierre de la caja donde se registró.</p>
   {% else %}
     {% include "reportes/_sin_registros.html" %}
   {% endif %}

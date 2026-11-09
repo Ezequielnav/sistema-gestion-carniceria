@@ -14,12 +14,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from apps.catalogo.models import UnidadMedida, formatear_cantidad
 from apps.comun.models import pesos
+from apps.comun.templatetags.fechas import con_dia
 
 NEGOCIO = "Carnicería Rojano"
 
@@ -32,9 +33,16 @@ FORMATO_PESOS = '"$" #,##0.00'
 class Tabla:
     titulo: str
     columnas: list  # [(encabezado, tipo)]
-    filas: list = field(default_factory=list)  # [(valores, es_subtotal)]
+    # [(valores, estilo)]: estilo es True para un subtotal, o DIA y DETALLE en la tabla del PDF
+    # agrupada por día (las filas de los turnos van debajo de su día).
+    filas: list = field(default_factory=list)
     total: list | None = None
     nota: str = ""
+    # En el PDF, los montos en cero en gris, para que se lean los reales (H7, ingresos por día).
+    atenuar_ceros: bool = False
+
+
+DIA, DETALLE = "dia", "detalle"
 
 
 def _fila(valores, subtotal=False):
@@ -57,6 +65,27 @@ def tabla_ventas(reporte):
             _fila([dia["fecha"], "Total del día", dia["cantidad"], dia["total"]], True)
         )
     tabla.total = ["Total del rango", "", reporte["cantidad"], reporte["total"]]
+    return tabla
+
+
+def tabla_ventas_pdf(reporte):
+    """Ventas diarias para el PDF, agrupadas por día (H7): una fila por día con sus ventas y
+    su total; los turnos van debajo solo si el día tiene más de uno; con uno, se nombra en la
+    fila del día. Mismos datos que `tabla_ventas`; el Excel sigue con esa, para trabajarla."""
+    tabla = Tabla(
+        "Ventas diarias",
+        [("Fecha", TEXTO), ("Ventas", ENTERO), ("Total", PESOS)],
+        nota="Sin las ventas anuladas. Incluye las ventas a cuenta corriente.",
+    )
+    for dia in reporte["dias"]:
+        fecha = con_dia(dia["fecha"])
+        if len(dia["turnos"]) == 1:
+            fecha = f"{fecha} · {dia['turnos'][0]['turno']}"
+        tabla.filas.append(((fecha, dia["cantidad"], dia["total"]), DIA))
+        if len(dia["turnos"]) > 1:
+            for turno in dia["turnos"]:
+                tabla.filas.append(((turno["turno"], turno["cantidad"], turno["total"]), DETALLE))
+    tabla.total = ["Total del rango", reporte["cantidad"], reporte["total"]]
     return tabla
 
 
@@ -91,6 +120,7 @@ def tabla_ingresos(reporte):
             'Las ventas a cuenta corriente no son ingreso. "Fuera de caja" son los cobros '
             "registrados sin caja. No se restan egresos."
         ),
+        atenuar_ceros=True,
     )
     for dia in reporte["dias"]:
         tabla.filas.append(_fila([dia["fecha"], *(dia[c] for c in claves)]))
@@ -140,6 +170,8 @@ TABLAS = {
     "ingresos": tabla_ingresos,
     "medios": tabla_medios,
 }
+# El PDF se lee: Ventas diarias va agrupada por día. El Excel usa TABLAS, para trabajar los datos.
+TABLAS_PDF = {**TABLAS, "ventas": tabla_ventas_pdf}
 
 
 def nombre_de_archivo(nombre, desde, hasta, extension):
@@ -210,7 +242,7 @@ def _escribir_fila(hoja, numero, columnas, valores, negrita=False):
 
 
 def _texto(tipo, valor):
-    """Como en pantalla: "$ 1.234,56", "3,400 kg" y fechas dd/mm/aaaa."""
+    """Como en pantalla: "$ 1.234,56", "3,400 kg" y fechas con el día de la semana."""
     if valor is None or valor == "":
         return ""
     if tipo == PESOS:
@@ -218,13 +250,47 @@ def _texto(tipo, valor):
     if tipo == CANTIDAD:
         return formatear_cantidad(*valor)
     if tipo == FECHA and not isinstance(valor, str):
-        return date_format(valor, "j/m/Y")
+        return con_dia(valor)
     return str(valor)
+
+
+# S-10 (DEC-196): encabezado con la identidad del sistema, con las fuentes estándar de PDF
+# (sin incrustar fuentes): el nombre en serif y una línea marino debajo.
+MARINO = colors.HexColor("#0F2557")
+TINTA = colors.HexColor("#211C17")
+FONDO_ENCABEZADO = colors.HexColor("#EFE8DB")
+LINEA = colors.HexColor("#CFC4B2")
+TINTA_SUAVE = colors.HexColor("#625A50")
+TINTA_TENUE = colors.HexColor("#8A8072")
+# La tabla ocupa el ancho de la hoja: las columnas de números tienen ancho fijo y las de texto
+# se reparten el resto.
+ANCHO_UTIL = 180 * mm
+ANCHOS_FIJOS = {PESOS: 28 * mm, ENTERO: 18 * mm, CANTIDAD: 26 * mm}
+
+
+def _anchos(columnas):
+    fijos = sum(ANCHOS_FIJOS.get(tipo, 0) for _, tipo in columnas)
+    libres = [tipo for _, tipo in columnas if tipo not in ANCHOS_FIJOS]
+    resto = (ANCHO_UTIL - fijos) / len(libres) if libres else 0
+    return [ANCHOS_FIJOS.get(tipo, resto) for _, tipo in columnas]
 
 
 def pdf(tabla, desde, hasta):
     """PDF A4 con el negocio, el reporte, el rango y la fecha de generación (DEC-146)."""
     estilos = getSampleStyleSheet()
+    marca = ParagraphStyle(
+        "Marca",
+        parent=estilos["Title"],
+        fontName="Times-Bold",
+        fontSize=22,
+        leading=26,
+        textColor=MARINO,
+        alignment=0,
+        spaceAfter=2 * mm,
+    )
+    subtitulo = ParagraphStyle(
+        "Reporte", parent=estilos["Heading2"], textColor=TINTA, spaceBefore=4 * mm
+    )
     salida = io.BytesIO()
     documento = SimpleDocTemplate(
         salida,
@@ -237,29 +303,55 @@ def pdf(tabla, desde, hasta):
     )
     negocio, titulo, rango, generado = _encabezado(tabla, desde, hasta)
     contenido = [
-        Paragraph(negocio, estilos["Title"]),
-        Paragraph(titulo, estilos["Heading2"]),
+        Paragraph(negocio, marca),
+        HRFlowable(width="100%", thickness=1.5, color=MARINO, spaceBefore=0, spaceAfter=0),
+        Paragraph(titulo, subtitulo),
         Paragraph(f"{rango} · {generado}", estilos["Normal"]),
         Spacer(1, 6 * mm),
     ]
-    datos = [[titulo for titulo, _ in tabla.columnas]]
-    resaltadas = []
-    for valores, subtotal in tabla.filas:
+    # Encabezados como párrafos: uno largo ("Cobros de cuenta corriente") ocupa dos renglones
+    # en lugar de pisar la columna de al lado.
+    encabezado = ParagraphStyle("Encabezado", fontName="Helvetica-Bold", fontSize=9, leading=11)
+    a_la_derecha = ParagraphStyle("EncabezadoDerecha", parent=encabezado, alignment=2)
+    datos = [
+        [
+            Paragraph(titulo, encabezado if tipo in (TEXTO, FECHA) else a_la_derecha)
+            for titulo, tipo in tabla.columnas
+        ]
+    ]
+    resaltadas, dias, detalles = [], [], []
+    for valores, estilo_fila in tabla.filas:
         datos.append(
             [_texto(tipo, v) for (_, tipo), v in zip(tabla.columnas, valores, strict=True)]
         )
-        if subtotal:
-            resaltadas.append(len(datos) - 1)
+        fila = len(datos) - 1
+        if estilo_fila == DIA:
+            dias.append(fila)
+        elif estilo_fila == DETALLE:
+            detalles.append(fila)
+        elif estilo_fila:
+            resaltadas.append(fila)
+    total = None
     if tabla.total:
         datos.append(
             [_texto(tipo, v) for (_, tipo), v in zip(tabla.columnas, tabla.total, strict=True)]
         )
-        resaltadas.append(len(datos) - 1)
+        total = len(datos) - 1
+    ceros = []
+    if tabla.atenuar_ceros:
+        valores_por_fila = [valores for valores, _ in tabla.filas] + (
+            [tabla.total] if tabla.total else []
+        )
+        for fila, valores in enumerate(valores_por_fila, start=1):
+            for columna, ((_, tipo), valor) in enumerate(zip(tabla.columnas, valores, strict=True)):
+                if tipo == PESOS and valor == 0:
+                    ceros.append((columna, fila))
     estilo = [
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
-        ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.HexColor("#D1D5DB")),
+        ("VALIGN", (0, 0), (-1, 0), "BOTTOM"),
+        ("BACKGROUND", (0, 0), (-1, 0), FONDO_ENCABEZADO),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.5, LINEA),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
     ]
@@ -269,9 +361,33 @@ def pdf(tabla, desde, hasta):
     for fila in resaltadas:
         estilo += [
             ("FONTNAME", (0, fila), (-1, fila), "Helvetica-Bold"),
-            ("LINEABOVE", (0, fila), (-1, fila), 0.5, colors.HexColor("#D1D5DB")),
+            ("LINEABOVE", (0, fila), (-1, fila), 0.5, LINEA),
         ]
-    tabla_pdf = Table(datos, repeatRows=1)
+    # Agrupada por día: el día en negrita, separado del anterior; sus turnos, con sangría y
+    # en gris, pegados a su día.
+    for fila in dias:
+        estilo.append(("FONTNAME", (0, fila), (-1, fila), "Helvetica-Bold"))
+        if fila > 1:
+            estilo.append(("LINEABOVE", (0, fila), (-1, fila), 0.5, LINEA))
+    for fila in detalles:
+        estilo += [
+            ("TEXTCOLOR", (0, fila), (-1, fila), TINTA_SUAVE),
+            ("LEFTPADDING", (0, fila), (0, fila), 16),
+            ("TOPPADDING", (0, fila), (-1, fila), 1),
+        ]
+    if total is not None:
+        estilo += [
+            ("FONTNAME", (0, total), (-1, total), "Helvetica-Bold"),
+            ("FONTSIZE", (0, total), (-1, total), 10),
+            ("LINEABOVE", (0, total), (-1, total), 1, TINTA),
+            ("TOPPADDING", (0, total), (-1, total), 6),
+        ]
+    for columna, fila in ceros:
+        estilo += [
+            ("TEXTCOLOR", (columna, fila), (columna, fila), TINTA_TENUE),
+            ("FONTNAME", (columna, fila), (columna, fila), "Helvetica"),
+        ]
+    tabla_pdf = Table(datos, colWidths=_anchos(tabla.columnas), repeatRows=1, hAlign="LEFT")
     tabla_pdf.setStyle(TableStyle(estilo))
     contenido.append(tabla_pdf)
     if tabla.nota:

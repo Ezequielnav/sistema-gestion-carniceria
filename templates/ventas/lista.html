@@ -5,65 +5,65 @@
 
 {% block contenido %}
   {# DEC-84: ventas de la caja abierta para la cajera, sin anular. #}
-  <h2 class="text-2xl font-semibold tracking-tight">Ventas de la caja</h2>
+  <h2 class="titulo-pantalla">Ventas de la caja</h2>
 
   {% if caja is None %}
-    <div role="status" class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-700 shadow-xs">
+    <div role="status" class="recuadro mt-6 max-w-2xl p-5">
       <p>No hay una caja abierta. Acá se ven las ventas de la caja abierta.</p>
     </div>
   {% else %}
-    <p class="mt-1 text-sm text-gray-500">Caja del turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}, abierta por {{ caja.usuario.get_full_name }}.</p>
+    <p class="bajada">Caja del turno {{ caja.get_turno_display|lower }} del {{ caja.fecha|date:"d/m/Y" }}, abierta por {{ caja.usuario.get_full_name }}.</p>
 
-    <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
+    <div class="recuadro-tabla recuadro mt-6">
       {% if pagina.object_list %}
-        <table class="w-full text-sm">
-          <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+        <table class="tabla">
+          <thead>
             <tr>
-              <th scope="col" class="px-5 py-3 font-medium">N.º</th>
-              <th scope="col" class="px-5 py-3 font-medium">Hora</th>
-              <th scope="col" class="px-5 py-3 font-medium">Cajera</th>
-              <th scope="col" class="px-5 py-3 font-medium">Medio de pago</th>
-              <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
-              <th scope="col" class="px-5 py-3 font-medium">Estado</th>
-              <th scope="col" class="px-5 py-3"><span class="sr-only">Ver</span></th>
+              <th scope="col">N.º</th>
+              <th scope="col">Hora</th>
+              <th scope="col">Cajera</th>
+              <th scope="col">Medio de pago</th>
+              <th scope="col" class="text-right">Total</th>
+              <th scope="col">Estado</th>
+              <th scope="col"><span class="sr-only">Ver</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             {% for venta in pagina.object_list %}
-              <tr class="{% if venta.estado == 'ANULADA' %}text-gray-500{% endif %}">
-                <td class="cifras px-5 py-3">{{ venta.pk }}</td>
-                <td class="cifras px-5 py-3 whitespace-nowrap">{{ venta.fecha_hora|date:"H:i" }}</td>
-                <td class="px-5 py-3">{{ venta.usuario.get_full_name }}</td>
-                <td class="px-5 py-3">{{ venta.medio_pago }}{% if venta.cliente %}<span class="block text-xs text-gray-500">{{ venta.cliente.nombre }}</span>{% endif %}</td>
-                <td class="cifras px-5 py-3 text-right font-medium whitespace-nowrap {% if venta.estado == 'ANULADA' %}line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
-                <td class="px-5 py-3">
+              <tr class="{% if venta.estado == 'ANULADA' %}text-tinta-suave{% endif %}">
+                <td class="cifras">{{ venta.pk }}</td>
+                <td class="cifras whitespace-nowrap">{{ venta.fecha_hora|date:"H:i" }}</td>
+                <td>{{ venta.usuario.get_full_name }}</td>
+                <td>{{ venta.medio_pago }}{% if venta.cliente %}<span class="block text-xs text-tinta-suave">{{ venta.cliente.nombre }}</span>{% endif %}</td>
+                <td class="monto text-right whitespace-nowrap {% if venta.estado == 'ANULADA' %}font-normal text-tinta-suave line-through{% endif %}">$ {{ venta.monto_total|floatformat:"2g" }}</td>
+                <td>
                   {% if venta.estado == "ANULADA" %}
-                    <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Anulada</span>
+                    <span class="insignia insignia-peligro">Anulada</span>
                   {% else %}
-                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Confirmada</span>
+                    <span class="insignia insignia-neutra">Confirmada</span>
                   {% endif %}
                 </td>
-                <td class="px-5 py-3 text-right"><a href="{% url 'ventas:detalle' venta.pk %}" class="font-medium text-red-700 hover:underline">Ver<span class="sr-only"> la venta {{ venta.pk }}</span></a></td>
+                <td class="text-right"><a href="{% url 'ventas:detalle' venta.pk %}" class="boton-discreto">Ver<span class="sr-only"> la venta {{ venta.pk }}</span></a></td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
 
         {% if pagina.has_other_pages %}
-          <nav class="flex items-center justify-between border-t border-gray-200 px-5 py-3 text-sm" aria-label="Páginas">
-            <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+          <nav class="paginacion" aria-label="Páginas">
+            <span class="text-tinta-suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
             <span class="flex gap-2">
               {% if pagina.has_previous %}
-                <a href="?pagina={{ pagina.previous_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Anterior</a>
+                <a href="?pagina={{ pagina.previous_page_number }}" class="boton boton-secundario">Anterior</a>
               {% endif %}
               {% if pagina.has_next %}
-                <a href="?pagina={{ pagina.next_page_number }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Siguiente</a>
+                <a href="?pagina={{ pagina.next_page_number }}" class="boton boton-secundario">Siguiente</a>
               {% endif %}
             </span>
           </nav>
         {% endif %}
       {% else %}
-        <p class="px-5 py-12 text-center text-sm text-gray-500">Todavía no hay ventas en esta caja.</p>
+        <p class="px-5 py-12 text-center text-tinta-suave">Todavía no hay ventas en esta caja.</p>
       {% endif %}
     </div>
   {% endif %}

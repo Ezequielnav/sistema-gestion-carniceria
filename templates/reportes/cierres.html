@@ -1,36 +1,39 @@
 {% extends "reportes/_reporte.html" %}
-{% load montos %}
+{% load fechas montos %}
 
 {# DEC-144 (DEC-59): cajas cerradas del rango, con enlace a su reporte de cierre. #}
+{% block ancho %}max-w-3xl{% endblock %}
+
 {% block reporte %}
+  {# En el celular (DEC-170) quedan la fecha corta, el turno y la diferencia; quién cerró se ve desde 640 px. #}
   {% if reporte.cajas %}
-    <div class="relative overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+    <div class="recuadro-tabla">
+      <table class="tabla tabla-compacta">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
-            <th scope="col" class="px-5 py-3 font-medium">Turno</th>
-            <th scope="col" class="px-5 py-3 font-medium">Cerró</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Diferencia</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium"><span class="sr-only">Reporte</span></th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Turno</th>
+            <th scope="col" class="hidden sm:table-cell">Cerró</th>
+            <th scope="col" class="text-right">Diferencia</th>
+            <th scope="col" class="text-right"><span class="sr-only">Reporte</span></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
           {% for caja in reporte.cajas %}
             <tr>
-              <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{{ caja.fecha|date:"D j/m/Y" }}</td>
-              <td class="px-5 py-3">{{ caja.get_turno_display }}</td>
-              <td class="px-5 py-3 text-gray-600">{{ caja.cerrada_por_usuario.nombre_completo|default:caja.cerrada_por_usuario.username }} <span class="cifras text-gray-400">{{ caja.cerrada_en|date:"H:i" }}</span></td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap {% if caja.diferencia < 0 %}text-red-700{% elif caja.diferencia > 0 %}text-amber-700{% endif %}">{{ caja.diferencia|monto }}</td>
-              <td class="px-5 py-3 text-right whitespace-nowrap">
-                <a href="{% url 'caja:cierre' caja.pk %}" class="rounded-md px-2.5 py-1.5 font-medium text-gray-700 hover:bg-gray-100">Ver cierre<span class="sr-only"> del {{ caja.fecha|date:"j/m" }}, turno {{ caja.get_turno_display|lower }}</span></a>
+              <td class="cifras whitespace-nowrap text-tinta-suave"><span class="sm:hidden">{{ caja.fecha|con_dia:"j/m" }}</span><span class="hidden sm:inline">{{ caja.fecha|con_dia:"j/m/Y" }}</span></td>
+              <td>{{ caja.get_turno_display }}</td>
+              <td class="hidden text-tinta-suave sm:table-cell">{{ caja.cerrada_por_usuario.nombre_completo|default:caja.cerrada_por_usuario.username }} <span class="cifras text-tinta-suave">{{ caja.cerrada_en|date:"H:i" }}</span></td>
+              <td class="monto text-right whitespace-nowrap {% if caja.diferencia < 0 %}text-peligro{% elif caja.diferencia > 0 %}text-alerta{% else %}font-normal{% endif %}">{{ caja.diferencia|monto }}</td>
+              <td class="text-right whitespace-nowrap">
+                <a href="{% url 'caja:cierre' caja.pk %}" class="boton-discreto">Ver cierre<span class="sr-only"> del {{ caja.fecha|date:"j/m" }}, turno {{ caja.get_turno_display|lower }}</span></a>
               </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">La diferencia es lo contado menos lo esperado, sumando todos los medios del cierre.</p>
+    <p class="border-t border-borde px-5 py-3 text-xs text-tinta-suave">La diferencia es lo contado menos lo esperado, sumando todos los medios del cierre.</p>
   {% else %}
     {% include "reportes/_sin_registros.html" %}
   {% endif %}

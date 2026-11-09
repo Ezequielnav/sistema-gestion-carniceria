@@ -62,7 +62,7 @@
     campo.min = "0";
     campo.step = paso;
     campo.value = valor;
-    campo.className = "campo w-32";
+    campo.className = "campo w-28";
     campo.setAttribute("aria-label", etiqueta);
     campo.addEventListener("input", () => alCambiar(campo.value));
     campo.addEventListener("keydown", (evento) => {
@@ -91,21 +91,21 @@
       conUnidad.className = "flex items-center gap-2";
       conUnidad.append(cantidad, porKg ? "kg" : "u.");
       const nombre = document.createElement("span");
-      nombre.className = "font-medium";
+      nombre.className = "font-semibold";
       nombre.textContent = linea.producto.nombre;
       const nombreCelda = document.createElement("span");
       nombreCelda.append(nombre);
       if (!linea.producto.controla_stock) {
         // DEC-94: suma a la deuda, el stock no cambia.
         const nota = document.createElement("span");
-        nota.className = "block text-xs text-gray-500";
+        nota.className = "block text-xs text-tinta-suave";
         nota.textContent = "Sin control de stock";
         nombreCelda.append(nota);
       }
       const quitar = document.createElement("button");
       quitar.type = "button";
       quitar.textContent = "Quitar";
-      quitar.className = "rounded-md px-2.5 py-1.5 font-medium text-red-700 hover:bg-red-50";
+      quitar.className = "boton-discreto-peligro";
       quitar.addEventListener("click", () => {
         lineas.delete(id);
         dibujar();
@@ -114,11 +114,11 @@
       const fila = document.createElement("tr");
       fila.dataset.producto = id;
       fila.append(
-        celda("px-5 py-3", nombreCelda),
-        celda("px-5 py-3", conUnidad),
-        celda("px-5 py-3", precio),
-        celda("cifras px-5 py-3 text-right whitespace-nowrap subtotal", ""),
-        celda("px-5 py-3 text-right", quitar),
+        celda("", nombreCelda),
+        celda("", conUnidad),
+        celda("", precio),
+        celda("monto text-right whitespace-nowrap subtotal", ""),
+        celda("text-right", quitar),
       );
       cuerpo.append(fila);
       if (enfocar === id) cantidad.focus();
@@ -164,7 +164,7 @@
     },
     sinResultados: () => {
       const li = document.createElement("li");
-      li.className = "px-3 py-2.5 text-sm text-gray-500";
+      li.className = "opcion-vacia";
       li.textContent = "No se encontraron productos. Podés crearlo con «Crear producto».";
       return li;
     },

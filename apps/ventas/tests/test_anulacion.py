@@ -1,5 +1,6 @@
 """Anulación de ventas (DEC-45, DEC-66 a DEC-73, CP-85)."""
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -584,7 +585,9 @@ def test_dec77_el_cierre_y_su_reporte_listan_las_ventas_anuladas(
     for contenido in (cerrar, reporte):
         assert "Ventas anuladas" in contenido
         assert f"Venta N.º {venta_efectivo.pk} · Se cobró dos veces" in contenido
-        assert "$ 19.250,00 Efectivo" in contenido
+        # El importe y el medio de pago en la misma línea; desde H7 el importe va en su propio
+        # elemento (.monto), así que se compara el texto visible, sin las etiquetas.
+        assert "$ 19.250,00 Efectivo" in re.sub(r"<[^>]+>", "", contenido)
 
 
 def test_dec77_sin_anulaciones_el_cierre_no_muestra_la_lista(client, usuario, venta_efectivo):

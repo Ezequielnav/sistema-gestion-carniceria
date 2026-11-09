@@ -1,45 +1,53 @@
 {% extends "reportes/_reporte.html" %}
+{% load fechas %}
 
 {# DEC-140: por fecha y turno de la caja; varias cajas del mismo turno se suman (DEC-83). #}
+{% block ancho %}max-w-2xl{% endblock %}
+
 {% block reporte %}
+  {# H7: agrupado por día. El día lleva sus ventas y su total; los turnos van debajo solo si hay más de uno. #}
   {% if reporte.dias %}
-    <div class="relative overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+    <div class="recuadro-tabla">
+      <table class="tabla tabla-compacta">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">Fecha</th>
-            <th scope="col" class="px-5 py-3 font-medium">Turno</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Ventas</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Total</th>
+            <th scope="col">Fecha</th>
+            <th scope="col" class="text-right">Ventas</th>
+            <th scope="col" class="text-right">Total</th>
           </tr>
         </thead>
-        {% for dia in reporte.dias %}
-          <tbody class="divide-y divide-gray-100 border-b border-gray-200">
-            {% for turno in dia.turnos %}
-              <tr>
-                <td class="cifras px-5 py-3 whitespace-nowrap text-gray-600">{% if forloop.first %}{{ dia.fecha|date:"D j/m/Y" }}{% endif %}</td>
-                <td class="px-5 py-3">{{ turno.turno }}</td>
-                <td class="cifras px-5 py-3 text-right">{{ turno.cantidad }}</td>
-                <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ turno.total|floatformat:"2g" }}</td>
-              </tr>
-            {% endfor %}
-            <tr class="bg-gray-50 font-medium">
-              <td class="px-5 py-2.5 text-gray-600" colspan="2">Total del día</td>
-              <td class="cifras px-5 py-2.5 text-right">{{ dia.cantidad }}</td>
-              <td class="cifras px-5 py-2.5 text-right whitespace-nowrap">$ {{ dia.total|floatformat:"2g" }}</td>
+        <tbody>
+          {% for dia in reporte.dias %}
+            <tr class="font-semibold">
+              <th scope="row" class="cifras text-left whitespace-nowrap">
+                {# En el celular (DEC-170), la fecha corta para que entre el total. #}
+                <span class="sm:hidden">{{ dia.fecha|con_dia:"j/m" }}</span><span class="hidden sm:inline">{{ dia.fecha|con_dia:"j/m/Y" }}</span>
+                {% if dia.turnos|length == 1 %}<span class="ml-1.5 font-normal text-tinta-suave">{{ dia.turnos.0.turno }}</span>{% endif %}
+              </th>
+              <td class="cifras text-right">{{ dia.cantidad }}</td>
+              <td class="monto text-right whitespace-nowrap">$ {{ dia.total|floatformat:"2g" }}</td>
             </tr>
-          </tbody>
-        {% endfor %}
-        <tfoot class="font-semibold">
+            {% if dia.turnos|length > 1 %}
+              {% for turno in dia.turnos %}
+                <tr class="border-t-0 text-sm text-tinta-suave">
+                  <td class="pt-0 pl-8 sm:pt-0 sm:pl-10">{{ turno.turno }}</td>
+                  <td class="cifras pt-0 text-right sm:pt-0">{{ turno.cantidad }}</td>
+                  <td class="monto pt-0 text-right font-normal whitespace-nowrap text-tinta-suave sm:pt-0">$ {{ turno.total|floatformat:"2g" }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot class="border-t-2 border-tinta text-base font-semibold">
           <tr>
-            <td class="px-5 py-3" colspan="2">Total del rango</td>
-            <td class="cifras px-5 py-3 text-right">{{ reporte.cantidad }}</td>
-            <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ reporte.total|floatformat:"2g" }}</td>
+            <th scope="row" class="text-left">Total del rango</th>
+            <td class="cifras text-right">{{ reporte.cantidad }}</td>
+            <td class="monto text-right whitespace-nowrap">$ {{ reporte.total|floatformat:"2g" }}</td>
           </tr>
         </tfoot>
       </table>
     </div>
-    <p class="border-t border-gray-200 px-5 py-3 text-xs text-gray-500">Sin las ventas anuladas. Incluye las ventas a cuenta corriente.</p>
+    <p class="border-t border-borde px-5 py-3 text-xs text-tinta-suave">Sin las ventas anuladas. Incluye las ventas a cuenta corriente.</p>
   {% else %}
     {% include "reportes/_sin_registros.html" %}
   {% endif %}

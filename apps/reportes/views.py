@@ -149,7 +149,8 @@ def _graficos(datos):
 
 def _exportar(nombre, formato, reporte, desde, hasta):
     """El archivo con el mismo resultado que la pantalla (R-3), o None si no hay datos."""
-    tabla = exportar.TABLAS[nombre](reporte)
+    tablas = exportar.TABLAS_PDF if formato == "pdf" else exportar.TABLAS
+    tabla = tablas[nombre](reporte)
     if not tabla.filas:
         return None
     generar, extension, tipo = FORMATOS[formato]

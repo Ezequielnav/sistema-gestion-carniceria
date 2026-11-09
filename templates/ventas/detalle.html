@@ -6,38 +6,38 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <a href="{% url volver %}" class="text-sm text-gray-500 hover:text-gray-800">← Volver {% if puede_anular %}al historial de ventas{% else %}a las ventas de la caja{% endif %}</a>
-    <h2 class="mt-2 flex items-center gap-3 text-2xl font-semibold tracking-tight">
+    <a href="{% url volver %}" class="volver">← Volver {% if puede_anular %}al historial de ventas{% else %}a las ventas de la caja{% endif %}</a>
+    <h2 class="titulo-pantalla mt-2 flex items-center gap-3">
       Venta N.º {{ venta.pk }}
-      {% if venta.estado == "ANULADA" %}<span class="rounded-full bg-red-50 px-2.5 py-0.5 text-sm font-medium text-red-700">Anulada</span>{% endif %}
+      {% if venta.estado == "ANULADA" %}<span class="insignia insignia-peligro font-sans text-sm">Anulada</span>{% endif %}
     </h2>
-    <p class="mt-1 text-sm text-gray-500">{{ venta.fecha_hora|date:"d/m/Y H:i" }} · {{ venta.usuario.get_full_name }} · {{ venta.medio_pago }}{% if venta.cliente %} · {{ venta.cliente.nombre }}{% endif %}</p>
-    <a href="{% url 'ventas:ticket' venta.pk %}" class="mt-2 inline-block text-sm font-medium text-red-700 hover:underline">Ver ticket</a>
+    <p class="bajada">{{ venta.fecha_hora|date:"d/m/Y H:i" }} · {{ venta.usuario.get_full_name }} · {{ venta.medio_pago }}{% if venta.cliente %} · {{ venta.cliente.nombre }}{% endif %}</p>
+    <a href="{% url 'ventas:ticket' venta.pk %}" class="boton boton-secundario mt-3">Ver ticket</a>
 
-    <div class="relative mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs">
-      <table class="w-full text-sm">
-        <thead class="border-b border-gray-200 text-left text-xs text-gray-500">
+    <div class="recuadro-tabla recuadro mt-6">
+      <table class="tabla">
+        <thead>
           <tr>
-            <th scope="col" class="px-5 py-3 font-medium">Producto</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Cantidad</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Precio</th>
-            <th scope="col" class="px-5 py-3 text-right font-medium">Subtotal</th>
+            <th scope="col">Producto</th>
+            <th scope="col" class="text-right">Cantidad</th>
+            <th scope="col" class="text-right">Precio</th>
+            <th scope="col" class="text-right">Subtotal</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
           {% for detalle in detalles %}
             <tr>
-              <td class="px-5 py-3">{{ detalle.producto.nombre }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
-              <td class="cifras px-5 py-3 text-right whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
+              <td>{{ detalle.producto.nombre }}</td>
+              <td class="cifras text-right whitespace-nowrap">{{ detalle.cantidad|cantidad:detalle.producto.unidad_medida }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap">$ {{ detalle.precio_unitario|floatformat:"2g" }}</td>
+              <td class="monto text-right font-normal whitespace-nowrap">$ {{ detalle.subtotal|floatformat:"2g" }}</td>
             </tr>
           {% endfor %}
         </tbody>
-        <tfoot class="border-t border-gray-200">
+        <tfoot class="border-t border-borde">
           <tr>
-            <th scope="row" colspan="3" class="px-5 py-3 text-left font-semibold">Total</th>
-            <td class="cifras px-5 py-3 text-right font-semibold whitespace-nowrap">$ {{ venta.monto_total|floatformat:"2g" }}</td>
+            <th scope="row" colspan="3" class="text-left text-base font-semibold">Total</th>
+            <td class="monto text-right text-lg whitespace-nowrap">$ {{ venta.monto_total|floatformat:"2g" }}</td>
           </tr>
         </tfoot>
       </table>
@@ -45,7 +45,7 @@
 
     {% if venta.estado == "ANULADA" %}
       {# DEC-73: fecha, usuario y motivo de la anulación. #}
-      <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
+      <div class="aviso aviso-error mt-6 p-5">
         <p class="font-semibold">Anulada el {{ venta.anulada_en|date:"d/m/Y H:i" }} por {{ venta.anulada_por_usuario.get_full_name }}</p>
         <p class="mt-1">Motivo: {{ venta.motivo_anulacion }}</p>
         {% if venta.medio_pago.ingresa_a_caja %}
@@ -57,31 +57,31 @@
       </div>
     {% elif not puede_anular %}
     {% elif not puede_anularse %}
-      <p class="mt-6 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-600">La caja de esta venta está cerrada: ya no se puede anular.</p>
+      <p class="nota mt-6">La caja de esta venta está cerrada: ya no se puede anular.</p>
     {% else %}
-      <form method="post" action="{% url 'ventas:anular' venta.pk %}" class="mt-6 space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-xs" novalidate
+      <form method="post" action="{% url 'ventas:anular' venta.pk %}" class="recuadro mt-6 space-y-4 p-5" novalidate
             onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular la venta N.º {{ venta.pk }}? {% if venta.medio_pago.ingresa_a_caja %}Se devuelven $ {{ venta.monto_total|floatformat:"2g" }} de la caja{% else %}Se descuentan $ {{ venta.monto_total|floatformat:"2g" }} de la cuenta corriente{% endif %} y vuelve el stock. No se puede deshacer.')">
         {% csrf_token %}
         <div>
-          <h3 class="font-semibold">Anular venta</h3>
+          <h3 class="titulo-recuadro">Anular venta</h3>
           {% if venta.medio_pago.ingresa_a_caja %}
-            <p class="mt-1 text-sm text-gray-500">La venta queda anulada; se registra un egreso por su total en {{ venta.medio_pago }} y vuelve el stock de los productos que lo controlan.</p>
+            <p class="mt-1 text-sm text-tinta-suave">La venta queda anulada; se registra un egreso por su total en {{ venta.medio_pago }} y vuelve el stock de los productos que lo controlan.</p>
           {% else %}
-            <p class="mt-1 text-sm text-gray-500">La venta queda anulada; su total se descuenta de la cuenta corriente de {{ venta.cliente.nombre }}, sin egreso de caja, y vuelve el stock de los productos que lo controlan. Si el cliente ya pagó parte y su saldo no alcanza, primero hay que anular un cobro.</p>
+            <p class="mt-1 text-sm text-tinta-suave">La venta queda anulada; su total se descuenta de la cuenta corriente de {{ venta.cliente.nombre }}, sin egreso de caja, y vuelve el stock de los productos que lo controlan. Si el cliente ya pagó parte y su saldo no alcanza, primero hay que anular un cobro.</p>
           {% endif %}
         </div>
         {% if form.non_field_errors %}
-          <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          <div role="alert" class="aviso aviso-error">
             {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
         {% endif %}
         <div>
-          <label for="{{ form.motivo.id_for_label }}" class="mb-1.5 block text-sm font-medium text-gray-700">{{ form.motivo.label }}</label>
+          <label for="{{ form.motivo.id_for_label }}" class="etiqueta">{{ form.motivo.label }}</label>
           {{ form.motivo }}
-          {% for error in form.motivo.errors %}<p class="mt-1.5 text-sm text-red-700">{{ error }}</p>{% endfor %}
+          {% for error in form.motivo.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
         </div>
         <div class="flex justify-end">
-          <button type="submit" class="rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-red-700">Anular venta</button>
+          <button type="submit" class="boton boton-peligro">Anular venta</button>
         </div>
       </form>
     {% endif %}
