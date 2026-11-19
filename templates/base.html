@@ -21,7 +21,7 @@
         {% include "comun/_marca.html" with clase_logo="h-20 w-auto" clase_chica="text-[0.8125rem] text-menu-texto" clase_grande="text-[1.75rem]" %}
       </a>
       {# Línea que separa la marca del menú (DEC-204). #}
-      <div class="mx-6 hidden border-t border-marino-800 md:block" aria-hidden="true"></div>
+      <div class="menu-separador mx-6 hidden border-t md:block" aria-hidden="true"></div>
 
       <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4 md:pt-5">
         {# Inicio va dentro del grupo "Menú", con las funciones del rol (RF-02). #}
@@ -70,7 +70,7 @@
       </nav>
 
       {% if user.is_authenticated %}
-        <div class="flex items-center gap-3 border-t border-marino-800 px-4 py-4">
+        <div class="menu-separador flex items-center gap-3 border-t px-4 py-4">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-marino-800 text-sm font-semibold text-superficie">
             {{ user.nombre_completo|default:user.username|slice:":1"|upper }}
           </span>

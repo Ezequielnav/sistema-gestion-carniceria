@@ -451,12 +451,22 @@
   }
 
   /* Menú lateral sobre marino (S-5). */
+  /*
+   * Opción del menú (DEC-201, AJ-1). Al pasar el mouse, blanco al 5 %; la elegida
+   * (`aria-current`), blanco al 15 % (#33456F, texto 9,2:1), en semibold y con una barra fina
+   * `menu-rotulo` a la izquierda (4,5:1): se distingue del hover por el fondo, el peso y la barra.
+   */
   .menu-enlace {
-    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-texto hover:bg-marino-800 hover:text-superficie;
+    @apply relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-texto hover:bg-superficie/5 hover:text-superficie;
   }
 
   .menu-enlace[aria-current="page"] {
-    @apply bg-superficie font-semibold text-marino-900 hover:bg-superficie hover:text-marino-900;
+    @apply bg-superficie/15 font-semibold text-superficie hover:bg-superficie/15 hover:text-superficie before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-r-sm before:bg-menu-rotulo;
+  }
+
+  /* Separadores de la barra lateral: blanco al 20 % (#3F5077), más claros que el fondo, sin llegar a blanco. */
+  .menu-separador {
+    @apply border-superficie/20;
   }
 
   .menu-rotulo {
