@@ -6,7 +6,7 @@
 {% block scripts %}<script src="{% static 'js/lector.js' %}" defer></script><script src="{% static 'js/cuenta_corriente.js' %}" defer></script><script src="{% static 'js/buscador.js' %}" defer></script><script src="{% static 'js/buscador_productos.js' %}" defer></script><script src="{% static 'js/elegir_cliente.js' %}" defer></script><script src="{% static 'js/aviso_stock.js' %}" defer></script><script src="{% static 'js/venta_guardada.js' %}" defer></script><script src="{% static 'js/venta.js' %}" defer></script>{% endblock %}
 
 {% block contenido %}
-  <h2 class="titulo-pantalla">Nueva venta</h2>
+  <h1 class="titulo-pantalla">Nueva venta</h1>
 
   {% if problema %}
     <div role="alert" class="aviso aviso-alerta mt-6 max-w-2xl p-5 text-base">
@@ -101,7 +101,7 @@
               class="m-auto w-full max-w-2xl rounded-lg border border-borde bg-superficie p-0 backdrop:bg-tinta/50">
         <form id="form-producto" method="dialog" class="space-y-5 p-6" novalidate>
           <div>
-            <h3 id="alta-titulo" class="titulo-recuadro">Nuevo producto</h3>
+            <h2 id="alta-titulo" class="titulo-recuadro">Nuevo producto</h2>
             <p class="mt-1 text-sm text-tinta-suave">Se da de alta en el catálogo y se agrega a esta venta. El stock arranca en 0.</p>
           </div>
           <div data-error-de="__all__" role="alert" class="aviso aviso-error hidden"></div>

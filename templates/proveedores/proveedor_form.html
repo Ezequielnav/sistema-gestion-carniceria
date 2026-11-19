@@ -6,7 +6,7 @@
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
     <a href="{% url 'proveedores:proveedores' %}" class="volver">← Volver a proveedores</a>
-    <h2 class="titulo-pantalla mt-2">{% if proveedor %}Editar «{{ proveedor.nombre }}»{% else %}Nuevo proveedor{% endif %}</h2>
+    <h1 class="titulo-pantalla mt-2">{% if proveedor %}Editar «{{ proveedor.nombre }}»{% else %}Nuevo proveedor{% endif %}</h1>
 
     <form method="post" class="recuadro mt-6 space-y-5 p-6" novalidate>
       {% csrf_token %}

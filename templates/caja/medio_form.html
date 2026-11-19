@@ -6,7 +6,7 @@
 {% block contenido %}
   <div class="mx-auto max-w-md">
     <a href="{% url 'caja:medios' %}" class="volver">← Volver a medios de pago</a>
-    <h2 class="titulo-pantalla mt-2">{% if medio %}Editar «{{ medio.nombre }}»{% else %}Nuevo medio de pago{% endif %}</h2>
+    <h1 class="titulo-pantalla mt-2">{% if medio %}Editar «{{ medio.nombre }}»{% else %}Nuevo medio de pago{% endif %}</h1>
     {% if medio %}
       <p class="bajada">
         Solo cambia el nombre. {% if medio.es_efectivo %}Es el efectivo{% elif medio.ingresa_a_caja %}Ingresa a caja{% else %}Es la cuenta corriente: no ingresa a caja{% endif %}, y eso se fija al darlo de alta.

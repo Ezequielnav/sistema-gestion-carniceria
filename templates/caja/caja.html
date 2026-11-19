@@ -5,12 +5,12 @@
 
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
-    <h2 class="titulo-pantalla">Caja</h2>
+    <h1 class="titulo-pantalla">Caja</h1>
 
     {% if caja %}
       <section class="mt-6 rounded-lg border border-exito/30 bg-exito-fondo p-6" aria-label="Caja abierta">
         <p class="cifra-grande flex items-center gap-2.5">
-          <span class="size-2.5 rounded-sm bg-exito" aria-hidden="true"></span>Abierta
+          <span class="punto-estado punto-estado-exito" aria-hidden="true"></span>Abierta
         </p>
         <dl class="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
@@ -38,7 +38,7 @@
 
       {# Egresos "otros" en efectivo (DEC-43, DEC-58) #}
       <section class="recuadro mt-6 p-6" aria-labelledby="titulo-egresos">
-        <h3 id="titulo-egresos" class="titulo-recuadro">Gastos y retiros en efectivo</h3>
+        <h2 id="titulo-egresos" class="titulo-recuadro">Gastos y retiros en efectivo</h2>
         <form method="post" action="{% url 'caja:egreso' %}" class="mt-4 space-y-4" novalidate>
           {% csrf_token %}
           {% if egreso_form.non_field_errors %}

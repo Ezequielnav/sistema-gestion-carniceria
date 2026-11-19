@@ -7,10 +7,10 @@
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
     <a href="{% url volver %}" class="volver">← Volver {% if puede_anular %}al historial de ventas{% else %}a las ventas de la caja{% endif %}</a>
-    <h2 class="titulo-pantalla mt-2 flex items-center gap-3">
+    <h1 class="titulo-pantalla mt-2 flex items-center gap-3">
       Venta N.º {{ venta.pk }}
       {% if venta.estado == "ANULADA" %}<span class="insignia insignia-peligro font-sans text-sm">Anulada</span>{% endif %}
-    </h2>
+    </h1>
     <p class="bajada">{{ venta.fecha_hora|date:"d/m/Y H:i" }} · {{ venta.usuario.get_full_name }} · {{ venta.medio_pago }}{% if venta.cliente %} · {{ venta.cliente.nombre }}{% endif %}</p>
     <a href="{% url 'ventas:ticket' venta.pk %}" class="boton boton-secundario mt-3">Ver ticket</a>
 
@@ -63,7 +63,7 @@
             onsubmit="return this.motivo.value.trim() === '' || confirm('¿Anular la venta N.º {{ venta.pk }}? {% if venta.medio_pago.ingresa_a_caja %}Se devuelven $ {{ venta.monto_total|floatformat:"2g" }} de la caja{% else %}Se descuentan $ {{ venta.monto_total|floatformat:"2g" }} de la cuenta corriente{% endif %} y vuelve el stock. No se puede deshacer.')">
         {% csrf_token %}
         <div>
-          <h3 class="titulo-recuadro">Anular venta</h3>
+          <h2 class="titulo-recuadro">Anular venta</h2>
           {% if venta.medio_pago.ingresa_a_caja %}
             <p class="mt-1 text-sm text-tinta-suave">La venta queda anulada; se registra un egreso por su total en {{ venta.medio_pago }} y vuelve el stock de los productos que lo controlan.</p>
           {% else %}

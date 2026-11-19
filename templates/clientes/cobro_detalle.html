@@ -7,7 +7,7 @@
   <div class="mx-auto max-w-2xl">
     <a href="{% url 'clientes:estado' cobro.cliente_id %}" class="volver">← Volver al estado de cuenta</a>
     <div class="mt-2 flex flex-wrap items-center gap-3">
-      <h2 class="titulo-pantalla">Cobro N.º {{ cobro.pk }}</h2>
+      <h1 class="titulo-pantalla">Cobro N.º {{ cobro.pk }}</h1>
       {% if cobro.estado == "ANULADO" %}
         <span class="insignia insignia-neutra">Anulado</span>
       {% endif %}
@@ -30,7 +30,7 @@
     {% if cobro.estado != "ANULADO" %}
       {# DEC-113 y S-11 (DEC-130). #}
       <section class="recuadro mt-6 p-6" aria-labelledby="titulo-anular">
-        <h3 id="titulo-anular" class="text-base font-semibold">Anular cobro</h3>
+        <h2 id="titulo-anular" class="text-base font-semibold">Anular cobro</h2>
         {% if impedimento %}
           <p class="mt-2 text-sm text-tinta-suave">{{ impedimento }}</p>
           {% if caja_reversa is None and ingreso %}<a href="{% url 'caja:caja' %}" class="boton boton-secundario mt-3">Ir a Caja</a>{% endif %}

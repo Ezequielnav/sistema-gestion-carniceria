@@ -14,7 +14,7 @@
   {# Ventas del rango: lo central del Resumen, con su evolución día por día. #}
   <section class="recuadro mt-6 grid overflow-hidden lg:grid-cols-[17rem_minmax(0,1fr)]" aria-labelledby="titulo-ventas">
     <div class="border-b border-borde p-5 lg:border-r lg:border-b-0">
-      <h3 id="titulo-ventas" class="text-sm font-semibold text-tinta-suave">Vendido</h3>
+      <h2 id="titulo-ventas" class="text-sm font-semibold text-tinta-suave">Vendido</h2>
       <p class="mt-0.5 text-sm text-tinta-suave">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
       {% if t.ventas.cantidad %}
         <p class="cifra-grande mt-3">$ {{ t.ventas.total|floatformat:"2g" }}</p>
@@ -27,7 +27,7 @@
       <a href="{% url 'reportes:ventas' %}?{{ rango }}" class="enlace mt-4 inline-block text-sm">Ver ventas diarias</a>
     </div>
     <div class="min-w-0 p-5">
-      <h3 class="text-sm font-semibold text-tinta-suave">Ventas por día</h3>
+      <h2 class="text-sm font-semibold text-tinta-suave">Ventas por día</h2>
       {% if t.serie %}
         <div class="relative mt-4 h-56 sm:h-64 lg:h-72">
           <canvas id="grafico-ventas" role="img" aria-label="Ventas por día del rango: $ {{ t.ventas.total|floatformat:'2g' }} en total"></canvas>
@@ -96,7 +96,7 @@
   <div class="mt-6 grid gap-6 lg:grid-cols-2">
     <section class="recuadro min-w-0 p-5" aria-labelledby="titulo-medios">
       <div class="flex items-baseline justify-between gap-3">
-        <h3 id="titulo-medios" class="text-sm font-semibold text-tinta-suave">Ventas por medio de pago</h3>
+        <h2 id="titulo-medios" class="text-sm font-semibold text-tinta-suave">Ventas por medio de pago</h2>
         <a href="{% url 'reportes:medios' %}?{{ rango }}" class="enlace text-sm">Ver totales</a>
       </div>
       {% if t.medios %}
@@ -110,7 +110,7 @@
 
     <section class="recuadro min-w-0 p-5" aria-labelledby="titulo-top">
       <div class="flex items-baseline justify-between gap-3">
-        <h3 id="titulo-top" class="text-sm font-semibold text-tinta-suave">Los 5 productos más vendidos</h3>
+        <h2 id="titulo-top" class="text-sm font-semibold text-tinta-suave">Los 5 productos más vendidos</h2>
         <a href="{% url 'reportes:productos' %}?{{ rango }}" class="enlace text-sm">Ver ranking</a>
       </div>
       {% if t.top %}

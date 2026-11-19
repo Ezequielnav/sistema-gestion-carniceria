@@ -1,10 +1,10 @@
 {# Accesos a las funciones del rol (RF-02), los del menú lateral. #}
 <section class="recuadro {{ clase }}" aria-labelledby="titulo-accesos">
   <div class="recuadro-encabezado">
-    <h3 id="titulo-accesos" class="titulo-recuadro">Accesos</h3>
+    <h2 id="titulo-accesos" class="titulo-recuadro">Accesos</h2>
   </div>
   {% if menu %}
-    <ul class="divide-y divide-gray-100">
+    <ul class="divide-y divide-gray-200">
       {% for funcion in menu %}
         <li>
           {% if funcion.url %}<a href="{% url funcion.url %}" class="flex items-center gap-4 px-5 py-3.5 hover:bg-papel">{% else %}<div aria-disabled="true" class="flex items-center gap-4 px-5 py-3.5">{% endif %}

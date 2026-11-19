@@ -8,7 +8,7 @@
   <div class="mx-auto max-w-3xl">
     <a href="{% url 'proveedores:ingresos' %}" class="volver">← Volver a ingresos</a>
     <div class="mt-2 flex flex-wrap items-center gap-3">
-      <h2 class="titulo-pantalla">Ingreso N.º {{ ingreso.pk }}</h2>
+      <h1 class="titulo-pantalla">Ingreso N.º {{ ingreso.pk }}</h1>
       {% if ingreso.estado == "ANULADO" %}
         <span class="insignia insignia-neutra">Anulado</span>
       {% endif %}
@@ -61,13 +61,13 @@
 
     <section class="recuadro mt-6 p-6" aria-labelledby="titulo-pagos">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="titulo-pagos" class="text-base font-semibold">Pagos</h3>
+        <h2 id="titulo-pagos" class="text-base font-semibold">Pagos</h2>
         {% if ingreso.estado != "ANULADO" and saldo > 0 %}
           <a href="{% url 'proveedores:pago_nuevo' %}?ingreso={{ ingreso.pk }}" class="boton boton-principal">Registrar pago</a>
         {% endif %}
       </div>
       {% if pagos %}
-        <ul class="mt-3 divide-y divide-gray-100 text-sm">
+        <ul class="mt-3 divide-y divide-gray-200 text-sm">
           {% for pago in pagos %}
             <li class="flex flex-wrap items-center justify-between gap-2 py-2.5 {% if pago.estado == 'ANULADO' %}text-tinta-suave{% endif %}">
               <span>Pago N.º {{ pago.pk }} · {{ pago.fecha_hora|date:"d/m/Y H:i" }} · {{ pago.medio_pago }}{% if pago.estado == "ANULADO" %} · <span class="insignia insignia-peligro">Anulado</span>{% endif %}</span>
@@ -85,7 +85,7 @@
 
     {% if ingreso.estado != "ANULADO" %}
       <section class="recuadro mt-6 p-6" aria-labelledby="titulo-anular">
-        <h3 id="titulo-anular" class="text-base font-semibold">Anular ingreso</h3>
+        <h2 id="titulo-anular" class="text-base font-semibold">Anular ingreso</h2>
         {% if impedimento %}
           <p class="mt-2 text-sm text-tinta-suave">{{ impedimento }}</p>
         {% else %}

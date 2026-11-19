@@ -8,7 +8,7 @@
 {% block contenido %}
   <div class="mx-auto max-w-2xl">
     {% if es_admin %}<a href="{% url 'clientes:clientes' %}" class="volver">← Volver a clientes</a>{% endif %}
-    <h2 class="titulo-pantalla mt-2">Cobrar cuenta corriente</h2>
+    <h1 class="titulo-pantalla mt-2">Cobrar cuenta corriente</h1>
 
     {% if not es_admin and not caja_del_dia %}
       {# DEC-110: la cajera cobra en la caja abierta de hoy (CU-04 A2). #}
@@ -34,7 +34,7 @@
           <div id="elegir-cliente">
             <label for="buscar-cliente" class="etiqueta">Cliente</label>
             <input id="buscar-cliente" type="search" autocomplete="off" class="campo" placeholder="Nombre o teléfono">
-            <p class="ayuda">Escribí para buscar; con las flechas y Enter se elige.</p>
+            <p class="ayuda">Tocá el campo para ver los que deben o escribí para buscar; con las flechas y Enter se elige.</p>
             <ul id="clientes" class="lista-opciones mt-2 hidden max-h-60" aria-label="Clientes"></ul>
           </div>
           <div id="cliente-elegido" class="nota hidden p-4">
@@ -87,10 +87,10 @@
         {# DEC-185: la cajera reimprime los comprobantes de la caja abierta de hoy. #}
         <section class="recuadro mt-6" aria-labelledby="titulo-cobros-caja">
           <div class="recuadro-encabezado">
-            <h3 id="titulo-cobros-caja" class="titulo-recuadro">Cobros de esta caja</h3>
+            <h2 id="titulo-cobros-caja" class="titulo-recuadro">Cobros de esta caja</h2>
             <p class="mt-0.5 text-sm text-tinta-suave">Se muestran los últimos 25.</p>
           </div>
-          <ul class="divide-y divide-gray-100">
+          <ul class="divide-y divide-gray-200">
             {% for cobro in cobros_de_la_caja %}
               <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3">
                 <span><span class="cifras">{{ cobro.fecha_hora|date:"H:i" }}</span> · N.º {{ cobro.pk }} · {{ cobro.cliente.nombre }}{% if cobro.estado == "ANULADO" %} <span class="insignia insignia-peligro">Anulado</span>{% endif %}</span>

@@ -20,6 +20,20 @@
   const lineasMaximas = Number(raiz.dataset.lineasMaximas) || Infinity;
   const pesos = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // DEC-201: mientras espera al servidor, el botón dice qué está haciendo y queda marcado como
+  // ocupado (aria-busy); al volver, recupera su texto. Evita el doble clic y la duda de si anduvo.
+  function ocupado(boton, texto) {
+    if (texto) {
+      boton.dataset.texto = boton.textContent;
+      boton.textContent = texto;
+      boton.setAttribute("aria-busy", "true");
+    } else if (boton.dataset.texto) {
+      boton.textContent = boton.dataset.texto;
+      boton.removeAttribute("aria-busy");
+    }
+    boton.disabled = Boolean(texto);
+  }
+
   // producto id -> { producto, cantidad (texto) }
   const lineas = new Map();
   // SC-03 (DEC-123): el cliente elegido con SC-01 cuando el medio es cuenta corriente.
@@ -256,7 +270,7 @@
       evento.preventDefault();
       const cuerpoPedido = new FormData(formAlta);
       cuerpoPedido.append("csrfmiddlewaretoken", csrf);
-      guardar.disabled = true;
+      ocupado(guardar, "Dando de alta…");
       try {
         const respuesta = await fetch(raiz.dataset.producto, {
           method: "POST",
@@ -273,7 +287,7 @@
       } catch {
         erroresDelAlta({ __all__: ["No se pudo dar de alta el producto. Revisá la conexión e intentá de nuevo."] });
       }
-      guardar.disabled = false;
+      ocupado(guardar);
     });
   }
 
@@ -400,7 +414,7 @@
       // Solo con cuenta corriente; con otro medio el servidor no lo usa (SC-03).
       cliente: cuentaCorriente.activo() && cliente ? String(cliente.id) : "",
     });
-    confirmar.disabled = true;
+    ocupado(confirmar, "Registrando venta…");
     try {
       const respuesta = await fetch(raiz.dataset.confirmar, {
         method: "POST",
@@ -418,7 +432,7 @@
     } catch {
       mostrarErrores(["No se pudo registrar la venta. Revisá la conexión e intentá de nuevo."]);
     }
-    confirmar.disabled = false;
+    ocupado(confirmar);
   });
 
   // L11 (DEC-176): al retomar, el aviso usa el stock actual del servidor. Mientras llega, o si

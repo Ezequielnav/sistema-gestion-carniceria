@@ -7,7 +7,7 @@
 
 {% block contenido %}
   <a href="{% url 'proveedores:ingresos' %}" class="volver">← Volver a ingresos</a>
-  <h2 class="titulo-pantalla mt-2">Nuevo ingreso de mercadería</h2>
+  <h1 class="titulo-pantalla mt-2">Nuevo ingreso de mercadería</h1>
   <p class="bajada">A crédito, el total queda como deuda; al contado, se registra el pago por el total en la misma operación. La fecha es la de hoy.</p>
 
   <div id="ingreso" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]"
@@ -85,7 +85,7 @@
           class="m-auto w-full max-w-2xl rounded-lg border border-borde bg-superficie p-0 backdrop:bg-tinta/50">
     <form id="form-producto" method="dialog" class="space-y-5 p-6" novalidate>
       <div>
-        <h3 id="alta-titulo" class="titulo-recuadro">Nuevo producto</h3>
+        <h2 id="alta-titulo" class="titulo-recuadro">Nuevo producto</h2>
         <p class="bajada">Se da de alta en el catálogo y se agrega a este ingreso; el stock sube con el ingreso.</p>
       </div>
       <div data-error-de="__all__" role="alert" class="aviso aviso-error hidden"></div>

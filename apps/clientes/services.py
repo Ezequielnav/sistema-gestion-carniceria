@@ -468,11 +468,18 @@ def buscar_para_elegir(usuario, texto, para_cobro=False):
 
     En el cobro también aparecen los dados de baja que todavía deben (DEC-116). Devuelve hasta
     LIMITE_BUSQUEDA y si hay más, como el buscador de la venta (DEC-97).
+
+    Sin texto (el campo vacío, DEC-206): en el cobro, solo los que deben (saldo mayor a cero,
+    activos o dados de baja); en la venta, los activos. Siempre por nombre.
     """
     if not puede_elegir(usuario):
         raise PermissionDenied("Solo el administrador y la cajera eligen clientes.")
     clientes = _por_texto(Cliente.objects.order_by("nombre", "pk"), texto)
-    if para_cobro:
+    if para_cobro and not (texto or "").strip():
+        # Una consulta para los saldos de todos (R-7); el volumen es chico (PR-11).
+        deben = [pk for pk, monto in saldos_de_clientes(list(clientes)).items() if monto > 0]
+        clientes = clientes.filter(pk__in=deben)
+    elif para_cobro:
         con_deuda = [
             pk
             for pk, monto in saldos_de_clientes(list(clientes.filter(activo=False))).items()

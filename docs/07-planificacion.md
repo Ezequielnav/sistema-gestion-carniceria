@@ -153,10 +153,11 @@ Después de H7 los cambios entran por **rondas de ajuste** (DEC-200), no por hit
 
 | Ronda | Origen | Contenido |
 |---|---|---|
-| AJ-1 | Mostrarle el sistema al dueño | Lo que surja de la lista "Para validar con el dueño" (sección 8) y de su uso |
-| AJ-2 en adelante | Pedidos de la cátedra | Lo que pida cada corrección |
+| AJ-1 | Revisión propia de diseño | Hecha en la rama `h7-ajustes`: bordes de recuadros y filas, botón ocupado al confirmar, un solo título por pantalla y componentes de estado (DEC-201); ingreso con bienvenida, íconos, ojo en las contraseñas y firma (DEC-202); logo real del negocio (DEC-203); línea bajo el logo del menú (DEC-204); composición del ingreso en dos mitades (DEC-205); en SC-01, la lista de clientes al tocar el campo vacío, pedido del alumno (DEC-206). Fuera del ingreso se volvió a los colores de `main`, salvo el borde `#D4C8B4` y las líneas entre filas (DEC-201) |
+| AJ-2 | Mostrarle el sistema al dueño | Lo que surja de la lista "Para validar con el dueño" (sección 8) y de su uso |
+| AJ-3 en adelante | Pedidos de la cátedra | Lo que pida cada corrección |
 
-Cada ronda tiene su rama, una lista corta de cambios, sus pruebas, los docs afectados y un Pull Request contra `main` (DEC-132). Si aparece algo grande (una función nueva o un cambio de modelo), se abre un hito nuevo en lugar de una ronda. Cada cambio queda en [09-decisiones.md](09-decisiones.md) con su origen: dueño, cátedra o alumno.
+Cada ronda tiene su rama, una lista corta de cambios, sus pruebas, los docs afectados y un Pull Request contra `main` (DEC-132). Si aparece algo grande (una función nueva o un cambio de modelo), se abre un hito nuevo en lugar de una ronda. Cada cambio queda en [09-decisiones.md](09-decisiones.md) con su origen: dueño, cátedra, alumno o revisión propia de diseño.
 
 El tamaño es una referencia para ordenar y comparar hitos, no una promesa de tiempo.
 
@@ -241,15 +242,15 @@ Cuando el responsable del negocio confirma algo:
 | PA-06 | Respondida: sin horas fijas; se trabaja por sesiones y se avanza lo que se pueda en cada una |
 | PA-05 | Si el despliegue es parte de la entrega |
 | PR-33 | Costo del alojamiento, si se despliega |
-| Logo y paleta (H7) | Validar con el dueño el logo provisorio del proyecto, hecho por el alumno, y la paleta que sale de él (DEC-187, DEC-190). No bloquean H7: si cambian, se reemplazan el archivo de `static/img/logo/` y los tokens de color, sin tocar las pantallas |
+| Paleta (H7) | Validar con el dueño la paleta (DEC-187), que sigue siendo un supuesto del proyecto; el logo es el real del negocio (DEC-203) y no se valida. No bloquea: si cambia, se reemplazan los tokens de color, sin tocar las pantallas |
 
 ### Para validar con el dueño
 
-Se repasa al mostrarle el sistema; lo que cambie entra en la ronda AJ-1 (DEC-200). Son supuestos del proyecto, no datos confirmados por el negocio.
+Se repasa al mostrarle el sistema; lo que cambie entra en la ronda AJ-2 (DEC-200). Son supuestos del proyecto, no datos confirmados por el negocio.
 
 | Tema | Qué se le pregunta | Referencia |
 |---|---|---|
-| Logo y paleta | Si el logo provisorio y sus colores lo representan | DEC-187, DEC-190 |
+| Paleta | Si los colores del sistema (marino y neutros cálidos) acompañan su logo | DEC-187 |
 | Ancho del ticket | Si imprime en hoja común o en una impresora de tickets de 80 mm | DEC-44, DEC-195 |
 | Stock negativo | Si está bien vender aunque el stock no alcance, con aviso | DEC-46 |
 | Cobro de la cajera | Si la cajera cobra cuentas corrientes y reimprime solo los comprobantes de su caja de hoy | DEC-185 |

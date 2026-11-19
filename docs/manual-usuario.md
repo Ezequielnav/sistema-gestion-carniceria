@@ -34,7 +34,7 @@ Solo puede haber una caja abierta. Si quedó abierta la de otro turno o la de ot
    - **Buscando:** escribir parte del nombre o el plus, elegir con las flechas y Enter, o con el mouse. "Ver productos" muestra todos.
    - **Carne por kg:** al agregarla, el cursor queda en el peso. Escribir el peso y Enter para volver al buscador.
 3. Elegir el medio de pago.
-   - **Cuenta corriente:** aparece la búsqueda del cliente; se ven su saldo, su límite y si tiene deuda vencida. Si la venta pasa el límite, no se puede confirmar.
+   - **Cuenta corriente:** aparece la búsqueda del cliente. Al tocar el campo vacío se abre la lista de clientes activos por nombre; escribir filtra por nombre o teléfono. Se ven su saldo, su límite y si tiene deuda vencida. Si la venta pasa el límite, no se puede confirmar.
 4. "Confirmar venta". Se abre el ticket: "Imprimir" y después "Nueva venta".
 
 Datos útiles:
@@ -48,7 +48,7 @@ Datos útiles:
 ### Cobrar una cuenta corriente
 
 1. "Cobrar cuenta corriente" en el inicio o en el menú.
-2. Buscar al cliente, elegirlo y ver su saldo, que es lo máximo que se puede cobrar.
+2. Elegir al cliente. Al tocar el campo vacío se abre la lista de los que deben, por nombre y con lo que debe cada uno (también los dados de baja que todavía deben); escribir filtra por nombre o teléfono. Si hay más de 50, la lista avisa: hay que escribir para filtrar. Elegido, se ve su saldo, que es lo máximo que se puede cobrar.
 3. Escribir el monto, elegir el medio de pago y "Registrar cobro".
 4. Se abre el **comprobante** (no es factura), con el saldo anterior y el que queda. "Imprimir" y "Nuevo cobro".
 

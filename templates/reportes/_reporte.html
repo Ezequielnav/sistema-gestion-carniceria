@@ -6,7 +6,7 @@
 
 {% block contenido %}
   <div>
-    <h2 class="titulo-pantalla">Reportes</h2>
+    <h1 class="titulo-pantalla">Reportes</h1>
     <p class="bajada">Solo consulta: se calculan con lo registrado en el rango que elijas.</p>
   </div>
 
@@ -32,7 +32,7 @@
   <section class="recuadro mt-6 {% block ancho %}{% endblock %}" aria-label="{{ titulo }}">
     <div class="recuadro-encabezado flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h3 class="titulo-recuadro">{{ titulo }}</h3>
+        <h2 class="titulo-recuadro">{{ titulo }}</h2>
         {% if form.is_valid %}
           <p class="mt-0.5 text-sm text-tinta-suave">Del {{ form.cleaned_data.desde|date:"j/m/Y" }} al {{ form.cleaned_data.hasta|date:"j/m/Y" }}</p>
         {% endif %}

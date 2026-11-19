@@ -5,7 +5,7 @@
 
 {% block contenido %}
   {# DEC-86: consulta del Administrador; no reemplaza a los reportes de CU-09. #}
-  <h2 class="titulo-pantalla">Historial de ventas</h2>
+  <h1 class="titulo-pantalla">Historial de ventas</h1>
   <p class="bajada">
     {% if caja_por_defecto %}
       Caja abierta: turno {{ caja_por_defecto.get_turno_display|lower }} del {{ caja_por_defecto.fecha|date:"d/m/Y" }}. Usá los filtros o "Todas las ventas" para ver otras.
