@@ -23,6 +23,20 @@
   const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
   const pesos = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // DEC-201: mientras espera al servidor, el botón dice qué está haciendo y queda marcado como
+  // ocupado (aria-busy); al volver, recupera su texto. Evita el doble clic y la duda de si anduvo.
+  function ocupado(boton, texto) {
+    if (texto) {
+      boton.dataset.texto = boton.textContent;
+      boton.textContent = texto;
+      boton.setAttribute("aria-busy", "true");
+    } else if (boton.dataset.texto) {
+      boton.textContent = boton.dataset.texto;
+      boton.removeAttribute("aria-busy");
+    }
+    boton.disabled = Boolean(texto);
+  }
+
   // producto id -> { producto, cantidad (texto), precio (texto), precioEditado }
   const lineas = new Map();
   let confirmado = false;
@@ -214,7 +228,7 @@
     evento.preventDefault();
     const datos = new FormData(formAlta);
     datos.append("csrfmiddlewaretoken", csrf);
-    guardar.disabled = true;
+    ocupado(guardar, "Dando de alta…");
     try {
       const respuesta = await fetch(raiz.dataset.producto, {
         method: "POST",
@@ -231,7 +245,7 @@
     } catch {
       erroresDelAlta({ __all__: ["No se pudo dar de alta el producto. Revisá la conexión e intentá de nuevo."] });
     }
-    guardar.disabled = false;
+    ocupado(guardar);
   });
 
   // DEC-81: al contado se elige el medio y el total se paga en la misma operación.
@@ -264,7 +278,7 @@
       sale_de_caja: document.getElementById("id_sale_de_caja").checked ? "on" : "",
       lineas: JSON.stringify(lista),
     });
-    confirmar.disabled = true;
+    ocupado(confirmar, "Registrando ingreso…");
     try {
       const respuesta = await fetch(raiz.dataset.confirmar, {
         method: "POST",
@@ -281,7 +295,7 @@
     } catch {
       mostrarErrores(["No se pudo registrar el ingreso. Revisá la conexión e intentá de nuevo."]);
     }
-    confirmar.disabled = false;
+    ocupado(confirmar);
   });
 
   dibujar();

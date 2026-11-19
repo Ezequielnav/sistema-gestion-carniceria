@@ -22,6 +22,9 @@ class IngresoForm(AuthenticationForm):
         super().__init__(*args, **kwargs)
         self.fields["username"].label = "Usuario"
         self.fields["password"].label = "Contraseña"
+        # DEC-202: texto de ejemplo en los campos (el placeholder usa `tinta-tenue`, 4,9:1).
+        self.fields["username"].widget.attrs["placeholder"] = "Tu usuario"
+        self.fields["password"].widget.attrs["placeholder"] = "Tu contraseña"
         for campo in self.fields.values():
             campo.widget.attrs["class"] = "campo"
 

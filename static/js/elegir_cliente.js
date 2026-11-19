@@ -2,6 +2,9 @@
 // (CU-04). Se comporta como el buscador de productos de la venta (DEC-97): filtra al dejar de
 // escribir y se recorre con flechas, Inicio, Fin, Enter y Escape. Reutiliza la lógica de
 // buscador.js (`crearBuscadorDiferido`, `moverSeleccion`), que hay que cargar antes.
+// DEC-206: al tocar el campo vacío (clic o flecha abajo) se abre la lista sin escribir: en el
+// cobro, los que deben, con su saldo; en la venta, los activos. Siempre por nombre y hasta el
+// tope del servidor, con el aviso de que hay más.
 (function (raiz) {
   "use strict";
 
@@ -12,6 +15,14 @@
     if (para) parametros.set("para", para);
     const respuesta = await fetch(`${url}?${parametros}`, { headers: { Accept: "application/json" } });
     return respuesta.json();
+  }
+
+  const pesos = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Qué dice la lista cuando no trae nadie: sin texto, que no hay a quién elegir.
+  function sinClientes(texto, para) {
+    if (texto) return "No hay clientes que coincidan.";
+    return para === "cobro" ? "No hay clientes con saldo para cobrar." : "No hay clientes activos.";
   }
 
   function crearElegirCliente({ entrada, lista, url, para = "", alElegir }) {
@@ -61,10 +72,10 @@
       alElegir(cliente);
     }
 
-    function mostrar(clientes, hayMas) {
+    function mostrar(clientes, texto, hayMas) {
       lista.replaceChildren();
       visibles = clientes;
-      if (clientes.length === 0) lista.append(aviso("No hay clientes que coincidan."));
+      if (clientes.length === 0) lista.append(aviso(sinClientes(texto, para)));
       clientes.forEach((cliente, i) => {
         const opcion = document.createElement("li");
         opcion.id = `${lista.id}-${cliente.id}`;
@@ -82,7 +93,18 @@
         const telefono = document.createElement("span");
         telefono.className = "cifras whitespace-nowrap text-tinta-suave";
         telefono.textContent = cliente.telefono;
-        opcion.append(nombre, telefono);
+        if (para === "cobro") {
+          // En el cobro se ve lo que debe cada uno (DEC-206); el teléfono, debajo del nombre.
+          const izquierda = document.createElement("span");
+          telefono.className = "cifras block text-xs text-tinta-suave";
+          izquierda.append(nombre, telefono);
+          const saldo = document.createElement("span");
+          saldo.className = "monto whitespace-nowrap";
+          saldo.textContent = `$ ${pesos.format(Number(cliente.saldo))}`;
+          opcion.append(izquierda, saldo);
+        } else {
+          opcion.append(nombre, telefono);
+        }
         // mousedown evita que el clic saque el foco del buscador antes de elegir.
         opcion.addEventListener("mousedown", (evento) => evento.preventDefault());
         opcion.addEventListener("click", () => elegir(cliente));
@@ -97,17 +119,22 @@
 
     async function filtrar(texto, turno) {
       const datos = await consultarClientes(url, texto, para);
-      if (buscador.vigente(turno)) mostrar(datos.resultados, datos.hay_mas);
+      if (buscador.vigente(turno)) mostrar(datos.resultados, texto, datos.hay_mas);
     }
+
+    // Abre la lista con lo escrito o, si el campo está vacío, la lista sin filtro (DEC-206).
+    function abrir() {
+      filtrar(entrada.value.trim(), buscador.inmediato());
+    }
+
+    entrada.addEventListener("click", () => {
+      if (!entrada.value.trim() && lista.classList.contains("hidden")) abrir();
+    });
 
     entrada.addEventListener("input", () => {
       marcar(-1);
-      const texto = entrada.value.trim();
-      if (!texto) {
-        cerrar();
-        return;
-      }
-      buscador.diferir(texto, filtrar);
+      // Al borrar todo vuelve la lista sin filtro, como al tocar el campo vacío.
+      buscador.diferir(entrada.value.trim(), filtrar);
     });
 
     entrada.addEventListener("keydown", (evento) => {
@@ -115,7 +142,7 @@
       if (["ArrowDown", "ArrowUp", "Home", "End"].includes(evento.key) && (abierta || evento.key === "ArrowDown")) {
         evento.preventDefault();
         if (abierta) marcar(raiz.moverSeleccion(marcado, visibles.length, evento.key));
-        else if (entrada.value.trim()) filtrar(entrada.value.trim(), buscador.inmediato());
+        else abrir();
         return;
       }
       if (evento.key === "Escape" && abierta) {
@@ -128,7 +155,7 @@
       // El marcado con las flechas; si la lista tiene uno solo, ese.
       if (abierta && marcado >= 0) elegir(visibles[marcado]);
       else if (abierta && visibles.length === 1) elegir(visibles[0]);
-      else if (entrada.value.trim()) filtrar(entrada.value.trim(), buscador.inmediato());
+      else if (entrada.value.trim()) abrir();
     });
 
     document.addEventListener("click", (evento) => {
@@ -138,7 +165,7 @@
     return { cerrar };
   }
 
-  const exportado = { crearElegirCliente, consultarClientes };
+  const exportado = { crearElegirCliente, consultarClientes, sinClientes };
   if (typeof module !== "undefined" && module.exports) module.exports = exportado;
   else Object.assign(raiz, exportado);
 })(typeof window !== "undefined" ? window : globalThis);

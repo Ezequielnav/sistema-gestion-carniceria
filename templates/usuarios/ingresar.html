@@ -8,45 +8,55 @@
   <link rel="icon" href="{% static 'img/favicon-32.png' %}" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+  <script src="{% static 'js/contrasena.js' %}" defer></script>
 </head>
 <body class="min-h-screen">
-  {# CU-10: una sola pantalla de ingreso para los tres roles. La marca va sobre marino (S-4). #}
+  {# CU-10: una sola pantalla de ingreso para los tres roles. #}
+  {# Desde 768 px, dos mitades iguales: el logo sobre el marino y el formulario, centrados a la misma altura (DEC-202). #}
   <main class="flex min-h-screen flex-col md:flex-row">
-    <div class="flex items-center justify-center bg-marino-900 px-6 py-10 text-superficie md:w-5/12 md:py-12">
+    <div class="flex items-center justify-center bg-marino-900 px-6 py-10 text-superficie md:w-1/2 md:py-12">
       <h1 class="text-center">
-        {% include "comun/_marca.html" with clase_logo="mx-auto h-40 w-auto md:h-56" clase_chica="text-base text-menu-texto md:text-lg" clase_grande="text-5xl md:text-6xl" %}
+        {% include "comun/_marca.html" with clase_logo="mx-auto h-36 w-auto md:h-72 xl:h-80" clase_chica="text-base text-menu-texto md:text-lg" clase_grande="text-5xl md:text-6xl" %}
       </h1>
     </div>
 
-    <div class="flex flex-1 items-start justify-center px-4 py-10 md:items-center md:py-12">
-      <div class="w-full max-w-sm">
-        <p class="font-titulo text-2xl font-semibold">Ingresá con tu usuario y contraseña</p>
+    <div class="relative flex flex-1 flex-col px-4 py-10 md:w-1/2 md:px-10 md:py-20">
+      <div class="flex flex-1 items-start justify-center md:items-center">
+        {# El recuadro crece con la pantalla: 512 px en la notebook, hasta 672 px en un monitor grande. #}
+        <div class="recuadro w-full max-w-lg p-6 sm:px-12 sm:py-12 xl:max-w-xl 2xl:max-w-2xl 2xl:px-16 2xl:py-14">
+          <h2 class="titulo-pantalla">Te damos la bienvenida</h2>
+          <p class="bajada">Ingresá con tu usuario y contraseña.</p>
 
-        <form method="post" class="mt-6 space-y-5" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ next }}">
+          <form method="post" class="mt-8 space-y-5" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
 
-          {% if form.non_field_errors %}
-            <div role="alert" class="aviso aviso-error">
-              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
+            {% if form.non_field_errors %}
+              <div role="alert" class="aviso aviso-error">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
 
-          {% for campo in form %}
-            <div>
-              <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
-              {{ campo }}
-              {% for error in campo.errors %}
-                <p class="error-campo">{{ error }}</p>
-              {% endfor %}
-            </div>
-          {% endfor %}
+            {% for campo in form %}
+              <div>
+                <label for="{{ campo.id_for_label }}" class="etiqueta">{{ campo.label }}</label>
+                <div class="con-icono">
+                  {{ campo }}
+                  {% if campo.name == "password" %}{% include "comun/_icono.html" with nombre="candado" clase="icono-campo" %}{% else %}{% include "comun/_icono.html" with nombre="usuario" clase="icono-campo" %}{% endif %}
+                </div>
+                {% for error in campo.errors %}
+                  <p class="error-campo">{{ error }}</p>
+                {% endfor %}
+              </div>
+            {% endfor %}
 
-          <button type="submit" class="boton boton-grande boton-principal w-full">
-            Ingresar
-          </button>
-        </form>
+            <button type="submit" class="boton boton-grande boton-principal w-full">
+              Ingresar
+            </button>
+          </form>
+        </div>
       </div>
+      <p class="mt-10 text-center text-sm text-tinta-suave md:absolute md:inset-x-0 md:bottom-6 md:mt-0">© 2026 Desarrollador: Ezequiel Navarro Sahad</p>
     </div>
   </main>
 </body>

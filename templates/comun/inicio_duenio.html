@@ -3,7 +3,7 @@
 {# Inicio del dueño (DEC-134, DEC-147): solo el acceso a Reportes, sin totales del negocio. #}
 {% block contenido %}
   <div>
-    <h2 class="titulo-pantalla">Hola, {{ user.nombre_completo|default:user.username }}</h2>
+    <h1 class="titulo-pantalla">Hola, {{ user.nombre_completo|default:user.username }}</h1>
     <p class="bajada">Los números del negocio están en los reportes.</p>
   </div>
 

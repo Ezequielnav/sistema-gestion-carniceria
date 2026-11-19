@@ -341,6 +341,55 @@ def test_sc01_trae_hasta_el_tope_y_avisa_si_hay_mas(admin):
     assert len(resultados) == LIMITE_BUSQUEDA and hay_mas
 
 
+def test_dec206_sin_texto_el_cobro_trae_solo_los_que_deben_por_nombre(admin):
+    zulema = Cliente.objects.create(nombre="Zulema Activa")
+    baja = Cliente.objects.create(nombre="Beatriz Baja", activo=False)
+    Cliente.objects.create(nombre="Ana Sin Deuda")
+    Cliente.objects.create(nombre="Carla Baja Sin Deuda", activo=False)
+    _deuda(zulema, "300")
+    _deuda(baja, "150")
+
+    resultados, hay_mas = buscar_para_elegir(admin, "", para_cobro=True)
+
+    assert not hay_mas
+    assert [(r["nombre"], r["saldo"]) for r in resultados] == [
+        ("Beatriz Baja", "150.00"),
+        ("Zulema Activa", "300.00"),
+    ]
+
+
+def test_dec206_sin_texto_la_venta_trae_los_activos_por_nombre(admin):
+    Cliente.objects.create(nombre="Zulema")
+    Cliente.objects.create(nombre="Ana")
+    Cliente.objects.create(nombre="Baja", activo=False)
+
+    assert [r["nombre"] for r in buscar_para_elegir(admin, "  ")[0]] == ["Ana", "Zulema"]
+
+
+def test_dec206_sin_texto_respeta_el_tope_y_avisa_si_hay_mas(admin):
+    clientes = Cliente.objects.bulk_create(
+        Cliente(nombre=f"Cliente {i:03}") for i in range(LIMITE_BUSQUEDA + 1)
+    )
+    for cliente in clientes:
+        _deuda(cliente, "10")
+
+    for para_cobro in (False, True):
+        resultados, hay_mas = buscar_para_elegir(admin, "", para_cobro=para_cobro)
+        assert len(resultados) == LIMITE_BUSQUEDA and hay_mas
+        assert resultados[0]["nombre"] == "Cliente 000"
+
+
+def test_dec206_sin_texto_por_la_pantalla(client, cajera):
+    debe = Cliente.objects.create(nombre="Debe")
+    Cliente.objects.create(nombre="No debe")
+    _deuda(debe, "100")
+    client.force_login(cajera)
+
+    respuesta = client.get(BUSCAR, {"q": "", "para": "cobro"})
+
+    assert [r["id"] for r in respuesta.json()["resultados"]] == [debe.pk]
+
+
 @pytest.mark.parametrize("quien", ["admin", "cajera", "cajera_alta"])
 def test_sc01_el_administrador_y_la_cajera_eligen_clientes(client, request, cliente, quien):
     client.force_login(request.getfixturevalue(quien))

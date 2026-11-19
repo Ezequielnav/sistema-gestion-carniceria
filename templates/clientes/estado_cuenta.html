@@ -7,10 +7,10 @@
   <a href="{% url 'clientes:clientes' %}" class="volver">← Volver a clientes</a>
   <div class="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="titulo-pantalla">
+      <h1 class="titulo-pantalla">
         {{ cliente.nombre }}
         {% if not cliente.activo %}<span class="insignia insignia-neutra ml-2 align-middle font-sans">Dado de baja</span>{% endif %}
-      </h2>
+      </h1>
       <p class="bajada">Estado de cuenta{% if cliente.telefono %} · <span class="cifras">{{ cliente.telefono }}</span>{% endif %}{% if cliente.direccion %} · {{ cliente.direccion }}{% endif %}</p>
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
@@ -52,7 +52,7 @@
   </dl>
 
   <section class="recuadro mt-6" aria-labelledby="titulo-movimientos">
-    <h3 id="titulo-movimientos" class="recuadro-encabezado titulo-recuadro">Movimientos</h3>
+    <h2 id="titulo-movimientos" class="recuadro-encabezado titulo-recuadro">Movimientos</h2>
     {% if pagina.object_list %}
       <div class="recuadro-tabla">
         <table class="tabla tabla-compacta">
@@ -120,7 +120,7 @@
   <div class="mt-6 grid gap-6 lg:grid-cols-2">
     {# RF-41: límite y observaciones (DEC-108, DEC-112, DEC-115). #}
     <section class="recuadro p-5" aria-labelledby="titulo-condiciones">
-      <h3 id="titulo-condiciones" class="font-semibold">Límite y observaciones</h3>
+      <h2 id="titulo-condiciones" class="font-semibold">Límite y observaciones</h2>
       {% if cliente.activo %}
         <form method="post" action="{% url 'clientes:condiciones' cliente.pk %}" class="mt-4 space-y-4" novalidate>
           {% csrf_token %}
@@ -147,7 +147,7 @@
 
     {# CU-08 A4 y DEC-119: deuda que ya tenía al empezar; uno vigente por cliente (RI-18). #}
     <section class="recuadro p-5" aria-labelledby="titulo-saldo-inicial">
-      <h3 id="titulo-saldo-inicial" class="font-semibold">Saldo inicial</h3>
+      <h2 id="titulo-saldo-inicial" class="font-semibold">Saldo inicial</h2>
       {% if saldo_inicial and form_saldo_inicial.non_field_errors %}
         {# Una carga rechazada con un saldo inicial vigente (RI-18): el error va acá. #}
         <div role="alert" class="aviso aviso-error mt-3">{% for error in form_saldo_inicial.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>

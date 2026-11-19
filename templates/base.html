@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
   <script src="{% static 'js/menu.js' %}" defer></script>
+  <script src="{% static 'js/contrasena.js' %}" defer></script>
   {% block scripts %}{% endblock %}
 </head>
 <body class="min-h-screen">
@@ -19,8 +20,10 @@
       <a href="{% url 'inicio' %}" class="hidden px-6 pt-7 pb-6 text-superficie md:block">
         {% include "comun/_marca.html" with clase_logo="h-20 w-auto" clase_chica="text-[0.8125rem] text-menu-texto" clase_grande="text-[1.75rem]" %}
       </a>
+      {# Línea que separa la marca del menú (DEC-204). #}
+      <div class="menu-separador mx-6 hidden border-t md:block" aria-hidden="true"></div>
 
-      <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4 md:pt-0">
+      <nav aria-label="Menú" class="flex-1 overflow-y-auto px-3 py-4 md:pt-5">
         {# Inicio va dentro del grupo "Menú", con las funciones del rol (RF-02). #}
         <p class="menu-rotulo">Menú</p>
         <ul class="space-y-0.5">
@@ -46,7 +49,7 @@
                       class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-rotulo">
                   {% include "comun/_icono.html" with nombre=funcion.icono %}
                   <span class="flex-1">{{ funcion.nombre }}</span>
-                  <span class="rounded-sm bg-marino-800 px-2 py-0.5 text-[11px] font-semibold text-menu-texto">Pronto</span>
+                  <span class="insignia-menu">Pronto</span>
                 </span>
               {% endif %}
             </li>
@@ -67,7 +70,7 @@
       </nav>
 
       {% if user.is_authenticated %}
-        <div class="flex items-center gap-3 border-t border-marino-800 px-4 py-4">
+        <div class="menu-separador flex items-center gap-3 border-t px-4 py-4">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-marino-800 text-sm font-semibold text-superficie">
             {{ user.nombre_completo|default:user.username|slice:":1"|upper }}
           </span>
@@ -96,13 +99,14 @@
             {% include "comun/_icono.html" with nombre="menu" %}
             <span class="sr-only">Abrir menú</span>
           </button>
-          <h1 class="truncate text-base font-semibold">{% block encabezado %}Inicio{% endblock %}</h1>
+          {# La sección, como texto: el único h1 es el título de cada pantalla (DEC-201). #}
+          <p class="truncate text-base font-semibold">{% block encabezado %}Inicio{% endblock %}</p>
         </div>
         {% now "l j \d\e F" as hoy %}
         <p class="hidden text-sm text-tinta-suave sm:block">{{ hoy|capfirst }}</p>
         {# En el celular la barra lateral está cerrada: la marca queda en la barra superior. #}
         <a href="{% url 'inicio' %}" class="shrink-0 text-marino-900 sm:hidden" aria-label="Inicio">
-          {% if logo %}<span class="flex h-10 items-center rounded-md bg-marino-900 px-2">{% include "comun/_marca.html" with clase_logo="h-8 w-auto" %}</span>{% else %}<span class="font-serif text-xl font-semibold">Rojano</span>{% endif %}
+          {# Logo del negocio sin pastilla y a 44 px: a 32 px dentro de la pastilla no se lee (DEC-201). #}{% if logo %}{% include "comun/_marca.html" with clase_logo="h-11 w-auto" %}{% else %}<span class="font-serif text-xl font-semibold">Rojano</span>{% endif %}
         </a>
       </header>
 

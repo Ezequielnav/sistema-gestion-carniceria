@@ -608,6 +608,8 @@ Incluido en CU-04, CU-08 y SC-03. El usuario busca al cliente por nombre o telé
 
 **Implementación (H4, etapa 2):** el servicio `buscar_para_elegir` y `GET /clientes/buscar/?q=` (con `para=cobro` para sumar los dados de baja que deben) devuelven hasta 50 clientes con nombre, teléfono, saldo, límite (DEC-115), disponible y deuda vencida, y si hay más (como DEC-97). Lo usan el Administrador y la cajera (la vista acepta las funciones "Clientes" y "Ventas"; desde la etapa 4, también la del cobro); los dueños reciben 403. La elección en pantalla se arma en la venta (etapa 3) y en el cobro (etapa 4).
 
+**Implementación (ronda AJ-1, DEC-206):** al tocar el campo vacío (clic o flecha abajo) la lista se abre sin escribir. En el cobro (CU-04) trae los clientes con saldo mayor a cero, también los dados de baja que deben, por nombre y con su saldo; en la venta a cuenta corriente (SC-03), los activos por nombre. `GET /clientes/buscar/` con `q` vacío devuelve esa lista, hasta 50 (`LIMITE_BUSQUEDA`) y con el aviso de que hay más, como el buscador de productos (DEC-97). Al escribir filtra como antes; flechas, Enter y Escape no cambian.
+
 ### SC-02 Registrar movimiento de caja
 
 Incluido en CU-01, CU-04 (cuando el cobro entra a caja, DEC-110) y CU-07 (cuando el pago sale de caja). Registra un ingreso o egreso con monto y medio de pago en la caja abierta del turno (RN-04). Si no hay caja abierta, el sistema avisa.

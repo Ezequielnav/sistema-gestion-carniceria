@@ -11,6 +11,7 @@ from playwright.sync_api import expect
 from apps.caja.models import Turno
 from apps.caja.services import abrir_caja
 from apps.clientes.models import (
+    Cliente,
     MovimientoCuentaCorriente,
     PagoCliente,
     TipoMovimientoCuentaCorriente,
@@ -64,3 +65,37 @@ def test_cp152_la_cajera_cobra_y_llega_al_comprobante(navegador, usuario, efecti
     pagina.get_by_role("link", name="Nuevo cobro").click()
     pagina.get_by_role("link", name=f"Comprobante del cobro N.º {cobro.pk}").click()
     expect(pagina.get_by_label("Comprobante de cobro")).to_contain_text("$ 700,00")
+
+
+def test_cp156_al_tocar_el_campo_vacio_se_abre_la_lista(navegador, usuario, efectivo, deudor):
+    """DEC-206: en el cobro, los que deben (también los dados de baja), por nombre y con su
+    saldo; al escribir filtra como siempre y Escape la cierra."""
+    baja = Cliente.objects.create(nombre="Ana Baja", activo=False)
+    MovimientoCuentaCorriente.objects.create(
+        cliente=baja,
+        tipo=TipoMovimientoCuentaCorriente.SALDO_INICIAL,
+        monto=Decimal("250.00"),
+        fecha_origen=timezone.localdate(),
+        motivo="Deuda anterior",
+    )
+    Cliente.objects.create(nombre="Beto Sin Deuda")
+    abrir_caja(usuario, Turno.MANANA)
+    pagina = navegador.entrar(usuario)
+    pagina.goto(navegador.url_de("/clientes/cobrar/"))
+
+    pagina.locator("#buscar-cliente").click()
+    opciones = pagina.locator("#clientes [role=option]")
+    expect(opciones).to_have_count(2)
+    expect(opciones.nth(0)).to_contain_text("Ana Baja")
+    expect(opciones.nth(0)).to_contain_text("$ 250,00")
+    expect(opciones.nth(1)).to_contain_text("Marta Gómez")
+    expect(opciones.nth(1)).to_contain_text("$ 1.000,00")
+
+    pagina.keyboard.press("Escape")
+    expect(pagina.locator("#clientes")).to_be_hidden()
+
+    pagina.locator("#buscar-cliente").press_sequentially("Mar", delay=80)
+    expect(opciones).to_have_count(1)
+    pagina.keyboard.press("ArrowDown")
+    pagina.keyboard.press("Enter")
+    expect(pagina.locator("#cliente-nombre")).to_have_text("Marta Gómez")

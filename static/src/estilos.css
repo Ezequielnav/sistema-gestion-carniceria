@@ -74,7 +74,8 @@
   /* Datos que no deben competir (por ejemplo, los ceros de un reporte); 4,9:1 sobre superficie. */
   --color-tinta-tenue: #776d61;
   --color-borde-campo: #7d7366;
-  --color-borde: #e3dacb;
+  /* Borde de recuadros, pestañas y encabezados de tabla (AJ, DEC-201): 1,6:1 sobre superficie. */
+  --color-borde: #d4c8b4;
   --color-menu-texto: #e3dacb;
   --color-menu-rotulo: #a9b4cc;
   --color-peligro: #b3261e;
@@ -176,6 +177,12 @@
     @apply bg-marino-700 text-superficie hover:bg-marino-900;
   }
 
+  /* Ocupado (`aria-busy`, mientras espera al servidor, DEC-201): solo el cursor de espera; los
+     colores son los de siempre y el botón dice qué está haciendo. */
+  .boton-principal[aria-busy="true"] {
+    @apply cursor-progress;
+  }
+
   .boton-secundario {
     @apply border-borde-campo bg-superficie text-tinta hover:bg-papel;
   }
@@ -209,6 +216,42 @@
 
   /* Un campo con su error debajo lleva el borde en rojo: el error no depende solo del texto. */
   .campo:has(~ .error-campo:not(.hidden)) {
+    @apply border-peligro;
+  }
+
+  /* Campo de contraseña con el ojo adentro, a la derecha (DEC-202); botón de 44 px de alto. */
+  .campo-con-ojo {
+    @apply relative;
+  }
+
+  .campo-con-ojo .campo {
+    @apply pr-12;
+  }
+
+  /* El error queda fuera de la caja del ojo: el borde rojo se sigue marcando igual. */
+  .campo-con-ojo:has(~ .error-campo:not(.hidden)) .campo {
+    @apply border-peligro;
+  }
+
+  .boton-ojo {
+    @apply absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-tinta-suave hover:text-tinta;
+  }
+
+  /* Campo con un ícono que lo identifica a la izquierda (usuario y contraseña del ingreso, DEC-202). */
+  .con-icono {
+    @apply relative;
+  }
+
+  /* En el ingreso, el texto de ejemplo en `tinta-tenue` (4,9:1); en el resto queda `gray-400`. */
+  .con-icono .campo {
+    @apply pl-10 placeholder:text-tinta-tenue;
+  }
+
+  .icono-campo {
+    @apply pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-tinta-suave;
+  }
+
+  .con-icono:has(~ .error-campo:not(.hidden)) .campo {
     @apply border-peligro;
   }
 
@@ -266,6 +309,35 @@
     @apply bg-gray-100 text-tinta-suave;
   }
 
+  /* "Pronto" en el menú lateral, sobre marino: función que todavía no está disponible. */
+  .insignia-menu {
+    @apply rounded-sm bg-marino-800 px-2 py-0.5 text-[0.6875rem] font-semibold text-menu-texto;
+  }
+
+  /*
+   * Tarjeta con el estado de algo (la caja, el stock bajo): se tiñe según el estado y su punto
+   * acompaña al texto, nunca lo reemplaza (S-2). Componentes de DEC-201.
+   */
+  .tarjeta-estado {
+    @apply rounded-lg border border-borde bg-superficie p-5;
+  }
+
+  .tarjeta-estado-exito {
+    @apply border-exito/30 bg-exito-fondo;
+  }
+
+  .tarjeta-estado-alerta {
+    @apply border-alerta/40 bg-alerta-fondo;
+  }
+
+  .punto-estado {
+    @apply size-2.5 shrink-0 rounded-sm bg-gray-400;
+  }
+
+  .punto-estado-exito {
+    @apply bg-exito;
+  }
+
   /* Recuadros: agrupan, con borde fino y sin sombra. */
   .recuadro {
     @apply rounded-lg border border-borde bg-superficie;
@@ -298,8 +370,9 @@
     @apply px-3 py-3 sm:px-5;
   }
 
+  /* Líneas entre filas: un tono más suave que el borde del recuadro, pero visibles (DEC-201). */
   .tabla tbody tr + tr {
-    @apply border-t border-gray-100;
+    @apply border-t border-gray-200;
   }
 
   .tabla-compacta th,
@@ -341,7 +414,7 @@
 
   /* Lista desplegable de los buscadores. */
   .lista-opciones {
-    @apply max-h-80 divide-y divide-gray-100 overflow-y-auto rounded-md border border-borde-campo bg-superficie;
+    @apply max-h-80 divide-y divide-gray-200 overflow-y-auto rounded-md border border-borde-campo bg-superficie;
   }
 
   /* Enlace para volver a la pantalla anterior. */
@@ -378,12 +451,22 @@
   }
 
   /* Menú lateral sobre marino (S-5). */
+  /*
+   * Opción del menú (DEC-201, AJ-1). Al pasar el mouse, blanco al 5 %; la elegida
+   * (`aria-current`), blanco al 15 % (#33456F, texto 9,2:1), en semibold y con una barra fina
+   * `menu-rotulo` a la izquierda (4,5:1): se distingue del hover por el fondo, el peso y la barra.
+   */
   .menu-enlace {
-    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-texto hover:bg-marino-800 hover:text-superficie;
+    @apply relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-menu-texto hover:bg-superficie/5 hover:text-superficie;
   }
 
   .menu-enlace[aria-current="page"] {
-    @apply bg-superficie font-semibold text-marino-900 hover:bg-superficie hover:text-marino-900;
+    @apply bg-superficie/15 font-semibold text-superficie hover:bg-superficie/15 hover:text-superficie before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-r-sm before:bg-menu-rotulo;
+  }
+
+  /* Separadores de la barra lateral: blanco al 20 % (#3F5077), más claros que el fondo, sin llegar a blanco. */
+  .menu-separador {
+    @apply border-superficie/20;
   }
 
   .menu-rotulo {
